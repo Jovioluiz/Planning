@@ -1,0 +1,77 @@
+unit fInicio;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.Buttons;
+
+type
+  TfrmInicio = class(TForm)
+    pnlFundo: TPanel;
+    cbSprint: TComboBox;
+    Label1: TLabel;
+    Label2: TLabel;
+    cbUsuario: TComboBox;
+    btnEntrar: TSpeedButton;
+    rgTpUsuario: TRadioGroup;
+    procedure FormCreate(Sender: TObject);
+    procedure FormKeyPress(Sender: TObject; var Key: Char);
+    procedure btnEntrarClick(Sender: TObject);
+  private
+    procedure Entrar;
+  public
+  end;
+
+var
+  frmInicio: TfrmInicio;
+
+implementation
+
+uses
+  uInicio, System.Generics.Collections;
+
+{$R *.dfm}
+
+procedure TfrmInicio.btnEntrarClick(Sender: TObject);
+begin
+  Entrar;
+end;
+
+procedure TfrmInicio.Entrar;
+begin
+  if cbSprint.ItemIndex < 0 then
+    raise Exception.Create('Informe a sprint');
+//  if cbUsuario.ItemIndex < 0 then
+//    raise Exception.Create('Informe um usuário.');
+  ModalResult := mrOk;
+end;
+
+procedure TfrmInicio.FormCreate(Sender: TObject);
+var
+  inicio: TInicio;
+  sprint: TList<string>;
+begin
+  inicio := TInicio.Create;
+  sprint := nil;
+  try
+    sprint := inicio.GetSprints;
+
+    for var s in sprint do
+      cbSprint.Items.Add(s);
+  finally
+    inicio.Free;
+    sprint.Free;
+  end;
+end;
+
+procedure TfrmInicio.FormKeyPress(Sender: TObject; var Key: Char);
+begin
+  if Key = #13 then
+  begin
+    Key := #0;
+    Perform(WM_NEXTDLGCTL,0,0)
+  end;
+end;
+
+end.
