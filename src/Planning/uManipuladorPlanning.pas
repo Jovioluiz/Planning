@@ -13,8 +13,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure CarregaUsuariosPlanning(const Planning: string);
-
+    procedure CarregaUsuariosPlanning(const Sprint: string);
+    procedure CarregaChamadosAtivos(const Sprint: string);
     property Dados: TdmPlanning read FDados write FDados;
   end;
 
@@ -25,7 +25,42 @@ uses
 
 { TManipuladorPlanning }
 
-procedure TManipuladorPlanning.CarregaUsuariosPlanning(const Planning: string);
+procedure TManipuladorPlanning.CarregaChamadosAtivos(const Sprint: string);
+const
+  SQL = ' SELECT ' +
+        ' 	nr_chamado, ' +
+        ' 	descricao, ' +
+        ' 	ativo, ' +
+        ' 	finalizado ' +
+        ' FROM ' +
+        ' 	lista_chamados ' +
+        ' WHERE nr_sprint = :nr_sprint ' +
+        ' ORDER BY nr_chamado ';
+var
+  consulta: TConsultaSQL;
+begin
+  consulta := TConsultaSQL.GetConsultaSQL();
+
+  try
+    consulta.Open(SQL, [Sprint]);
+
+    consulta.First;
+    while not consulta.Eof do
+    begin
+      FDados.cdsChamadosAtivos.Append;
+      FDados.cdsChamadosAtivos.FieldByName('nr_chamado').AsString := consulta.FieldByName('nr_chamado').AsString;
+      FDados.cdsChamadosAtivos.FieldByName('descricao_chamado').AsString := consulta.FieldByName('descricao').AsString;
+      FDados.cdsChamadosAtivos.FieldByName('ativo').AsBoolean := consulta.FieldByName('ativo').AsBoolean;
+      FDados.cdsChamadosAtivos.FieldByName('finalizado').AsBoolean := consulta.FieldByName('finalizado').AsBoolean;
+      FDados.cdsChamadosAtivos.Post;
+      consulta.Next;
+    end;
+  finally
+    consulta.Free;
+  end;
+end;
+
+procedure TManipuladorPlanning.CarregaUsuariosPlanning(const Sprint: string);
 const
   SQL = ' SELECT ' +
         ' 	ecu.cd_usuario, ' +
@@ -45,7 +80,7 @@ begin
   consulta := TConsultaSQL.GetConsultaSQL();
 
   try
-    consulta.Open(SQL, [Planning]);
+    consulta.Open(SQL, [Sprint]);
 
     consulta.First;
     while not consulta.Eof do

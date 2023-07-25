@@ -1,7 +1,7 @@
 object dmPlanning: TdmPlanning
   OldCreateOrder = False
-  Height = 150
-  Width = 215
+  Height = 247
+  Width = 488
   object dsPlanning: TDataSource
     DataSet = cdsPlanning
     Left = 16
@@ -55,7 +55,44 @@ object dmPlanning: TdmPlanning
     IndexDefs = <>
     Params = <>
     StoreDefs = True
-    Left = 64
+    Left = 72
     Top = 8
+  end
+  object dsChamadosAtivos: TDataSource
+    DataSet = cdsChamadosAtivos
+    Left = 168
+    Top = 16
+  end
+  object cdsChamadosAtivos: TClientDataSet
+    PersistDataPacket.Data = {
+      740000009619E0BD01000000180000000400000000000300000074000A6E725F
+      6368616D61646F04000100000000001164657363726963616F5F6368616D6164
+      6F010049000000010005574944544802000200C80005617469766F0200030000
+      0000000A66696E616C697A61646F02000300000000000000}
+    Active = True
+    Aggregates = <>
+    FieldDefs = <
+      item
+        Name = 'nr_chamado'
+        DataType = ftInteger
+      end
+      item
+        Name = 'descricao_chamado'
+        DataType = ftString
+        Size = 200
+      end
+      item
+        Name = 'ativo'
+        DataType = ftBoolean
+      end
+      item
+        Name = 'finalizado'
+        DataType = ftBoolean
+      end>
+    IndexDefs = <>
+    Params = <>
+    StoreDefs = True
+    Left = 264
+    Top = 16
   end
 end

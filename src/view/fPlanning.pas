@@ -5,7 +5,8 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.ComCtrls, Data.DB,
-  Vcl.Grids, Vcl.DBGrids, uManipuladorPlanning, uUsuario, uModerador;
+  Vcl.Grids, Vcl.DBGrids, uManipuladorPlanning, uUsuario, uModerador,
+  Vcl.DBCtrls, Vcl.Buttons;
 
 type
   TfrmPlanning = class(TForm)
@@ -29,6 +30,15 @@ type
     pnlSuperior: TPanel;
     pnlInferior: TPanel;
     grdPlanningUsuarios: TDBGrid;
+    pnlSprint: TPanel;
+    PageControl1: TPageControl;
+    TabSheet1: TTabSheet;
+    grdChamadosAtivos: TDBGrid;
+    TabSheet2: TTabSheet;
+    grdChamadosFinalizados: TDBGrid;
+    btnProximo: TSpeedButton;
+    btnAnterior: TSpeedButton;
+    btnIniciar: TSpeedButton;
     procedure pnl0Click(Sender: TObject);
     procedure pnlMeioClick(Sender: TObject);
     procedure pnl1Click(Sender: TObject);
@@ -44,14 +54,15 @@ type
     procedure FormShow(Sender: TObject);
   private
     FManipuladorPlanning: TManipuladorPlanning;
-    FPlannig,
+    FSprint,
     FNomeUsuario: string;
     FTipoUsuario: Integer;
     FUsuario: IUsuario;
     procedure AlteraCorCarta(Sender: TObject);
     procedure PreencheUsuario;
+    procedure ConfiguraPlanning;
   public
-    property Plannig: string read FPlannig write FPlannig;
+    property Sprint: string read FSprint write FSprint;
     property ManipuladorPlanning: TManipuladorPlanning read FManipuladorPlanning write FManipuladorPlanning;
     property NomeUsuario: string read FNomeUsuario write FNomeUsuario;
     property TipoUsuario: Integer read FTipoUsuario write FTipoUsuario;
@@ -63,7 +74,7 @@ var
 implementation
 
 uses
-  uJogador;
+  uJogador, uObservador;
 
 {$R *.dfm}
 
@@ -85,10 +96,17 @@ begin
   TPanel(Sender).Repaint;
 end;
 
+procedure TfrmPlanning.ConfiguraPlanning;
+begin
+  pnlSuperior.Visible := FUsuario.Moderador;
+  pnlSprint.Caption := FSprint + ' Planning';
+end;
+
 procedure TfrmPlanning.FormCreate(Sender: TObject);
 begin
   FManipuladorPlanning := TManipuladorPlanning.Create;
   grdPlanningUsuarios.DataSource := FManipuladorPlanning.Dados.dsPlanning;
+  grdChamadosAtivos.DataSource := FManipuladorPlanning.Dados.dsChamadosAtivos;
 end;
 
 procedure TfrmPlanning.FormDestroy(Sender: TObject);
@@ -101,10 +119,13 @@ begin
   case TipoUsuario of
     0: FUsuario := TModerador.Create;
     1: FUsuario := TJogador.Create;
-    2: FUsuario := TModerador.Create;
+    2: FUsuario := TObservador.Create;
   end;
   PreencheUsuario;
-  FManipuladorPlanning.CarregaUsuariosPlanning(FPlannig);
+  FUsuario := FUsuario.GetUsuario;
+  ConfiguraPlanning;
+  FManipuladorPlanning.CarregaUsuariosPlanning(FSprint);
+  FManipuladorPlanning.CarregaChamadosAtivos(FSprint);
 end;
 
 procedure TfrmPlanning.pnl0Click(Sender: TObject);
@@ -162,7 +183,7 @@ begin
 //  FUsuario.Codigo:= FManipuladorPlanning.GetCodUsuario(FNomeUsuario);
   FUsuario.Nome := FNomeUsuario;
   FUsuario.Moderador := (FUsuario is TModerador);
-//  FUsuario.Observador := (FUsuario is TObservador);
+  FUsuario.Observador := (FUsuario is TObservador);
   FUsuario.Jogador := (FUsuario is TJogador);
 end;
 

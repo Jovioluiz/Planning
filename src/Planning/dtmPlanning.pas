@@ -9,6 +9,8 @@ type
   TdmPlanning = class(TDataModule)
     dsPlanning: TDataSource;
     cdsPlanning: TClientDataSet;
+    dsChamadosAtivos: TDataSource;
+    cdsChamadosAtivos: TClientDataSet;
   private
     { Private declarations }
   public

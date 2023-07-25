@@ -14,7 +14,8 @@ uses
   uManipuladorPlanning in 'src\Planning\uManipuladorPlanning.pas',
   uUsuario in 'src\Usuario\uUsuario.pas',
   uModerador in 'src\Usuario\uModerador.pas',
-  uJogador in 'src\Usuario\uJogador.pas';
+  uJogador in 'src\Usuario\uJogador.pas',
+  uObservador in 'src\Usuario\uObservador.pas';
 
 {$R *.res}
 
@@ -32,7 +33,7 @@ begin
     FreeAndNil(frmInicio);
     Application.Initialize;
     Application.CreateForm(TfrmPlanning, frmPlanning);
-    frmPlanning.Plannig := planning;
+    frmPlanning.Sprint := planning;
     frmPlanning.TipoUsuario := tpUsuario;
     frmPlanning.NomeUsuario := nmUsuario;
     Application.Run;
