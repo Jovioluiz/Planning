@@ -11,7 +11,7 @@ uses
   fPlanning in 'src\view\fPlanning.pas' {frmPlanning},
   uInicio in 'src\Inicio\uInicio.pas',
   dtmPlanning in 'src\Planning\dtmPlanning.pas' {dmPlanning: TDataModule},
-  uManipuladorPlanning in 'src\Planning\uManipuladorPlanning.pas',
+  uManipuladorPlanningDAO in 'src\Planning\uManipuladorPlanningDAO.pas',
   uUsuario in 'src\Usuario\uUsuario.pas',
   uModerador in 'src\Usuario\uModerador.pas',
   uJogador in 'src\Usuario\uJogador.pas',
@@ -29,7 +29,7 @@ begin
   begin
     var planning := frmInicio.cbSprint.Text;
     var tpUsuario := frmInicio.rgTpUsuario.ItemIndex;
-    var nmUsuario := frmInicio.cbUsuario.Text;
+    var nmUsuario := frmInicio.edtUsuario.Text;
     FreeAndNil(frmInicio);
     Application.Initialize;
     Application.CreateForm(TfrmPlanning, frmPlanning);

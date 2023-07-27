@@ -25,8 +25,6 @@ object frmInicio: TfrmInicio
     Height = 152
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 325
-    ExplicitHeight = 145
     object Label1: TLabel
       Left = 32
       Top = 35
@@ -57,14 +55,6 @@ object frmInicio: TfrmInicio
       Style = csOwnerDrawFixed
       TabOrder = 0
     end
-    object cbUsuario: TComboBox
-      Left = 80
-      Top = 70
-      Width = 177
-      Height = 22
-      Style = csOwnerDrawFixed
-      TabOrder = 1
-    end
     object rgTpUsuario: TRadioGroup
       Left = 263
       Top = 24
@@ -77,6 +67,14 @@ object frmInicio: TfrmInicio
         'Jogador'
         'Observador')
       TabOrder = 2
+    end
+    object edtUsuario: TEdit
+      Left = 80
+      Top = 71
+      Width = 177
+      Height = 21
+      CharCase = ecUpperCase
+      TabOrder = 1
     end
   end
 end

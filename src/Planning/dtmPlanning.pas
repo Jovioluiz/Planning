@@ -7,8 +7,8 @@ uses
 
 type
   TdmPlanning = class(TDataModule)
-    dsPlanning: TDataSource;
-    cdsPlanning: TClientDataSet;
+    dsUsuariosPlanning: TDataSource;
+    cdsUsuariosPlanning: TClientDataSet;
     dsChamadosAtivos: TDataSource;
     cdsChamadosAtivos: TClientDataSet;
   private

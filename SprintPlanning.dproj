@@ -122,7 +122,7 @@
             <FormType>dfm</FormType>
             <DesignClass>TDataModule</DesignClass>
         </DCCReference>
-        <DCCReference Include="src\Planning\uManipuladorPlanning.pas"/>
+        <DCCReference Include="src\Planning\uManipuladorPlanningDAO.pas"/>
         <DCCReference Include="src\Usuario\uUsuario.pas"/>
         <DCCReference Include="src\Usuario\uModerador.pas"/>
         <DCCReference Include="src\Usuario\uJogador.pas"/>

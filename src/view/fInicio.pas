@@ -12,9 +12,9 @@ type
     cbSprint: TComboBox;
     Label1: TLabel;
     Label2: TLabel;
-    cbUsuario: TComboBox;
     btnEntrar: TSpeedButton;
     rgTpUsuario: TRadioGroup;
+    edtUsuario: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure btnEntrarClick(Sender: TObject);
@@ -42,8 +42,8 @@ procedure TfrmInicio.Entrar;
 begin
   if cbSprint.ItemIndex < 0 then
     raise Exception.Create('Informe a sprint');
-//  if cbUsuario.ItemIndex < 0 then
-//    raise Exception.Create('Informe um usuário.');
+  if edtUsuario.Text = '' then
+    raise Exception.Create('Informe um usuário.');
   ModalResult := mrOk;
 end;
 
