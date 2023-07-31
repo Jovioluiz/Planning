@@ -20,8 +20,11 @@ type
     procedure CarregaChamadosAtivos(const Sprint: string);
     procedure VerificaUsuarioCadastradoSprint(const CodUsuario: Integer; const Sprint: string);
     procedure AtualizaEstimativaChamado(const CodUsuario, NrChamado: Integer; const Planning: Double);
-
+    procedure IniciaEstimativaChamado(const Sprint: string; const NrChamado: Integer);
     function CadastraOuGetCodUsuario(const NomeUsuario: string; const TipoJogador: TTipoUsuario): Integer;
+    function GetChamadoAtivo(const Sprint: string): Integer;
+    procedure PreencheDataSetVotacao(const Sprint: string; const NrChamado: Integer);
+    procedure FinalizaVotacaoChamado(const Sprint: string; const NrChamado: Integer);
     property Dados: TdmPlanning read FDados write FDados;
   end;
 
@@ -86,6 +89,28 @@ begin
   finally
     consulta.Free;
     update.Free;
+  end;
+end;
+
+function TManipuladorPlanning.GetChamadoAtivo(const Sprint: string): Integer;
+const
+  SQL = ' SELECT ' +
+        ' 	nr_chamado ' +
+        ' FROM  ' +
+        ' 	lista_chamados ' +
+        ' WHERE ' +
+        ' 	nr_sprint = :nr_sprint ' +
+        ' 	AND chamado_votacao ';
+var
+  consulta: TConsultaSQL;
+begin
+  consulta := TConsultaSQL.GetConsultaSQL(SQL);
+
+  try
+    consulta.Open(SQL, [Sprint]);
+    Result := consulta.FieldByName('nr_chamado').AsInteger;
+  finally
+    consulta.Free;
   end;
 end;
 
@@ -162,6 +187,65 @@ begin
     end;
   finally
     consulta.Free;
+  end;
+end;
+
+procedure TManipuladorPlanning.IniciaEstimativaChamado(const Sprint: string; const NrChamado: Integer);
+const
+  SQL = ' UPDATE ' +
+        ' 	lista_chamados ' +
+        ' SET ' +
+        ' 	chamado_votacao = TRUE  ' +
+        ' WHERE ' +
+        ' 	nr_sprint = :nr_sprint ' +
+        ' 	AND nr_chamado = :nr_chamado ';
+var
+  consulta: TConsultaSQL;
+begin
+  consulta := TConsultaSQL.GetConsultaSQL();
+
+  try
+    consulta.ExecSQL(SQL, [Sprint, NrChamado]);
+  finally
+    consulta.Free;
+  end;
+end;
+
+procedure TManipuladorPlanning.PreencheDataSetVotacao(const Sprint: string; const NrChamado: Integer);
+const
+  SQL = ' SELECT ' +
+        ' 	ecu.cd_usuario, ' +
+        ' 	ecu.planning  ' +
+        ' 	FROM lista_chamados lc ' +
+        ' JOIN estimativa_chamado_usuarios ecu ON	lc.nr_chamado = ecu.nr_chamado ' +
+        ' WHERE ' +
+        ' 	lc.nr_sprint = :nr_sprint ' +
+        ' 	AND lc.nr_chamado = :nr_chamado ';
+var
+  consulta: TConsultaSQL;
+  book: TBookmark;
+begin
+  consulta := TConsultaSQL.GetConsultaSQL();
+  FDados.cdsUsuariosPlanning.DisableControls;
+
+  try
+    consulta.Open(SQL, [Sprint, NrChamado]);
+    consulta.First;
+    book := FDados.cdsUsuariosPlanning.GetBookmark;
+    while not consulta.Eof do
+    begin
+      if FDados.cdsUsuariosPlanning.Locate('cd_usuario', consulta.FieldByName('cd_usuario').AsInteger, []) then
+        FDados.cdsUsuariosPlanning.Edit;
+      FDados.cdsUsuariosPlanning.FieldByName('planning').AsFloat := consulta.FieldByName('planning').AsFloat;
+      FDados.cdsUsuariosPlanning.Post;
+      consulta.Next;
+    end;
+    if FDados.cdsUsuariosPlanning.BookmarkValid(book) then
+      FDados.cdsUsuariosPlanning.GotoBookmark(book);
+  finally
+    FDados.cdsUsuariosPlanning.EnableControls;
+    consulta.Free;
+    FDados.cdsUsuariosPlanning.FreeBookmark(book);
   end;
 end;
 
@@ -250,13 +334,15 @@ const
   SQL = ' SELECT ' +
         '   DISTINCT ' +
         ' 	ecu.cd_usuario, ' +
-        ' 	u.nm_usuario ' +
+        ' 	u.nm_usuario, ' +
+        '   u.moderador ' +
         ' FROM ' +
         ' 	estimativa_chamado_usuarios ecu ' +
         ' JOIN lista_chamados lc ON ecu.nr_chamado = lc.nr_chamado ' +
         ' JOIN usuario u ON ecu.cd_usuario = u.cd_usuario ' +
         ' WHERE ' +
-        ' 	lc.nr_sprint = :nr_sprint ';
+        ' 	lc.nr_sprint = :nr_sprint ' +
+        ' ORDER BY u.moderador DESC' ;
 var
   consulta: TConsultaSQL;
 begin
@@ -270,6 +356,7 @@ begin
       FDados.cdsUsuariosPlanning.Append;
       FDados.cdsUsuariosPlanning.FieldByName('cd_usuario').AsInteger := consulta.FieldByName('cd_usuario').AsInteger;
       FDados.cdsUsuariosPlanning.FieldByName('nm_usuario').AsString := consulta.FieldByName('nm_usuario').AsString;
+      FDados.cdsUsuariosPlanning.FieldByName('moderador').AsBoolean := consulta.FieldByName('moderador').AsBoolean;
       FDados.cdsUsuariosPlanning.Post;
       consulta.Next;
     end;
@@ -287,6 +374,36 @@ destructor TManipuladorPlanning.Destroy;
 begin
   FDados.Free;
   inherited;
+end;
+
+procedure TManipuladorPlanning.FinalizaVotacaoChamado(const Sprint: string; const NrChamado: Integer);
+const
+  UPDATE = ' UPDATE ' +
+           ' 	lista_chamados ' +
+           ' SET ' +
+           ' 	ativo = FALSE, ' +
+           ' 	finalizado = TRUE, ' +
+           ' 	chamado_votacao = FALSE  ' +
+           ' WHERE ' +
+           ' 	nr_chamado = :nr_chamado ' +
+           ' 	AND nr_sprint = :nr_sprint ';
+var
+  consulta: TConsultaSQL;
+begin
+  consulta := TConsultaSQL.GetConsultaSQL();
+
+  try
+    if FDados.cdsChamadosAtivos.Locate('nr_chamado', NrChamado, []) then
+    begin
+      FDados.cdsChamadosAtivos.Edit;
+      FDados.cdsChamadosAtivos.FieldByName('ativo').AsBoolean := False;
+      FDados.cdsChamadosAtivos.FieldByName('finalizado').AsBoolean := True;
+      FDados.cdsChamadosAtivos.Post;
+      consulta.ExecSQL(UPDATE, [NrChamado, Sprint]);
+    end;
+  finally
+    consulta.Free;
+  end;
 end;
 
 end.

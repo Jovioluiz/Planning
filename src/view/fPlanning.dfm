@@ -272,7 +272,6 @@ object frmPlanning: TfrmPlanning
                 FieldName = 'planning'
                 ReadOnly = True
                 Title.Caption = 'Planning'
-                Width = -1
                 Visible = False
               end>
           end
@@ -421,6 +420,7 @@ object frmPlanning: TfrmPlanning
               FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
               FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
               FF00FFFFFF00}
+            OnClick = btnProximoClick
           end
           object btnAnterior: TSpeedButton
             Left = 168
@@ -1220,6 +1220,7 @@ object frmPlanning: TfrmPlanning
               0000000000000000000000000000000000000000000000000000000000000000
               0000000000000000000000000000000000000000000000000000000000000000
               000000000000}
+            OnClick = btnPararClick
           end
         end
         object pnlInferior: TPanel

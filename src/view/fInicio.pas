@@ -12,9 +12,9 @@ type
     cbSprint: TComboBox;
     Label1: TLabel;
     Label2: TLabel;
-    btnEntrar: TSpeedButton;
     rgTpUsuario: TRadioGroup;
     edtUsuario: TEdit;
+    btnEntrar: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure btnEntrarClick(Sender: TObject);

@@ -39,14 +39,6 @@ object frmInicio: TfrmInicio
       Height = 13
       Caption = 'Usuario'
     end
-    object btnEntrar: TSpeedButton
-      Left = 112
-      Top = 98
-      Width = 105
-      Height = 31
-      Caption = 'Entrar'
-      OnClick = btnEntrarClick
-    end
     object cbSprint: TComboBox
       Left = 80
       Top = 31
@@ -75,6 +67,15 @@ object frmInicio: TfrmInicio
       Height = 21
       CharCase = ecUpperCase
       TabOrder = 1
+    end
+    object btnEntrar: TButton
+      Left = 120
+      Top = 98
+      Width = 89
+      Height = 31
+      Caption = 'Entrar'
+      TabOrder = 3
+      OnClick = btnEntrarClick
     end
   end
 end

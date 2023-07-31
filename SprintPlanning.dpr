@@ -24,18 +24,25 @@ begin
   Application.CreateForm(TdmConexao, dmConexao);
   Application.CreateForm(TfrmInicio, frmInicio);
   Application.CreateForm(TdmPlanning, dmPlanning);
-  frmInicio.ShowModal;
-  if frmInicio.ModalResult = mrOk then
-  begin
-    var planning := frmInicio.cbSprint.Text;
-    var tpUsuario := frmInicio.rgTpUsuario.ItemIndex;
-    var nmUsuario := frmInicio.edtUsuario.Text;
-    FreeAndNil(frmInicio);
-    Application.Initialize;
-    Application.CreateForm(TfrmPlanning, frmPlanning);
-    frmPlanning.Sprint := planning;
-    frmPlanning.TipoUsuario := tpUsuario;
-    frmPlanning.NomeUsuario := nmUsuario;
-    Application.Run;
+  try
+    frmInicio.ShowModal;
+    if frmInicio.ModalResult = mrOk then
+    begin
+      var planning := frmInicio.cbSprint.Text;
+      var tpUsuario := frmInicio.rgTpUsuario.ItemIndex;
+      var nmUsuario := frmInicio.edtUsuario.Text;
+      FreeAndNil(frmInicio);
+      Application.Initialize;
+      Application.CreateForm(TfrmPlanning, frmPlanning);
+      frmPlanning.Sprint := planning;
+      frmPlanning.TipoUsuario := tpUsuario;
+      frmPlanning.NomeUsuario := nmUsuario;
+      Application.Run;
+    end;
+  finally
+    dmConexao.Free;
+    frmInicio.Free;
+    dmPlanning.Free;
   end;
+
 end.

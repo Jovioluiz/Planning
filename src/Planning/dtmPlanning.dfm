@@ -9,10 +9,10 @@ object dmPlanning: TdmPlanning
   end
   object cdsUsuariosPlanning: TClientDataSet
     PersistDataPacket.Data = {
-      5D0000009619E0BD0100000018000000030000000000030000005D000A63645F
+      6F0000009619E0BD0100000018000000040000000000030000006F000A63645F
       7573756172696F04000100000000000A6E6D5F7573756172696F010049000000
-      010005574944544802000200140008706C616E6E696E67080004000000000000
-      00}
+      010005574944544802000200140008706C616E6E696E67080004000000000009
+      6D6F64657261646F7202000300000000000000}
     Active = True
     Aggregates = <>
     FieldDefs = <
@@ -28,11 +28,15 @@ object dmPlanning: TdmPlanning
       item
         Name = 'planning'
         DataType = ftFloat
+      end
+      item
+        Name = 'moderador'
+        DataType = ftBoolean
       end>
     IndexDefs = <>
     Params = <>
     StoreDefs = True
-    Left = 120
+    Left = 144
     Top = 8
   end
   object dsChamadosAtivos: TDataSource
