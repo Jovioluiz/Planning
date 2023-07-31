@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.ComCtrls, Data.DB,
   Vcl.Grids, Vcl.DBGrids, uManipuladorPlanningDAO, uUsuario, uModerador,
-  Vcl.DBCtrls, Vcl.Buttons;
+  Vcl.DBCtrls, Vcl.Buttons, Vcl.StdCtrls;
 
 type
   TCartaPlanning = (cpZero, cpMeio, cpUm, cpDois, cpTres, cpCinco, cpOito, cpTreze, cpVinte, cpQuarenta);
@@ -42,6 +42,8 @@ type
     btnIniciar: TSpeedButton;
     btnParar: TSpeedButton;
     timerUsuario: TTimer;
+    btnImportarChamados: TButton;
+    dialog: TFileOpenDialog;
     procedure pnl0Click(Sender: TObject);
     procedure pnlMeioClick(Sender: TObject);
     procedure pnl1Click(Sender: TObject);
@@ -57,6 +59,9 @@ type
     procedure FormShow(Sender: TObject);
     procedure btnIniciarClick(Sender: TObject);
     procedure timerUsuarioTimer(Sender: TObject);
+    procedure btnPararClick(Sender: TObject);
+    procedure btnProximoClick(Sender: TObject);
+    procedure btnImportarChamadosClick(Sender: TObject);
   private
     FManipuladorPlanning: TManipuladorPlanning;
     FSprint,
@@ -70,6 +75,8 @@ type
     procedure IniciarEstimativaChamado;
     procedure AdicionaVotacaoUsuario(const Carta: TCartaPlanning);
     procedure VerificaFinalizouVotacao;
+    procedure ProximoChamado;
+    procedure BuscaArquivoChamados;
   public
     property Sprint: string read FSprint write FSprint;
     property ManipuladorPlanning: TManipuladorPlanning read FManipuladorPlanning write FManipuladorPlanning;
@@ -114,6 +121,7 @@ var
   i: Integer;
   nomePanel: string;
 begin
+  IniciarEstimativaChamado;
   nomePanel := TPanel(Sender).Name;
   for i := 0 to Pred(pnlCartasPlanning.ControlCount) do
   begin
@@ -123,14 +131,44 @@ begin
       TPanel(pnlCartasPlanning.Controls[i]).Repaint;
     end;
   end;
-  TPanel(Sender).Color := clHighlight;
-  TPanel(Sender).Repaint;
+  if not (Carta in [cpZero]) then
+  begin
+    TPanel(Sender).Color := clHighlight;
+    TPanel(Sender).Repaint;
+  end;
+  if FNumeroChamadoAtivo = 0 then
+  begin
+    FNumeroChamadoAtivo := FManipuladorPlanning.GetChamadoAtivo(FSprint);
+    timerUsuario.Enabled := True;
+  end;
   AdicionaVotacaoUsuario(Carta);
 end;
 
 procedure TfrmPlanning.btnIniciarClick(Sender: TObject);
 begin
   IniciarEstimativaChamado;
+end;
+
+procedure TfrmPlanning.btnPararClick(Sender: TObject);
+begin
+  timerUsuario.Enabled := False;
+  FNumeroChamadoAtivo := 0;
+end;
+
+procedure TfrmPlanning.btnProximoClick(Sender: TObject);
+begin
+  ProximoChamado;
+end;
+
+procedure TfrmPlanning.BuscaArquivoChamados;
+begin
+  if dialog.Execute and (dialog.FileName <> '') then
+    FManipuladorPlanning.ImportaChamadosArquivo(dialog.FileName, FSprint);
+end;
+
+procedure TfrmPlanning.btnImportarChamadosClick(Sender: TObject);
+begin
+  BuscaArquivoChamados;
 end;
 
 procedure TfrmPlanning.ConfiguraPlanning;
@@ -144,7 +182,6 @@ begin
   FManipuladorPlanning := TManipuladorPlanning.Create;
   grdPlanningUsuarios.DataSource := FManipuladorPlanning.Dados.dsUsuariosPlanning;
   grdChamadosAtivos.DataSource := FManipuladorPlanning.Dados.dsChamadosAtivos;
-  FNumeroChamadoAtivo := 0;
 end;
 
 procedure TfrmPlanning.FormDestroy(Sender: TObject);
@@ -159,6 +196,7 @@ begin
     1: FUsuario := TJogador.Create;
     2: FUsuario := TObservador.Create;
   end;
+  FNumeroChamadoAtivo := FManipuladorPlanning.GetChamadoAtivo(FSprint);
   PreencheUsuario;
   FUsuario := FUsuario.GetUsuario;
   ConfiguraPlanning;
@@ -170,8 +208,11 @@ end;
 procedure TfrmPlanning.IniciarEstimativaChamado;
 begin
   FManipuladorPlanning.Dados.cdsChamadosAtivos.First;
-  pnlTitulo.Caption := FManipuladorPlanning.Dados.cdsChamadosAtivos.FieldByName('descricao_chamado').AsString;
-  FNumeroChamadoAtivo := FManipuladorPlanning.Dados.cdsChamadosAtivos.FieldByName('nr_chamado').AsInteger;
+  pnlTitulo.Caption := FManipuladorPlanning.Dados.cdsChamadosAtivos.FieldByName('nr_chamado').AsString
+                       + ' - ' + FManipuladorPlanning.Dados.cdsChamadosAtivos.FieldByName('descricao_chamado').AsString;
+  FManipuladorPlanning.IniciaEstimativaChamado(FSprint,
+                                               FManipuladorPlanning.Dados.cdsChamadosAtivos.FieldByName('nr_chamado').AsInteger);
+  FNumeroChamadoAtivo := FManipuladorPlanning.GetChamadoAtivo(FSprint);
   timerUsuario.Enabled := True;
 end;
 
@@ -243,6 +284,21 @@ begin
   FUsuario.Codigo := FManipuladorPlanning.CadastraOuGetCodUsuario(FNomeUsuario, usuario);
 end;
 
+procedure TfrmPlanning.ProximoChamado;
+begin
+  try
+    FManipuladorPlanning.FinalizaVotacaoChamado(FSprint, FNumeroChamadoAtivo);
+    FManipuladorPlanning.Dados.cdsChamadosAtivos.Filter := ' nr_sprint = ' + '''' + FSprint + '''' + ' and not finalizado ';
+    FManipuladorPlanning.Dados.cdsChamadosAtivos.Filtered := True;
+    FManipuladorPlanning.Dados.cdsChamadosAtivos.First;
+    FManipuladorPlanning.IniciaEstimativaChamado(FSprint,
+                                                 FManipuladorPlanning.Dados.cdsChamadosAtivos.FieldByName('nr_chamado').AsInteger);
+    FNumeroChamadoAtivo := FManipuladorPlanning.GetChamadoAtivo(FSprint);
+  except on E: Exception do
+    timerUsuario.Enabled := False;
+  end;
+end;
+
 procedure TfrmPlanning.timerUsuarioTimer(Sender: TObject);
 begin
   timerUsuario.Enabled := False;
@@ -259,6 +315,9 @@ var
   jaVotaram: Boolean;
   book: TBookmark;
 begin
+  if FUsuario.Moderador then
+    Exit;
+  FManipuladorPlanning.PreencheDataSetVotacao(FSprint, FNumeroChamadoAtivo);
   FManipuladorPlanning.Dados.cdsUsuariosPlanning.DisableControls;
   jaVotaram := True;
   try
@@ -266,15 +325,21 @@ begin
     FManipuladorPlanning.Dados.cdsUsuariosPlanning.First;
     while not FManipuladorPlanning.Dados.cdsUsuariosPlanning.Eof do
     begin
-      jaVotaram := FManipuladorPlanning.Dados.cdsUsuariosPlanning.FieldByName('planning').AsFloat > 0;
-      if not jaVotaram then
-        Break;
+      if not FManipuladorPlanning.Dados.cdsUsuariosPlanning.FieldByName('moderador').AsBoolean then
+        jaVotaram := jaVotaram and (FManipuladorPlanning.Dados.cdsUsuariosPlanning.FieldByName('planning').AsFloat > 0);
       FManipuladorPlanning.Dados.cdsUsuariosPlanning.Next;
     end;
     if FManipuladorPlanning.Dados.cdsUsuariosPlanning.BookmarkValid(book) then
       FManipuladorPlanning.Dados.cdsUsuariosPlanning.GotoBookmark(book);
     
     grdPlanningUsuarios.Columns.Items[2].Visible := jaVotaram;
+    if jaVotaram then
+    begin
+      timerUsuario.Enabled := False;
+      AlteraCorCarta(Self, cpZero);
+      ProximoChamado;
+    end;
+
   finally
     FManipuladorPlanning.Dados.cdsUsuariosPlanning.EnableControls;
     FManipuladorPlanning.Dados.cdsUsuariosPlanning.FreeBookmark(book);

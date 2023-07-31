@@ -1,10 +1,9 @@
 object frmPlanning: TfrmPlanning
   Left = 0
   Top = 0
-  BorderIcons = [biSystemMenu, biMinimize]
   Caption = 'Planning'
   ClientHeight = 811
-  ClientWidth = 988
+  ClientWidth = 1016
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -21,27 +20,34 @@ object frmPlanning: TfrmPlanning
   object pnlFundo: TPanel
     Left = 0
     Top = 41
-    Width = 988
+    Width = 1016
     Height = 770
     Align = alClient
     TabOrder = 0
+    ExplicitWidth = 988
     object pcPlanning: TPageControl
       Left = 1
       Top = 1
-      Width = 986
+      Width = 1014
       Height = 768
       ActivePage = tsPlanning
       Align = alClient
       TabOrder = 0
+      ExplicitWidth = 986
       object tsPlanning: TTabSheet
         Caption = 'Planning'
         object pnlCartasPlanning: TPanel
-          Left = 0
-          Top = 121
-          Width = 656
-          Height = 344
+          AlignWithMargins = True
+          Left = 3
+          Top = 130
+          Width = 672
+          Height = 326
           Align = alClient
           TabOrder = 0
+          ExplicitLeft = 0
+          ExplicitTop = 121
+          ExplicitWidth = 656
+          ExplicitHeight = 344
           object pnl0: TPanel
             Left = 4
             Top = 6
@@ -234,18 +240,22 @@ object frmPlanning: TfrmPlanning
           end
         end
         object pnlDireito: TPanel
-          Left = 656
-          Top = 121
+          AlignWithMargins = True
+          Left = 681
+          Top = 130
           Width = 322
-          Height = 344
+          Height = 326
           Align = alRight
           AutoSize = True
           TabOrder = 1
+          ExplicitLeft = 656
+          ExplicitTop = 121
+          ExplicitHeight = 344
           object grdPlanningUsuarios: TDBGrid
             Left = 1
             Top = 1
             Width = 320
-            Height = 342
+            Height = 324
             Align = alClient
             TabOrder = 0
             TitleFont.Charset = DEFAULT_CHARSET
@@ -272,18 +282,21 @@ object frmPlanning: TfrmPlanning
                 FieldName = 'planning'
                 ReadOnly = True
                 Title.Caption = 'Planning'
-                Width = -1
                 Visible = False
               end>
           end
         end
         object pnlSuperior: TPanel
-          Left = 0
-          Top = 0
-          Width = 978
+          AlignWithMargins = True
+          Left = 3
+          Top = 3
+          Width = 1000
           Height = 121
           Align = alTop
           TabOrder = 2
+          ExplicitLeft = 0
+          ExplicitTop = 0
+          ExplicitWidth = 978
           object btnProximo: TSpeedButton
             Left = 248
             Top = 40
@@ -421,6 +434,7 @@ object frmPlanning: TfrmPlanning
               FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
               FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
               FF00FFFFFF00}
+            OnClick = btnProximoClick
           end
           object btnAnterior: TSpeedButton
             Left = 168
@@ -1220,32 +1234,38 @@ object frmPlanning: TfrmPlanning
               0000000000000000000000000000000000000000000000000000000000000000
               0000000000000000000000000000000000000000000000000000000000000000
               000000000000}
+            OnClick = btnPararClick
           end
         end
         object pnlInferior: TPanel
-          Left = 0
-          Top = 465
-          Width = 978
+          AlignWithMargins = True
+          Left = 3
+          Top = 462
+          Width = 1000
           Height = 275
           Align = alBottom
           Caption = 'pnlInferior'
           TabOrder = 3
+          ExplicitLeft = 0
+          ExplicitTop = 465
+          ExplicitWidth = 978
           object PageControl1: TPageControl
             Left = 1
             Top = 1
-            Width = 976
+            Width = 998
             Height = 273
             ActivePage = TabSheet1
             Align = alClient
             TabOrder = 0
+            ExplicitWidth = 976
             object TabSheet1: TTabSheet
               Caption = 'Chamados Ativos'
               object grdChamadosAtivos: TDBGrid
                 Left = 0
-                Top = 0
-                Width = 968
-                Height = 245
-                Align = alClient
+                Top = 43
+                Width = 990
+                Height = 202
+                Align = alBottom
                 TabOrder = 0
                 TitleFont.Charset = DEFAULT_CHARSET
                 TitleFont.Color = clWindowText
@@ -1269,6 +1289,15 @@ object frmPlanning: TfrmPlanning
                     Visible = True
                   end>
               end
+              object btnImportarChamados: TButton
+                Left = 3
+                Top = 3
+                Width = 110
+                Height = 34
+                Caption = 'Importar Chamados'
+                TabOrder = 1
+                OnClick = btnImportarChamadosClick
+              end
             end
             object TabSheet2: TTabSheet
               Caption = 'Chamados Finalizados'
@@ -1276,7 +1305,7 @@ object frmPlanning: TfrmPlanning
               object grdChamadosFinalizados: TDBGrid
                 Left = 0
                 Top = 0
-                Width = 968
+                Width = 990
                 Height = 245
                 Align = alClient
                 TabOrder = 0
@@ -1299,7 +1328,7 @@ object frmPlanning: TfrmPlanning
   object pnlTitulo: TPanel
     Left = 0
     Top = 0
-    Width = 988
+    Width = 1016
     Height = 41
     Align = alTop
     Caption = 'Descri'#231#227'o do chamado'
@@ -1310,6 +1339,7 @@ object frmPlanning: TfrmPlanning
     Font.Style = [fsBold]
     ParentFont = False
     TabOrder = 1
+    ExplicitWidth = 988
     object pnlSprint: TPanel
       Left = 1
       Top = 1
@@ -1325,5 +1355,12 @@ object frmPlanning: TfrmPlanning
     OnTimer = timerUsuarioTimer
     Left = 813
     Top = 299
+  end
+  object dialog: TFileOpenDialog
+    FavoriteLinks = <>
+    FileTypes = <>
+    Options = []
+    Left = 258
+    Top = 548
   end
 end

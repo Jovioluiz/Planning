@@ -24,6 +24,8 @@ object frmInicio: TfrmInicio
     Width = 460
     Height = 152
     Align = alClient
+    BorderStyle = bsSingle
+    Color = clSilver
     TabOrder = 0
     object Label1: TLabel
       Left = 32
@@ -39,14 +41,6 @@ object frmInicio: TfrmInicio
       Height = 13
       Caption = 'Usuario'
     end
-    object btnEntrar: TSpeedButton
-      Left = 112
-      Top = 98
-      Width = 105
-      Height = 31
-      Caption = 'Entrar'
-      OnClick = btnEntrarClick
-    end
     object cbSprint: TComboBox
       Left = 80
       Top = 31
@@ -61,7 +55,7 @@ object frmInicio: TfrmInicio
       Width = 185
       Height = 105
       Caption = 'Op'#231#245'es'
-      ItemIndex = 2
+      ItemIndex = 1
       Items.Strings = (
         'Moderador'
         'Jogador'
@@ -75,6 +69,15 @@ object frmInicio: TfrmInicio
       Height = 21
       CharCase = ecUpperCase
       TabOrder = 1
+    end
+    object btnEntrar: TButton
+      Left = 120
+      Top = 98
+      Width = 89
+      Height = 31
+      Caption = 'Entrar'
+      TabOrder = 3
+      OnClick = btnEntrarClick
     end
   end
 end
