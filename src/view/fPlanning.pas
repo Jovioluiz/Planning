@@ -141,11 +141,6 @@ begin
     FNumeroChamadoAtivo := FManipuladorPlanning.GetChamadoAtivo(FSprint);
     timerUsuario.Enabled := True;
   end;
-  if FNumeroChamadoAtivo = 0 then
-  begin
-    FNumeroChamadoAtivo := FManipuladorPlanning.GetChamadoAtivo(FSprint);
-    timerUsuario.Enabled := True;
-  end;
   AdicionaVotacaoUsuario(Carta);
 end;
 

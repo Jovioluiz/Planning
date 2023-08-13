@@ -20,6 +20,7 @@ type
     procedure btnEntrarClick(Sender: TObject);
   private
     procedure Entrar;
+    procedure PreencheSprints;
   public
   end;
 
@@ -48,6 +49,20 @@ begin
 end;
 
 procedure TfrmInicio.FormCreate(Sender: TObject);
+begin
+  PreencheSprints;
+end;
+
+procedure TfrmInicio.FormKeyPress(Sender: TObject; var Key: Char);
+begin
+  if Key = #13 then
+  begin
+    Key := #0;
+    Perform(WM_NEXTDLGCTL,0,0)
+  end;
+end;
+
+procedure TfrmInicio.PreencheSprints;
 var
   inicio: TInicio;
   sprint: TList<string>;
@@ -62,15 +77,6 @@ begin
   finally
     inicio.Free;
     sprint.Free;
-  end;
-end;
-
-procedure TfrmInicio.FormKeyPress(Sender: TObject; var Key: Char);
-begin
-  if Key = #13 then
-  begin
-    Key := #0;
-    Perform(WM_NEXTDLGCTL,0,0)
   end;
 end;
 

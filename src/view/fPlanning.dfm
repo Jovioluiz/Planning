@@ -2,8 +2,8 @@ object frmPlanning: TfrmPlanning
   Left = 0
   Top = 0
   Caption = 'Planning'
-  ClientHeight = 811
-  ClientWidth = 1016
+  ClientHeight = 825
+  ClientWidth = 1004
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -20,34 +20,34 @@ object frmPlanning: TfrmPlanning
   object pnlFundo: TPanel
     Left = 0
     Top = 41
-    Width = 1016
-    Height = 770
+    Width = 1004
+    Height = 784
     Align = alClient
     TabOrder = 0
-    ExplicitWidth = 988
+    ExplicitWidth = 1016
+    ExplicitHeight = 770
     object pcPlanning: TPageControl
       Left = 1
       Top = 1
-      Width = 1014
-      Height = 768
+      Width = 1002
+      Height = 782
       ActivePage = tsPlanning
       Align = alClient
       TabOrder = 0
-      ExplicitWidth = 986
+      ExplicitWidth = 1014
+      ExplicitHeight = 768
       object tsPlanning: TTabSheet
         Caption = 'Planning'
         object pnlCartasPlanning: TPanel
           AlignWithMargins = True
           Left = 3
           Top = 130
-          Width = 672
-          Height = 326
+          Width = 660
+          Height = 340
           Align = alClient
           TabOrder = 0
-          ExplicitLeft = 0
-          ExplicitTop = 121
-          ExplicitWidth = 656
-          ExplicitHeight = 344
+          ExplicitWidth = 672
+          ExplicitHeight = 326
           object pnl0: TPanel
             Left = 4
             Top = 6
@@ -241,21 +241,20 @@ object frmPlanning: TfrmPlanning
         end
         object pnlDireito: TPanel
           AlignWithMargins = True
-          Left = 681
+          Left = 669
           Top = 130
           Width = 322
-          Height = 326
+          Height = 340
           Align = alRight
           AutoSize = True
           TabOrder = 1
-          ExplicitLeft = 656
-          ExplicitTop = 121
-          ExplicitHeight = 344
+          ExplicitLeft = 681
+          ExplicitHeight = 326
           object grdPlanningUsuarios: TDBGrid
             Left = 1
             Top = 1
             Width = 320
-            Height = 324
+            Height = 338
             Align = alClient
             TabOrder = 0
             TitleFont.Charset = DEFAULT_CHARSET
@@ -290,13 +289,11 @@ object frmPlanning: TfrmPlanning
           AlignWithMargins = True
           Left = 3
           Top = 3
-          Width = 1000
+          Width = 988
           Height = 121
           Align = alTop
           TabOrder = 2
-          ExplicitLeft = 0
-          ExplicitTop = 0
-          ExplicitWidth = 978
+          ExplicitWidth = 1000
           object btnProximo: TSpeedButton
             Left = 248
             Top = 40
@@ -1240,30 +1237,29 @@ object frmPlanning: TfrmPlanning
         object pnlInferior: TPanel
           AlignWithMargins = True
           Left = 3
-          Top = 462
-          Width = 1000
+          Top = 476
+          Width = 988
           Height = 275
           Align = alBottom
           Caption = 'pnlInferior'
           TabOrder = 3
-          ExplicitLeft = 0
-          ExplicitTop = 465
-          ExplicitWidth = 978
+          ExplicitTop = 462
+          ExplicitWidth = 1000
           object PageControl1: TPageControl
             Left = 1
             Top = 1
-            Width = 998
+            Width = 986
             Height = 273
             ActivePage = TabSheet1
             Align = alClient
             TabOrder = 0
-            ExplicitWidth = 976
+            ExplicitWidth = 998
             object TabSheet1: TTabSheet
               Caption = 'Chamados Ativos'
               object grdChamadosAtivos: TDBGrid
                 Left = 0
                 Top = 43
-                Width = 990
+                Width = 978
                 Height = 202
                 Align = alBottom
                 TabOrder = 0
@@ -1328,7 +1324,7 @@ object frmPlanning: TfrmPlanning
   object pnlTitulo: TPanel
     Left = 0
     Top = 0
-    Width = 1016
+    Width = 1004
     Height = 41
     Align = alTop
     Caption = 'Descri'#231#227'o do chamado'
@@ -1339,7 +1335,7 @@ object frmPlanning: TfrmPlanning
     Font.Style = [fsBold]
     ParentFont = False
     TabOrder = 1
-    ExplicitWidth = 988
+    ExplicitWidth = 1016
     object pnlSprint: TPanel
       Left = 1
       Top = 1
