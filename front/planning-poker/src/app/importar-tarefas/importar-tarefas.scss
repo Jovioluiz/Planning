@@ -1,0 +1,64 @@
+.importar-container {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px dashed #aaa;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+
+  h3 {
+    margin-bottom: 10px;
+  }
+
+  input[type="file"] {
+    margin-bottom: 10px;
+  }
+
+  button {
+    padding: 5px 10px;
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background-color: #fff;
+}
+
+th, td {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+}
+
+input[type="file"] {
+  margin-bottom: 1rem;
+}
+
+.tabela-tarefa {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  background-color: #fefefe;
+  border: 1px solid #ccc;
+
+  th, td {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f0f0f0;
+  }
+}
+
+.tabela-fila {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2rem;
+}
+
+.tabela-fila th, .tabela-fila td {
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+}

@@ -1,0 +1,26 @@
+<div class="container">
+  <h2>Importar Tarefas</h2>
+  <input type="file" accept=".csv" (change)="handleFile($event)" />
+
+  <h3>Fila de Estimativas</h3>
+  <table border="1" cellpadding="5" cellspacing="0" width="100%">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Número</th>
+        <th>Título</th>
+        <th>Descrição</th>
+        <th>Ação</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let t of tarefas">
+        <td>{{ t.id }}</td>
+        <td>{{ t.numero }}</td>
+        <td>{{ t.titulo }}</td>
+        <td>{{ t.descricao }}</td>
+        <td><button (click)="iniciarEstimativa(t)">Iniciar Estimativa</button></td>
+      </tr>
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,17 @@
+<div class="login-container">
+    <div class="login-box">
+        <h2>Login</h2>
+        <form (ngSubmit)="login($event)" [attr.action]="'#'" method="post" novalidate>
+            <input type="text" [(ngModel)]="usuario" name="usuario" placeholder="Usuário" required />
+            <input type="password" [(ngModel)]="senha" name="senha" placeholder="Senha" required />    
+            <select [(ngModel)]="perfil" name="perfil" required>
+                <option value="" disabled selected>Selecione um perfil</option>
+                <option value="ADMIN">Administrador</option>
+                <option value="JOGADOR">Desenvolvedor</option>
+                <option value="OBSERVADOR">Observador</option>
+            </select>         
+            <button type="submit">Entrar</button>
+        </form>
+        <p *ngIf="erro" style="color:red">{{ erro }}</p>
+    </div>
+</div>

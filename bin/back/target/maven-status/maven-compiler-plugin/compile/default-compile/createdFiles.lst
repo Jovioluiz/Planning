@@ -1,0 +1,13 @@
+com\planningapp\repository\EstimationRepository.class
+com\planningapp\entity\Estimation.class
+com\planningapp\repository\UserRepository.class
+com\planningapp\entity\User.class
+com\planningapp\controller\EstimationController.class
+com\planningapp\repository\TaskRepository.class
+com\planningapp\auth\AuthController.class
+com\planningapp\PlanningApp.class
+com\planningapp\entity\Task.class
+com\planningapp\service\EstimationService.class
+com\planningapp\service\TaskService.class
+com\planningapp\config\WebConfig.class
+com\planningapp\controller\TaskController.class

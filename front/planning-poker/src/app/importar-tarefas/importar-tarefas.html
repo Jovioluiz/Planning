@@ -1,0 +1,68 @@
+
+<p>Usuário logado: {{ usuario }}</p>
+<h3>Importar Tarefas</h3>
+
+<input type="file" (change)="onFileSelected($event)" accept=".csv" />
+<p><small>O arquivo CSV deve conter colunas: <code>numero</code>, <code>titulo</code>, <code>descricao</code></small></p>
+
+<hr />
+
+<h4>Tarefas importadas</h4>
+<table *ngIf="tarefas.length > 0" border="1" cellpadding="5">
+  <thead>
+    <tr>
+      <th>Número</th>
+      <th>Título</th>
+      <th>Descrição</th>
+      <th>Ação</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let t of tarefas">
+      <td>{{ t.numero }}</td>
+      <td>{{ t.titulo }}</td>
+      <td>{{ t.descricao }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+
+<h3>Fila de Estimativas</h3>
+<table *ngIf="tarefasFila.length > 0" class="tabela-fila">
+  <thead>
+    <tr>
+      <th>Número</th>
+      <th>Título</th>
+      <th>Descrição</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let t of tarefasFila">
+      <td>{{ t.numero }}</td>
+      <td>{{ t.titulo }}</td>
+      <td>{{ t.descricao }}</td>
+      <td><button (click)="iniciarEstimativa(t)">Iniciar Estimativa</button></td>
+    </tr>
+  </tbody>
+</table>
+<p *ngIf="tarefasFila.length === 0">Nenhuma tarefa na fila.</p>
+
+
+<h4>Tarefas em votação</h4>
+<table *ngIf="tarefaEmVotacao" class="tabela-tarefa">
+  <tr>
+    <th>Número</th>
+    <th>Título</th>
+    <th>Descrição</th>
+  </tr>
+  <tr>
+    <td>{{ tarefaEmVotacao.numero }}</td>
+    <td>{{ tarefaEmVotacao.titulo }}</td>
+    <td>{{ tarefaEmVotacao.descricao }}</td>
+  </tr>
+</table>
+
+<div *ngIf="!tarefaEmVotacao">
+  <p>Nenhuma tarefa liberada para votação no momento.</p>
+</div>
