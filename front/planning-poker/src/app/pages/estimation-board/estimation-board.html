@@ -11,8 +11,13 @@
 
 
   <div class="cartas">
-    <button *ngFor="let carta of cartas" (click)="votar(carta)">
-      {{ carta }}
+    <button *ngFor="let carta of cartas" (click)="votarCarta(carta)">
+      <ng-container *ngIf="carta === '?'">
+       <img src="assets/cafe.png" alt="?" width="40" height="40" />
+      </ng-container>
+      <ng-container *ngIf="carta !== '?'">
+        {{ carta }}
+      </ng-container>
     </button>
   </div>
 
@@ -21,14 +26,34 @@
     <button (click)="resetar()">Resetar</button>
   </div>
 
-  <div class="estimativas">
-    <h3>Estimativas:</h3>
+  <h3>Estimativas dos Participantes</h3>
+<table *ngIf="estimativas.length > 0">
+  <thead>
+    <tr>
+      <th>Participante</th>
+      <th>Pontos</th>
+      <th>Horas</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let est of estimativas">
+      <td>{{ est.user }}</td>
+      <td>{{ est.Pontos }}</td>
+      <td>{{ est.Horas }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<p *ngIf="estimativas.length === 0">Nenhuma estimativa registrada ainda.</p>
+
+  <!-- <div class="estimativas">
+    <h3>Estimativas dos Participantes:</h3>
     <ul>
       <li *ngFor="let est of estimativas">
         {{ est.participante }}: {{ est.valor }}
       </li>
     </ul>
-  </div>
+  </div> -->
 
   <p *ngIf="erro" class="erro-voto">{{ erro }}</p>
 </div>

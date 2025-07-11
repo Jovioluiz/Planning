@@ -19,7 +19,7 @@ export class EstimationBoard implements OnInit {
   taskId: string | null = null;
   erro = '';
   estimativas: any[] = [];
-  cartas = [1, 2, 3, 5, 8, 13, 21];
+  cartas = [1, 2, 3, 5, 8, 13, 21, '?'];
   tarefa: any = null;
   descricao = '';
   titulo = '';
@@ -39,13 +39,19 @@ export class EstimationBoard implements OnInit {
 }
 
   carregarTarefa() {
-    this.taskService.buscarTarefaAtiva().subscribe({
+    this.taskService.getTaskById(this.taskId!).subscribe({
       next: (dados) => this.tarefa = dados,
       error: (err) => console.error('Erro ao carregar tarefa', err)
     });
   }
 
-async votar(pontos: number) {
+votarCarta(carta: number | string) {
+  const pontos = carta === '?' ? -1 : carta;
+  this.votar(pontos);
+}
+
+
+async votar(pontos: number | string) {
     if (!this.participante.trim()) {
       this.erro = "Informe o nome do participante!";
       return;
@@ -71,7 +77,7 @@ async votar(pontos: number) {
 
   atualizarEstimativas() {
     this.estimationService.listar(this.taskId!).subscribe({
-      next: dados => this.estimativas = dados,
+      next: (dados: any[] )=> this.estimativas = dados,
       error: err => console.error('Erro ao listar estimativas:', err)
     });
 }

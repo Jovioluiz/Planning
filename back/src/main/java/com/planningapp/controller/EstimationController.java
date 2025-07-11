@@ -10,9 +10,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/tarefas/{taskId}/estimativas")
@@ -86,20 +88,21 @@ public class EstimationController {
         return ResponseEntity.ok(Map.of("success", true, "message", "Voto registrado"));
     }
     
-    @GetMapping("/listar")
-    public ResponseEntity<List<Estimation>> listar(@PathVariable Long id) {
-        return ResponseEntity.ok(estimationService.findByTaskId(id));
-    }
-//    public List<Map<String, Object>> listarEstimativas(@PathVariable Long taskId) {
-//        List<Estimation> estimativas = estimationService.findByTaskId(taskId);
-//        return estimativas.stream().map(est -> {
-//            Map<String, Object> map = new HashMap<>();
-//            map.put("user", est.getParticipante());
-//            map.put("Pontos", est.isRevealed() ? est.getPontos() : "🔒");
-//            map.put("Horas", est.isRevealed() ? est.getHoras() : "🔒");
-//            return map;
-//        }).collect(Collectors.toList());
+//    @GetMapping("/listar")
+//    public ResponseEntity<List<Estimation>> listar(@PathVariable("taskId") Long taskId) {
+//        return ResponseEntity.ok(estimationService.findByTaskId(taskId));
 //    }
+    @GetMapping("/listar")
+    public List<Map<String, Object>> listarEstimativas(@PathVariable("taskId") Long taskId) {
+        List<Estimation> estimativas = estimationService.findByTaskId(taskId);
+        return estimativas.stream().map(est -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("user", est.getParticipante());
+            map.put("Pontos", est.isRevealed() ? est.getPontos() : "🔒");
+            map.put("Horas", est.isRevealed() ? est.getHoras() : "🔒");
+            return map;
+        }).collect(Collectors.toList());
+    }
     
     @PostMapping("/revelar")
     public void revelarEstimativas(@PathVariable Long taskId) {
