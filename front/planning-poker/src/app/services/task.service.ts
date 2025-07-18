@@ -42,5 +42,9 @@ importarCSV(tarefas: any[]) {
   return this.http.post(`${this.url}/importar`, tarefas );
 }
 
+removerTarefa(id: string){
+  return this.http.delete(this.url + `/excluirTarefa/${id}`, {});
+}
+
 
 }

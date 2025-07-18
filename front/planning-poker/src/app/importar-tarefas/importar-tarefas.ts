@@ -95,19 +95,18 @@ onFileSelected(event: Event) {
     });
   }
 
+  removerTarefaEstimativa(id: string): void {
+    console.log('ID', id);
+    this.taskService.removerTarefa(id);
+    this.carregarFilaTarefas();
+  }
+
   carregarFilaTarefas() {
   this.taskService.getTarefasFila().subscribe({
     next: (dados) => this.tarefasFila = dados,
     error: (err) => console.error('Erro ao buscar tarefas na fila', err)
   });
 }
-
-  // importarTarefas() {
-  //   this.taskService.importarCSV(this.csvData).subscribe({
-  //     next: () => alert('Importação realizada com sucesso'),
-  //     error: () => alert('Erro ao importar tarefas')
-  //   });
-  // }
 
 
 }

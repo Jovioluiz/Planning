@@ -42,8 +42,12 @@ public class EstimationService {
     	}        
     }
     
-    public boolean existsByTaskAndParticipante(Task task, String participante) {
-    	return estimationRepository.existsByTaskAndParticipante(task, participante);
+//    public boolean existsByTaskAndParticipante(Task task, String participante) {
+//    	return estimationRepository.existsByTaskAndParticipante(task, participante);
+//    }
+    
+    public Optional<Estimation> findByTaskAndParticipante(Long taskId, String participante) {
+    	return estimationRepository.findByTaskAndParticipante(taskId, participante);
     }
    
 }

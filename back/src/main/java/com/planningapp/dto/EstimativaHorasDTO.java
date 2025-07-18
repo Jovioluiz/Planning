@@ -1,20 +1,20 @@
 package com.planningapp.dto;
 
-public class EstimativaDTO {
+public class EstimativaHorasDTO {
+
 	private String participante;
-	private Integer pontos;
-	
+    private double horas;
+    
+	public double getHoras() {
+		return horas;
+	}
+	public void setHoras(double horas) {
+		this.horas = horas;
+	}
 	public String getParticipante() {
 		return participante;
 	}
 	public void setParticipante(String participante) {
 		this.participante = participante;
 	}
-	public Integer getPontos() {
-		return pontos;
-	}
-	public void setPontos(Integer pontos) {
-		this.pontos = pontos;
-	}
-
 }

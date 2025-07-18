@@ -28,23 +28,23 @@ login(usuario: string, senha: string, perfil: string): Observable<boolean> {
 }
 
   logout() {
-    localStorage.removeItem('usuario');
+    sessionStorage.removeItem('usuario');
   }
 
   getUsuario(): string | null {
-    return localStorage.getItem('usuario');
+    return sessionStorage.getItem('usuario');
   }
 
   setUsuario(usuario: string) {
-    localStorage.setItem('usuario', usuario);
+    sessionStorage.setItem('usuario', usuario);
   }
 
   setPerfil(perfil: string){
-    localStorage.setItem('perfil', perfil)
+    sessionStorage.setItem('perfil', perfil)
   }
 
   getPerfil(): string | null{
-    return localStorage.getItem('perfil');
+    return sessionStorage.getItem('perfil');
   }
 
   isLogado(): boolean {

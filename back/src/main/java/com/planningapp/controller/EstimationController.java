@@ -1,6 +1,7 @@
 package com.planningapp.controller;
 
 import com.planningapp.dto.EstimativaDTO;
+import com.planningapp.dto.EstimativaHorasDTO;
 import com.planningapp.entity.Estimation;
 import com.planningapp.entity.Task;
 import com.planningapp.service.EstimationService;
@@ -30,8 +31,8 @@ public class EstimationController {
         return estimationService.findByTaskId(taskId);
     }
 
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    @DeleteMapping("/excluirTarefa/{id}")
+    public void delete(@PathVariable("id") Long id) {
         estimationService.delete(id);
     }
     
@@ -46,10 +47,37 @@ public class EstimationController {
 		}
         
         return estimativas.stream()
-                          .mapToDouble(Estimation::getHoras)
+        				  .filter(e -> e.getPontos() >= 0) // ignora votos "?"
+        				  .mapToDouble(Estimation::getHoras)
                           .average()
                           .orElse(0.0);
     }
+    
+    
+    @PostMapping("/votarHoras")
+    public ResponseEntity<?> votarHoras(@PathVariable Long taskId, @RequestBody EstimativaHorasDTO dto) {
+        Optional<Estimation> estOpt = estimationService.findByTaskAndParticipante(taskId, dto.getParticipante());
+        
+    	if (taskId == null) {
+    		return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Task ID inválido."));
+    	}
+    	
+        if (dto.getParticipante() == null || dto.getHoras() < 0) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Dados incompletos"));
+        }
+
+        if (estOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("success", false, "message", "Estimativa não encontrada"));
+        }
+
+        Estimation est = estOpt.get();
+        est.setHoras(dto.getHoras());
+        estimationService.save(est);
+
+        return ResponseEntity.ok(Map.of("success", true, "message", "Horas registradas"));
+    } 
+    
+    
     
     @PostMapping("/votar")
     public ResponseEntity<?> votar(@PathVariable Long taskId, @RequestBody EstimativaDTO dto) {
@@ -60,7 +88,7 @@ public class EstimationController {
     	}
     	
         
-        if (dto.getParticipante() == null || dto.getPontos() <= 0) {
+        if (dto.getParticipante() == null || dto.getPontos() == null) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Dados incompletos"));
         }
         
@@ -70,38 +98,47 @@ public class EstimationController {
         	return ResponseEntity.status(404).body(Map.of("success", false, "message", "Tarefa não encontrada"));
         }
         
-        Task task = tarefaOpt.get();
+//        Task task = tarefaOpt.get();
         
-        boolean jaVotou = estimationService.existsByTaskAndParticipante(task, dto.getParticipante());
-        if (jaVotou) {
-            return ResponseEntity.status(409).body(Map.of("success", false, "message", "Participante já votou nesta tarefa"));
+//        boolean jaVotou = estimationService.existsByTaskAndParticipante(task, dto.getParticipante());
+//        if (jaVotou) {
+//            return ResponseEntity.status(409).body(Map.of("success", false, "message", "Participante já votou nesta tarefa"));
+//        }
+        
+        List<Estimation> estimativas = estimationService.findByTaskId(taskId);
+        
+        if (!estimativas.isEmpty()) {
+        	Estimation est = estimativas.get(0);
+        	est.setPontos(dto.getPontos());
+        	estimationService.save(est);
+        }else {        	
+	        Estimation estimativa = new Estimation();
+	        estimativa.setTarefa(tarefaOpt.get());
+	        estimativa.setParticipante(dto.getParticipante());
+	        estimativa.setPontos(dto.getPontos());
+	        estimativa.setRevealed(false); // ou conforme regra
+	        estimationService.save(estimativa);
         }
     	
-        Estimation estimativa = new Estimation();
-        estimativa.setTarefa(tarefaOpt.get());
-        estimativa.setParticipante(dto.getParticipante());
-        estimativa.setPontos(dto.getPontos());
-        estimativa.setRevealed(false); // ou conforme regra
-
-        estimationService.save(estimativa);
 
         return ResponseEntity.ok(Map.of("success", true, "message", "Voto registrado"));
     }
     
-//    @GetMapping("/listar")
-//    public ResponseEntity<List<Estimation>> listar(@PathVariable("taskId") Long taskId) {
-//        return ResponseEntity.ok(estimationService.findByTaskId(taskId));
-//    }
+
     @GetMapping("/listar")
     public List<Map<String, Object>> listarEstimativas(@PathVariable("taskId") Long taskId) {
         List<Estimation> estimativas = estimationService.findByTaskId(taskId);
+        
         return estimativas.stream().map(est -> {
             Map<String, Object> map = new HashMap<>();
             map.put("user", est.getParticipante());
-            map.put("Pontos", est.isRevealed() ? est.getPontos() : "🔒");
-            map.put("Horas", est.isRevealed() ? est.getHoras() : "🔒");
+            
+            Object pontos = est.isRevealed() ? (est.getPontos() == -1 ? "?" : est.getPontos()) : "🔒";
+            Object horas = est.isRevealed() ? est.getHoras() : "🔒";
+            map.put("Pontos", pontos);
+            map.put("Horas", horas);
             return map;
-        }).collect(Collectors.toList());
+        }).collect(Collectors.toList());      
     }
     
     @PostMapping("/revelar")

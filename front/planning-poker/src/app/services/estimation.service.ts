@@ -11,13 +11,18 @@ export class EstimationService {
   constructor(private http: HttpClient) {}
 
   votar(taskId: string, participante: string, pontos: number | string): Observable<any> {
-
-    
     return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/votar`, {
       participante,
       pontos
     });
 
+  }
+
+  votarHoras(taskId: string, participante: string, horaSelecionada: number | string): Observable<any> {
+      return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/votarHoras`, {
+      participante,
+      horaSelecionada
+    });
   }
 
   listar(taskId: string): Observable<any[]> {

@@ -19,10 +19,14 @@ export class EstimationBoard implements OnInit {
   taskId: string | null = null;
   erro = '';
   estimativas: any[] = [];
-  cartas = [1, 2, 3, 5, 8, 13, 21, '?'];
+  cartas = [1, 2, 3, 5, 8, 13, 21, -1];
+  horas = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24];
   tarefa: any = null;
   descricao = '';
   titulo = '';
+  estadoVotacao: 'pontos' | 'horas' | 'finalizado' = 'pontos';
+  pontoSelecionado: number = 0;
+  horaSelecionada: number = 0;
 
   constructor(private taskService: TaskService, 
               private estimationService: EstimationService, 
@@ -31,11 +35,16 @@ export class EstimationBoard implements OnInit {
 
 
   ngOnInit(): void {
-    this.participante = localStorage.getItem('usuario') || '';
+    this.participante = sessionStorage.getItem('usuario') || '';
     this.taskId = this.route.snapshot.paramMap.get('id')!;
     console.log("ID TASK: ", this.taskId);
     this.carregarTarefa();
     this.atualizarEstimativas();
+}
+
+logout(){
+  sessionStorage.removeItem('usuario');
+  this.router.navigate(['/login']);
 }
 
   carregarTarefa() {
@@ -45,20 +54,42 @@ export class EstimationBoard implements OnInit {
     });
   }
 
-votarCarta(carta: number | string) {
-  const pontos = carta === '?' ? -1 : carta;
-  this.votar(pontos);
+// votarCarta() {
+//   this.votar();
+// }
+
+votarHoras() {
+  if (!this.horaSelecionada) {
+    this.erro = "Selecione uma estimativa de horas!";
+    return;
+  }
+
+  this.estimationService.votarHoras(this.taskId!, this.participante, this.horaSelecionada).subscribe({
+    next: () => {
+      this.estadoVotacao = 'finalizado';
+      this.atualizarEstimativas();
+    },
+    error: (err) => { this.erro = 'Erro ao votar horas'; }
+  });
 }
 
 
-async votar(pontos: number | string) {
+async votarPontos() {
     if (!this.participante.trim()) {
       this.erro = "Informe o nome do participante!";
       return;
     }
 
+    if (!this.pontoSelecionado && this.pontoSelecionado !== 0) {
+      this.erro = "Selecione uma carta de pontos!";
+      return;
+    }
+
+    const pontos = this.pontoSelecionado === -1 ? 0 : this.pontoSelecionado;
+
     this.estimationService.votar(this.taskId!, this.participante, pontos).subscribe({
       next: () => {
+        this.estadoVotacao = 'horas';
         this.erro = '';
         this.atualizarEstimativas();
       },
@@ -88,6 +119,7 @@ async votar(pontos: number | string) {
 
   resetar() {
     this.estimationService.resetar(this.taskId!).subscribe(() => this.atualizarEstimativas());
+    this.atualizarEstimativas();
   }
 
 }
