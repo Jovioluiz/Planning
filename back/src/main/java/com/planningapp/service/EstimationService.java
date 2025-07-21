@@ -1,7 +1,6 @@
 package com.planningapp.service;
 
 import com.planningapp.entity.Estimation;
-import com.planningapp.entity.Task;
 import com.planningapp.repository.EstimationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -46,8 +45,8 @@ public class EstimationService {
 //    	return estimationRepository.existsByTaskAndParticipante(task, participante);
 //    }
     
-    public Optional<Estimation> findByTaskAndParticipante(Long taskId, String participante) {
-    	return estimationRepository.findByTaskAndParticipante(taskId, participante);
+    public Optional<Estimation> findByTaskIdAndParticipante(Long taskId, String participante) {
+    	return estimationRepository.findByTaskIdAndParticipante(taskId, participante);
     }
    
 }

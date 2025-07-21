@@ -56,7 +56,7 @@ public class EstimationController {
     
     @PostMapping("/votarHoras")
     public ResponseEntity<?> votarHoras(@PathVariable Long taskId, @RequestBody EstimativaHorasDTO dto) {
-        Optional<Estimation> estOpt = estimationService.findByTaskAndParticipante(taskId, dto.getParticipante());
+        Optional<Estimation> estOpt = estimationService.findByTaskIdAndParticipante(taskId, dto.getParticipante());
         
     	if (taskId == null) {
     		return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Task ID inválido."));
