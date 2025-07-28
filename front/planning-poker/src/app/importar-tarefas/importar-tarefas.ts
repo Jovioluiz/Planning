@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { TaskService } from '../services/task.service';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { EstimationService } from '../services/estimation.service';
 import Papa from 'papaparse';
 
 @Component({
@@ -20,13 +21,15 @@ export class ImportarTarefas implements OnInit {
   tarefaEmVotacao: any = null;
   tarefas: any[] = [];
   tarefasFila: any[] = [];
+  tarefasEstimadas: any[] = [];
 
-  constructor(private taskService: TaskService, private router: Router, private auth: AuthService) {}
+  constructor(private taskService: TaskService, private router: Router, private auth: AuthService, private estimationService: EstimationService) {}
 
   ngOnInit() {
     this.usuario = this.auth.getUsuario();
     this.carregarFilaTarefas();
-    this.carregarTarefaEmVotacao();
+    this.carregarListas();
+    // this.carregarTarefaEmVotacao();
   }
 
 onFileSelected(event: Event) {
@@ -66,11 +69,17 @@ onFileSelected(event: Event) {
   });
 }
 
+carregarListas() {
+  this.taskService.getTarefasFila().subscribe(res => this.tarefasFila = res);
+  this.taskService.getTarefasLiberadas().subscribe(res => this.tarefaEmVotacao = res);
+  this.taskService.getTarefasVotadas().subscribe(res => this.tarefasEstimadas = res);
+}
+
   carregarTarefaEmVotacao() {
     this.taskService.getTarefasLiberadas().subscribe({
       next: (tarefas) => {
         if (tarefas.length > 0) {
-          this.tarefaEmVotacao = tarefas.length ? tarefas[0] : null; // primeira liberada
+          this.tarefaEmVotacao = tarefas.length ? tarefas[0] : null;
         } else {
           this.tarefaEmVotacao = null;
         }
@@ -86,7 +95,8 @@ onFileSelected(event: Event) {
       this.taskService.liberarTarefa(id).subscribe({
         next: () => {
           alert('Tarefa liberada com sucesso!');
-          this.carregarTarefaEmVotacao();
+          this.carregarListas();
+          // this.carregarTarefaEmVotacao();
           this.router.navigate([`/estimativas/${id}`]);
         },
         error: err => {
@@ -107,6 +117,18 @@ onFileSelected(event: Event) {
     error: (err) => console.error('Erro ao buscar tarefas na fila', err)
   });
 }
+
+resumoVotos: any[] = [];
+
+carregarResumoVotos(taskId: string): void {
+  this.estimationService.getResumoVotos(taskId).subscribe({
+    next: (res) => {
+      this.resumoVotos = res;
+    },
+    error: (err) => console.error('Erro ao buscar resumo de votos:', err)
+  });
+}
+
 
 
 }

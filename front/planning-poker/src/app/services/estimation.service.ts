@@ -29,6 +29,17 @@ export class EstimationService {
     return this.http.get<any[]>(`${this.api}/tarefas/${taskId}/estimativas/listar`);
   }
 
+  todosVotaram(taskId: string): Observable<{ todosVotaram: boolean }>{
+    return this.http.get<{todosVotaram: boolean}>(`${this.api}/tarefas/${taskId}/estimativas/todos-votaram`);
+  }
+
+  getResumoVotos(taskId: string): Observable<any[]> {
+  return this.http.get<any[]>(
+    `${this.api}/api/tarefas/${taskId}/estimativas/resumo-votos`
+  );
+}
+
+
   revelar(taskId: string): Observable<any> {
     return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/revelar`, {});
   }

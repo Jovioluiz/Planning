@@ -27,6 +27,8 @@ export class EstimationBoard implements OnInit {
   estadoVotacao: 'pontos' | 'horas' | 'finalizado' = 'pontos';
   pontoSelecionado: number = 0;
   horaSelecionada: number = 0;
+  todosVotaram = false;
+  votacaoHorasLiberada = false;
 
   constructor(private taskService: TaskService, 
               private estimationService: EstimationService, 
@@ -34,12 +36,15 @@ export class EstimationBoard implements OnInit {
               private route: ActivatedRoute) {}
 
 
-  ngOnInit(): void {
+ngOnInit(): void {
     this.participante = sessionStorage.getItem('usuario') || '';
     this.taskId = this.route.snapshot.paramMap.get('id')!;
-    console.log("ID TASK: ", this.taskId);
     this.carregarTarefa();
     this.atualizarEstimativas();
+
+    if (this.participante === 'admin'){
+      this.checkTodosVotaram();
+    }
 }
 
 logout(){
@@ -53,10 +58,6 @@ logout(){
       error: (err) => console.error('Erro ao carregar tarefa', err)
     });
   }
-
-// votarCarta() {
-//   this.votar();
-// }
 
 votarHoras() {
   if (!this.horaSelecionada) {
@@ -106,20 +107,53 @@ async votarPontos() {
     });
   }
 
-  atualizarEstimativas() {
+atualizarEstimativas(): void {
     this.estimationService.listar(this.taskId!).subscribe({
-      next: (dados: any[] )=> this.estimativas = dados,
-      error: err => console.error('Erro ao listar estimativas:', err)
+      next: (res) => {
+        this.estimativas = res.map((est: any) => ({
+          user: est.participante,
+          Pontos: est.revealed ? est.pontos : '🔒',
+          Horas: est.revealed ? est.horas : '🔒'
+        }));
+
+        if (this.participante !== 'admin') {
+          const self = res.find((e: any) => e.participante === this.participante);
+          if (self && self.pontos > 0 && self.horas === 0) {
+            this.estadoVotacao = 'horas';
+          } else if (self?.horas > 0) {
+            this.estadoVotacao = 'finalizado';
+          }
+        }
+      },
+      error: (err) => console.error('Erro ao listar estimativas:', err)
     });
+  }
+
+
+checkTodosVotaram(){
+  this.estimationService.todosVotaram(this.taskId!).subscribe({
+    next: (res) => this.todosVotaram = res.todosVotaram,
+    error: (err) => console.error('Erro ao verificar votos:', err)
+  });
 }
 
-  revelar() {
-    this.estimationService.revelar(this.taskId!).subscribe(() => this.atualizarEstimativas());
-  }
-
-  resetar() {
-    this.estimationService.resetar(this.taskId!).subscribe(() => this.atualizarEstimativas());
+revelar() {
+  this.estimationService.revelar(this.taskId!).subscribe(() => {
     this.atualizarEstimativas();
-  }
+  });
+}
+
+resetar() {
+  this.estimationService.resetar(this.taskId!).subscribe(() => {
+    this.pontoSelecionado = 0;
+    this.horaSelecionada = 0;
+    this.estadoVotacao = 'pontos';
+    this.atualizarEstimativas();
+  });
+}
+
+liberarVotacaoHoras() {
+  this.votacaoHorasLiberada = true;
+}
 
 }

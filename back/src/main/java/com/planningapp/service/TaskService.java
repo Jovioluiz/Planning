@@ -58,4 +58,8 @@ public class TaskService {
         return taskRepository.findByEstimadaFalseAndLiberadaFalseOrderByIdAsc();
     }
     
+    public List<Task> listarTarefasJaVotadas(){
+    	return taskRepository.findByEstimadaTrue();
+    }
+    
 }

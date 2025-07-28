@@ -49,6 +49,11 @@ public class TaskController {
         return ResponseEntity.ok(taskService.listarTarefasLiberadasParaEstimativa());
     }
     
+    @GetMapping("/votadas")
+    public ResponseEntity<List<Task>> listarVotadas() {
+        return ResponseEntity.ok(taskService.listarTarefasJaVotadas());
+    }
+    
     //alterar para buscar pelo numero
     @PostMapping("/{id}/liberar")
     public ResponseEntity<?> liberarTarefa(@PathVariable("id") Long taskId) {

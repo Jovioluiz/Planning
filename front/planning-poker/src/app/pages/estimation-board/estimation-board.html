@@ -28,29 +28,33 @@
   </div>
 
   <!-- ETAPA 2: Votação de Horas -->
-  <div *ngIf="estadoVotacao === 'horas'">
-    <div class="cartas-titulo">Quantas horas para concluir?</div>
-    <div class="cartas">
-      <button
-        *ngFor="let h of horas"
-        [class.selecionada]="h === horaSelecionada"
-        (click)="horaSelecionada = h"
-      >
-        {{ h }}
-      </button>
+
+  <div *ngif="votandoHoras">
+    <div *ngIf="estadoVotacao === 'horas'">
+      <div class="cartas-titulo">Quantas horas para concluir?</div>
+      <div class="cartas">
+        <button
+          *ngFor="let h of horas"
+          [class.selecionada]="h === horaSelecionada"
+          (click)="horaSelecionada = +h"
+        >
+          {{ h }}
+        </button>
+      </div>
+      <button class="btn-votar" (click)="votarHoras()">Confirmar Horas</button>
     </div>
-    <button class="btn-votar" (click)="votarHoras()">Confirmar Horas</button>
   </div>
+
 
   <!-- ETAPA FINAL -->
   <div *ngIf="estadoVotacao === 'finalizado'">
     <p class="mensagem-sucesso">Seu voto foi registrado com sucesso!</p>
   </div>
 
-  <div class="botoes">
+  <!-- <div class="botoes">
     <button (click)="revelar()">Revelar</button>
     <button (click)="resetar()">Resetar</button>
-  </div>
+  </div> -->
 
   <h3>Estimativas dos Participantes</h3>
   <table *ngIf="estimativas.length > 0">

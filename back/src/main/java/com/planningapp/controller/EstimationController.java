@@ -76,7 +76,7 @@ public class EstimationController {
 
         return ResponseEntity.ok(Map.of("success", true, "message", "Horas registradas"));
     } 
-    
+      
     
     
     @PostMapping("/votar")
@@ -97,13 +97,7 @@ public class EstimationController {
         if (tarefaOpt.isEmpty()) {
         	return ResponseEntity.status(404).body(Map.of("success", false, "message", "Tarefa não encontrada"));
         }
-        
-//        Task task = tarefaOpt.get();
-        
-//        boolean jaVotou = estimationService.existsByTaskAndParticipante(task, dto.getParticipante());
-//        if (jaVotou) {
-//            return ResponseEntity.status(409).body(Map.of("success", false, "message", "Participante já votou nesta tarefa"));
-//        }
+       
         
         List<Estimation> estimativas = estimationService.findByTaskId(taskId);
         
@@ -116,7 +110,7 @@ public class EstimationController {
 	        estimativa.setTarefa(tarefaOpt.get());
 	        estimativa.setParticipante(dto.getParticipante());
 	        estimativa.setPontos(dto.getPontos());
-	        estimativa.setRevealed(false); // ou conforme regra
+	        estimativa.setRevealed(false); 
 	        estimationService.save(estimativa);
         }
     	
@@ -152,6 +146,29 @@ public class EstimationController {
     public void resetarVotacao(@PathVariable Long taskId) {
     	estimationService.deleteAll(estimationService.findByTaskId(taskId));
     }
+    
+    
+    @GetMapping("/todos-votaram")
+    public ResponseEntity<?> todosVotaramPontos(@PathVariable Long taskId) {
+        List<Estimation> estimativas = estimationService.findByTaskId(taskId);
+
+        boolean todosVotaram = estimativas.stream().allMatch(est -> est.getPontos() > 0);
+        return ResponseEntity.ok(Map.of("todosVotaram", todosVotaram));
+    }
+    
+    
+    @GetMapping("/resumo-votos")
+    public List<Map<String, Object>> listarResumoVotos(@PathVariable Long taskId) {
+        List<Estimation> estimativas = estimationService.findByTaskId(taskId);
+
+        return estimativas.stream().map(est -> {Map<String, Object> map = new HashMap<>();
+        	map.put("participante", est.getParticipante());
+        	map.put("pontos", est.isRevealed() ? (est.getPontos() == -1 ? "?" : est.getPontos()) : "🔒");
+        	return map;
+        }).collect(Collectors.toList());		
+    }
+
+
     
     
 }
