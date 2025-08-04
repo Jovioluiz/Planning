@@ -158,7 +158,7 @@ public class EstimationController {
     
     
     @GetMapping("/resumo-votos")
-    public List<Map<String, Object>> listarResumoVotos(@PathVariable Long taskId) {
+    public List<Map<String, Object>> listarResumoVotos(@PathVariable("taskId") Long taskId) {
         List<Estimation> estimativas = estimationService.findByTaskId(taskId);
 
         return estimativas.stream().map(est -> {Map<String, Object> map = new HashMap<>();

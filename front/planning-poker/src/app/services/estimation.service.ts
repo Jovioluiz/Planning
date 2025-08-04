@@ -35,7 +35,7 @@ export class EstimationService {
 
   getResumoVotos(taskId: string): Observable<any[]> {
   return this.http.get<any[]>(
-    `${this.api}/api/tarefas/${taskId}/estimativas/resumo-votos`
+    `${this.api}/tarefas/${taskId}/estimativas/resumo-votos`
   );
 }
 

@@ -29,7 +29,8 @@ export class ImportarTarefas implements OnInit {
     this.usuario = this.auth.getUsuario();
     this.carregarFilaTarefas();
     this.carregarListas();
-    // this.carregarTarefaEmVotacao();
+    this.carregarTarefaEmVotacao();
+    // this.carregarResumoVotos();
   }
 
 onFileSelected(event: Event) {
@@ -71,7 +72,7 @@ onFileSelected(event: Event) {
 
 carregarListas() {
   this.taskService.getTarefasFila().subscribe(res => this.tarefasFila = res);
-  this.taskService.getTarefasLiberadas().subscribe(res => this.tarefaEmVotacao = res);
+  // this.taskService.getTarefasLiberadas().subscribe(res => this.tarefaEmVotacao = res);
   this.taskService.getTarefasVotadas().subscribe(res => this.tarefasEstimadas = res);
 }
 
@@ -80,6 +81,7 @@ carregarListas() {
       next: (tarefas) => {
         if (tarefas.length > 0) {
           this.tarefaEmVotacao = tarefas.length ? tarefas[0] : null;
+          this.carregarResumoVotos(this.tarefaEmVotacao.id);
         } else {
           this.tarefaEmVotacao = null;
         }
@@ -96,7 +98,7 @@ carregarListas() {
         next: () => {
           alert('Tarefa liberada com sucesso!');
           this.carregarListas();
-          // this.carregarTarefaEmVotacao();
+          this.carregarTarefaEmVotacao();
           this.router.navigate([`/estimativas/${id}`]);
         },
         error: err => {

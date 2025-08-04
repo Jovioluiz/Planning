@@ -22,27 +22,35 @@
       >
         <ng-container *ngIf="valor !== -1; else cafe"> {{ valor }} </ng-container>
         <ng-template #cafe>☕</ng-template>
-      </button>
+      </button> 
     </div>
-    <button class="btn-votar" (click)="votarPontos()">Confirmar Pontos</button>
+
+      <!-- Para usuários comuns, apenas instrução -->
+    <h3>
+      Aguarde o administrador confirmar a votação de pontos.
+    </h3>
   </div>
 
   <!-- ETAPA 2: Votação de Horas -->
 
-  <div *ngif="votandoHoras">
-    <div *ngIf="estadoVotacao === 'horas'">
-      <div class="cartas-titulo">Quantas horas para concluir?</div>
-      <div class="cartas">
-        <button
-          *ngFor="let h of horas"
-          [class.selecionada]="h === horaSelecionada"
-          (click)="horaSelecionada = +h"
-        >
-          {{ h }}
-        </button>
-      </div>
-      <button class="btn-votar" (click)="votarHoras()">Confirmar Horas</button>
+  <div *ngIf="estadoVotacao === 'horas'">
+    <div class="cartas-titulo">Quantas horas para concluir?</div>
+    <div class="cartas">
+      <button
+        *ngFor="let h of horas"
+        [class.selecionada]="h === horaSelecionada"
+        (click)="horaSelecionada = +h"
+      >
+        {{ h }}
+      </button>
     </div>
+    <button
+        class="btn-votar"
+      [disabled]="!horaSelecionada"
+      (click)="votarHoras()"
+    >
+      Confirmar Horas
+    </button>
   </div>
 
 
@@ -50,11 +58,6 @@
   <div *ngIf="estadoVotacao === 'finalizado'">
     <p class="mensagem-sucesso">Seu voto foi registrado com sucesso!</p>
   </div>
-
-  <!-- <div class="botoes">
-    <button (click)="revelar()">Revelar</button>
-    <button (click)="resetar()">Resetar</button>
-  </div> -->
 
   <h3>Estimativas dos Participantes</h3>
   <table *ngIf="estimativas.length > 0">

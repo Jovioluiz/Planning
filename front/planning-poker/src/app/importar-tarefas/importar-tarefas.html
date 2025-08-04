@@ -67,3 +67,18 @@
 <div *ngIf="!tarefaEmVotacao">
   <p>Nenhuma tarefa liberada para votação no momento.</p>
 </div>
+
+
+<h4>Tarefas Estimadas</h4>
+<table *ngIf="tarefasEstimadas.length > 0">
+  <tr>
+    <th>Número</th>
+    <th>Título</th>
+    <th>Descrição</th>
+  </tr>
+  <tr *ngFor="let tarefa of tarefasEstimadas"> 
+    <td>{{ tarefa.numero }}</td>
+    <td>{{ tarefa.titulo }}</td>
+    <td>{{ tarefa.descricao }}</td>
+  </tr>
+</table>
