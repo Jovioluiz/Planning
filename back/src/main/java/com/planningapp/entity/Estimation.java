@@ -17,6 +17,8 @@ public class Estimation {
 	@Column(name = "revelada")
 	private boolean revealed = false;
 	private Double horas;
+	@Column(name = "horas_reveladas")
+	private Boolean horas_reveladas = false;
 	
 	@ManyToOne
 	@JoinColumn(name = "id_tarefas", nullable = false)
@@ -73,5 +75,13 @@ public class Estimation {
 	public void setTarefa(Task task2) {
 		this.task = task2;
 		
+	}
+
+	public Boolean isHorasReveladas() {
+		return horas_reveladas;
+	}
+
+	public void setHorasReveladas(boolean horasReveladas) {
+		this.horas_reveladas = horasReveladas;
 	}
 }

@@ -52,12 +52,19 @@ logout(){
   this.router.navigate(['/login']);
 }
 
-  carregarTarefa() {
-    this.taskService.getTaskById(this.taskId!).subscribe({
-      next: (dados) => this.tarefa = dados,
-      error: (err) => console.error('Erro ao carregar tarefa', err)
-    });
-  }
+carregarTarefa() {
+  this.taskService.getTaskById(this.taskId!).subscribe(tarefa => {
+    this.tarefa = tarefa;
+
+    if (tarefa.pontosRevelados && tarefa.horasReveladas) {
+      this.estadoVotacao = 'finalizado';
+    } else if (tarefa.pontosRevelados) {
+      this.estadoVotacao = 'horas';
+    } else {
+      this.estadoVotacao = 'pontos';
+    }
+  });
+}
 
 votarHoras() {
   if (!this.horaSelecionada) {

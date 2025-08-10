@@ -22,6 +22,10 @@ export class ImportarTarefas implements OnInit {
   tarefas: any[] = [];
   tarefasFila: any[] = [];
   tarefasEstimadas: any[] = [];
+  estimativas: any[] = [];
+  podeRevelarPontos = false;
+  podeRevelarHoras = false;
+
 
   constructor(private taskService: TaskService, private router: Router, private auth: AuthService, private estimationService: EstimationService) {}
 
@@ -82,6 +86,9 @@ carregarListas() {
         if (tarefas.length > 0) {
           this.tarefaEmVotacao = tarefas.length ? tarefas[0] : null;
           this.carregarResumoVotos(this.tarefaEmVotacao.id);
+          this.verificarLiberacoes(this.tarefaEmVotacao.id);
+          // this.carregarEstimativas(this.tarefaEmVotacao.id);
+          this.carregarFilaTarefas();
         } else {
           this.tarefaEmVotacao = null;
         }
@@ -92,6 +99,12 @@ carregarListas() {
       }
     });
   }
+
+//   carregarEstimativas(taskId: number) {
+//   this.estimationService.listarEstimativas(taskId).subscribe(res => {
+//     this.estimativas = res;
+//   });
+// }
 
   iniciarEstimativa(id: string): void {
       this.taskService.liberarTarefa(id).subscribe({
@@ -131,6 +144,28 @@ carregarResumoVotos(taskId: string): void {
   });
 }
 
+verificarLiberacoes(taskId: string) {
+  this.estimationService.todosVotaramPontos(taskId).subscribe(res => {
+    this.podeRevelarPontos = res;
+  });
 
+  this.estimationService.todosVotaramHoras(taskId).subscribe(res => {
+    this.podeRevelarHoras = res && this.tarefaEmVotacao.pontosRevelados;
+  });
+}
+
+revelarHoras() {
+  this.estimationService.revelarHoras(this.tarefaEmVotacao.id).subscribe(() => {
+    alert("Horas reveladas!");
+    this.carregarTarefaEmVotacao();
+  });
+}
+
+revelarPontos() {
+  this.estimationService.revelarPontos(this.tarefaEmVotacao.id).subscribe(() => {
+    alert("Pontos revelados!");
+    this.carregarTarefaEmVotacao();
+  });
+}
 
 }

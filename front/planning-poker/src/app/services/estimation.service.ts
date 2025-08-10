@@ -47,4 +47,22 @@ export class EstimationService {
   resetar(taskId: string): Observable<any> {
     return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/resetar`, {});
   }
+
+  revelarHoras(taskId: string): Observable<any> {
+    return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/revelar-horas`, {});
+  }
+
+  revelarPontos(taskId: string): Observable<any> {
+    return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/revelar-pontos`, {});
+  }
+
+  todosVotaramPontos(taskId: string): Observable<boolean> {
+    return this.http.get<boolean>(`${this.api}/tarefas/${taskId}/estimativas/todos-votaram-pontos`);
+  }
+
+  todosVotaramHoras(taskId: string): Observable<boolean> {
+    return this.http.get<boolean>(`${this.api}/tarefas/${taskId}/estimativas/todos-votaram-horas`);
+  }
+  
+
 }

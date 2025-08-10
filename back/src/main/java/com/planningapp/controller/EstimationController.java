@@ -135,12 +135,22 @@ public class EstimationController {
         }).collect(Collectors.toList());      
     }
     
-    @PostMapping("/revelar")
-    public void revelarEstimativas(@PathVariable Long taskId) {
+    @PostMapping("/revelar-pontos")
+    public ResponseEntity<?> revelarPontos(@PathVariable Long taskId) {
         List<Estimation> estimativas = estimationService.findByTaskId(taskId);
         estimativas.forEach(est -> est.setRevealed(true));
         estimationService.saveAll(estimativas);
+        return ResponseEntity.ok().build();
     }
+    
+    @PostMapping("/revelar-horas")
+    public ResponseEntity<?> revelar(@PathVariable Long taskId) {
+        List<Estimation> estimativas = estimationService.findByTaskId(taskId);
+        estimativas.forEach(est -> est.setHorasReveladas(true));
+        estimationService.saveAll(estimativas);
+        return ResponseEntity.ok().build();
+    }
+    
     
     @PostMapping("/resetar")
     public void resetarVotacao(@PathVariable Long taskId) {
@@ -148,12 +158,14 @@ public class EstimationController {
     }
     
     
-    @GetMapping("/todos-votaram")
-    public ResponseEntity<?> todosVotaramPontos(@PathVariable Long taskId) {
-        List<Estimation> estimativas = estimationService.findByTaskId(taskId);
-
-        boolean todosVotaram = estimativas.stream().allMatch(est -> est.getPontos() > 0);
-        return ResponseEntity.ok(Map.of("todosVotaram", todosVotaram));
+    @GetMapping("/todos-votaram-pontos")
+    public boolean todosVotaramPontos(@PathVariable Long taskId) {
+        return estimationService.todosVotaramPontos(taskId);
+    }
+    
+    @GetMapping("/todos-votaram-horas")
+    public boolean todosVotaramHoras(@PathVariable Long taskId) {
+        return estimationService.todosVotaramHoras(taskId);
     }
     
     

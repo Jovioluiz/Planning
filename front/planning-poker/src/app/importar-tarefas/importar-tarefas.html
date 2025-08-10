@@ -28,7 +28,7 @@
 
 <hr />
 
-<h3>Fila de Estimativas</h3>
+<h3>Tarefas na Fila para Estimativa</h3>
 <table *ngIf="tarefasFila.length > 0" class="tabela-fila">
   <thead>
     <tr>
@@ -61,6 +61,30 @@
     <td>{{ tarefaEmVotacao.numero }}</td>
     <td>{{ tarefaEmVotacao.titulo }}</td>
     <td>{{ tarefaEmVotacao.descricao }}</td>
+  </tr>
+</table>
+
+<!-- Botões de controle -->
+<div class="botoes-admin">
+  <button (click)="revelarPontos()" [disabled]="!podeRevelarPontos">
+    Revelar Pontos
+  </button>
+  <button (click)="revelarHoras()" [disabled]="!podeRevelarHoras">
+    Revelar Horas
+  </button>
+</div>
+
+<h4>Participantes</h4>
+<table *ngIf="estimativas.length > 0">
+  <tr>
+    <th>Participante</th>
+    <th>Pontos</th>
+    <th>Horas</th>
+  </tr>
+  <tr *ngFor="let est of estimativas">
+    <td>{{ est.user }}</td>
+    <td>{{ est.Pontos }}</td>
+    <td>{{ est.Horas }}</td>
   </tr>
 </table>
 
