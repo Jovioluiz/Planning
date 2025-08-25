@@ -34,7 +34,6 @@ export class ImportarTarefas implements OnInit {
     this.carregarFilaTarefas();
     this.carregarListas();
     this.carregarTarefaEmVotacao();
-    // this.carregarResumoVotos();
   }
 
 onFileSelected(event: Event) {
@@ -76,7 +75,6 @@ onFileSelected(event: Event) {
 
 carregarListas() {
   this.taskService.getTarefasFila().subscribe(res => this.tarefasFila = res);
-  // this.taskService.getTarefasLiberadas().subscribe(res => this.tarefaEmVotacao = res);
   this.taskService.getTarefasVotadas().subscribe(res => this.tarefasEstimadas = res);
 }
 
@@ -99,12 +97,6 @@ carregarListas() {
       }
     });
   }
-
-//   carregarEstimativas(taskId: number) {
-//   this.estimationService.listarEstimativas(taskId).subscribe(res => {
-//     this.estimativas = res;
-//   });
-// }
 
   iniciarEstimativa(id: string): void {
       this.taskService.liberarTarefa(id).subscribe({
@@ -133,12 +125,10 @@ carregarListas() {
   });
 }
 
-resumoVotos: any[] = [];
-
 carregarResumoVotos(taskId: string): void {
   this.estimationService.getResumoVotos(taskId).subscribe({
     next: (res) => {
-      this.resumoVotos = res;
+      this.estimativas = res;
     },
     error: (err) => console.error('Erro ao buscar resumo de votos:', err)
   });
@@ -156,15 +146,16 @@ verificarLiberacoes(taskId: string) {
 
 revelarHoras() {
   this.estimationService.revelarHoras(this.tarefaEmVotacao.id).subscribe(() => {
-    alert("Horas reveladas!");
-    this.carregarTarefaEmVotacao();
+    console.log("Horas reveladas!");
   });
 }
 
 revelarPontos() {
   this.estimationService.revelarPontos(this.tarefaEmVotacao.id).subscribe(() => {
-    alert("Pontos revelados!");
-    this.carregarTarefaEmVotacao();
+    console.log("Pontos revelados!");
+    this.carregarListas();
+    this.carregarResumoVotos(this.tarefaEmVotacao.id);
+    this.verificarLiberacoes(this.tarefaEmVotacao.id);
   });
 }
 

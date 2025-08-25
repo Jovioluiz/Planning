@@ -18,7 +18,6 @@ import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
-  // { path: 'importar', component: TaskImport, canActivate: [authGuard] },
   { path: 'importar', component: ImportarTarefas, canActivate: [authGuard] },
   { path: 'estimativas/:id', loadComponent: () => import('./pages/estimation-board/estimation-board').then(m => m.EstimationBoard), canActivate: [authGuard]  },
   { path: '', redirectTo: 'login', pathMatch: 'full' },

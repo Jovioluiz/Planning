@@ -7,6 +7,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { LocationStrategy, HashLocationStrategy } from '@angular/common';
 import 'zone.js'; 
+import './polyfills'; // Importando polyfills necessários
 
 bootstrapApplication(AppComponent, {
   providers: [

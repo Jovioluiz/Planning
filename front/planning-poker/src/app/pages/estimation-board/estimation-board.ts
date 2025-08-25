@@ -4,6 +4,7 @@ import { EstimationService } from '../../services/estimation.service';
 import { TaskService } from '../../services/task.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { WebSocketService } from '../../websocket/websocket.service';
 
 @Component({
   selector: 'app-estimation-board',
@@ -33,7 +34,8 @@ export class EstimationBoard implements OnInit {
   constructor(private taskService: TaskService, 
               private estimationService: EstimationService, 
               private router: Router, 
-              private route: ActivatedRoute) {}
+              private route: ActivatedRoute,
+              private wsService: WebSocketService) {}
 
 
 ngOnInit(): void {
@@ -45,6 +47,17 @@ ngOnInit(): void {
     if (this.participante === 'admin'){
       this.checkTodosVotaram();
     }
+
+      // WebSocket para atualizar automaticamente
+  this.wsService.subscribe('/topic/estimativas', (msg) => {
+    const data = JSON.parse(msg.body);
+    if (data.taskId === this.taskId) {
+      if (data.acao === 'REVELAR_PONTOS' || data.acao === 'REVELAR_HORAS') {
+        this.atualizarEstimativas();
+      }
+    }
+  });
+
 }
 
 logout(){
@@ -79,6 +92,11 @@ votarHoras() {
     },
     error: (err) => { this.erro = 'Erro ao votar horas'; }
   });
+}
+
+votarPontosDireto(valor: number) {
+  this.pontoSelecionado = valor;  
+  this.votarPontos();
 }
 
 

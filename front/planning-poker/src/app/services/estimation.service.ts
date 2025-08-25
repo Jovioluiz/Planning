@@ -53,7 +53,7 @@ export class EstimationService {
   }
 
   revelarPontos(taskId: string): Observable<any> {
-    return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/revelar-pontos`, {});
+    return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/revelarPontos`, {});
   }
 
   todosVotaramPontos(taskId: string): Observable<boolean> {

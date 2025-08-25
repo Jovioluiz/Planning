@@ -65,7 +65,11 @@ public class Estimation {
 	}
 
 	public Double getHoras() {
-		return horas;
+		if (horas == null) {
+			return 0.0;
+		} else {
+			return horas;			
+		}
 	}
 
 	public void setHoras(Double horas) {

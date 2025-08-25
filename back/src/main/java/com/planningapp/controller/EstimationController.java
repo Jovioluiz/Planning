@@ -4,6 +4,7 @@ import com.planningapp.dto.EstimativaDTO;
 import com.planningapp.dto.EstimativaHorasDTO;
 import com.planningapp.entity.Estimation;
 import com.planningapp.entity.Task;
+import com.planningapp.notification.service.EstimationNotificationService;
 import com.planningapp.service.EstimationService;
 import com.planningapp.service.TaskService;
 
@@ -24,7 +25,8 @@ public class EstimationController {
     @Autowired
     private EstimationService estimationService;
     @Autowired
-    private TaskService taskService;
+    private TaskService taskService;@Autowired
+    private EstimationNotificationService notificationService;
     
     @GetMapping("/task")
     public List<Estimation> getByTaskId(@PathVariable Long taskId) {
@@ -135,12 +137,13 @@ public class EstimationController {
         }).collect(Collectors.toList());      
     }
     
-    @PostMapping("/revelar-pontos")
+    @PostMapping("/revelarPontos")
     public ResponseEntity<?> revelarPontos(@PathVariable Long taskId) {
         List<Estimation> estimativas = estimationService.findByTaskId(taskId);
         estimativas.forEach(est -> est.setRevealed(true));
         estimationService.saveAll(estimativas);
-        return ResponseEntity.ok().build();
+        notificationService.notificarTodos("REVELAR_PONTOS", taskId);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Pontos revelados"));
     }
     
     @PostMapping("/revelar-horas")
@@ -148,6 +151,7 @@ public class EstimationController {
         List<Estimation> estimativas = estimationService.findByTaskId(taskId);
         estimativas.forEach(est -> est.setHorasReveladas(true));
         estimationService.saveAll(estimativas);
+        notificationService.notificarTodos("REVELAR_HORAS", taskId);
         return ResponseEntity.ok().build();
     }
     
@@ -176,6 +180,7 @@ public class EstimationController {
         return estimativas.stream().map(est -> {Map<String, Object> map = new HashMap<>();
         	map.put("participante", est.getParticipante());
         	map.put("pontos", est.isRevealed() ? (est.getPontos() == -1 ? "?" : est.getPontos()) : "🔒");
+        	map.put("horas", est.isRevealed() ? (est.getHoras() == -1 ? "?" : est.getHoras()) : "🔒");
         	return map;
         }).collect(Collectors.toList());		
     }

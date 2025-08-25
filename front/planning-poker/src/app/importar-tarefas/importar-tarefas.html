@@ -53,11 +53,13 @@
 <h4>Tarefas em votação</h4>
 <table *ngIf="tarefaEmVotacao" class="tabela-tarefa">
   <tr>
+    <th>Id</th>
     <th>Número</th>
     <th>Título</th>
     <th>Descrição</th>
   </tr>
   <tr>
+    <td>{{ tarefaEmVotacao.id }}</td>
     <td>{{ tarefaEmVotacao.numero }}</td>
     <td>{{ tarefaEmVotacao.titulo }}</td>
     <td>{{ tarefaEmVotacao.descricao }}</td>
@@ -69,7 +71,7 @@
   <button (click)="revelarPontos()" [disabled]="!podeRevelarPontos">
     Revelar Pontos
   </button>
-  <button (click)="revelarHoras()" [disabled]="!podeRevelarHoras">
+  <button (click)="revelarHoras()" [disabled]="podeRevelarHoras">
     Revelar Horas
   </button>
 </div>
@@ -82,9 +84,9 @@
     <th>Horas</th>
   </tr>
   <tr *ngFor="let est of estimativas">
-    <td>{{ est.user }}</td>
-    <td>{{ est.Pontos }}</td>
-    <td>{{ est.Horas }}</td>
+    <td>{{ est.participante }}</td>
+    <td>{{ est.pontos }}</td>
+    <td>{{ est.horas }}</td>
   </tr>
 </table>
 
