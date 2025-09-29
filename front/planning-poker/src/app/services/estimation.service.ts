@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { forkJoin, Observable , map} from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -30,7 +30,14 @@ export class EstimationService {
   }
 
   todosVotaram(taskId: string): Observable<{ todosVotaram: boolean }>{
-    return this.http.get<{todosVotaram: boolean}>(`${this.api}/tarefas/${taskId}/estimativas/todos-votaram`);
+    return forkJoin({
+      pontos: this.todosVotaramPontos(taskId),
+      horas: this.todosVotaramHoras(taskId)
+  })  .pipe(
+      map(result => ({
+          todosVotaram: result.pontos && result.horas
+      }))
+  );
   }
 
   getResumoVotos(taskId: string): Observable<any[]> {

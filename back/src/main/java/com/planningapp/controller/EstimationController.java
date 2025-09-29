@@ -56,7 +56,7 @@ public class EstimationController {
     }
     
     
-    @PostMapping("/votarHoras")
+    @PostMapping("/votarHoras")  //está gravando zerado a hora
     public ResponseEntity<?> votarHoras(@PathVariable Long taskId, @RequestBody EstimativaHorasDTO dto) {
         Optional<Estimation> estOpt = estimationService.findByTaskIdAndParticipante(taskId, dto.getParticipante());
         

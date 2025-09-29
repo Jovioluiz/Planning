@@ -156,6 +156,7 @@ atualizarEstimativas(): void {
 
 
 checkTodosVotaram(){
+  console.log('Checando se todos votaram...', this.taskId!);
   this.estimationService.todosVotaram(this.taskId!).subscribe({
     next: (res) => this.todosVotaram = res.todosVotaram,
     error: (err) => console.error('Erro ao verificar votos:', err)

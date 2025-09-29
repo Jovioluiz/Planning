@@ -104,7 +104,9 @@ carregarListas() {
           alert('Tarefa liberada com sucesso!');
           this.carregarListas();
           this.carregarTarefaEmVotacao();
-          this.router.navigate([`/estimativas/${id}`]);
+          if (this.usuario != 'admin') {
+            this.router.navigate([`/estimativas/${id}`]);
+          }
         },
         error: err => {
           console.error('Erro ao liberar tarefa', err);
