@@ -1,27 +1,18 @@
 {
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch Edge",
+      "type": "chrome", // ou "msedge"
       "request": "launch",
-      "type": "msedge",
-      "url": "http://localhost:8080",
-      "webRoot": "${workspaceFolder}"
-    },
-    {
-      "name": "ng serve",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "npm: start",
-      "url": "http://localhost:4200/"
-    },
-    {
-      "name": "ng test",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "npm: test",
-      "url": "http://localhost:9876/debug.html"
+      "name": "Debug TS - Chrome",
+      "url": "http://localhost:4200", // <-- VERIFIQUE se a porta está correta
+      "webRoot": "${workspaceFolder}/src", // <-- APONTE para sua pasta de código fonte (geralmente 'src')
+      "sourceMapPathOverrides": {
+        "webpack:///src/*": "${webRoot}/*", // Para create-react-app, Angular, etc.
+        "webpack:///*": "${webRoot}/*", // Outra variação comum
+        "/*": "${webRoot}/*" // Para casos mais genéricos
+      },
+    "sourceMaps": true
     }
   ]
 }

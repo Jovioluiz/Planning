@@ -43,10 +43,13 @@ export class Login {
             // this.getTarefaLiberada();
             console.log('Tarefas Liberadas: ', this.getTarefaLiberada());
             const id = await this.getTarefaLiberada();
+
+            console.log('ID da tarefa liberada:', id);
             if (id) {
               this.router.navigate(['/estimativas/'+id]);
             } else {
-              this.erro = 'Nenhuma tarefa liberada encontrada!';
+              this.router.navigate(['/estimativas/0']);
+              //this.erro = 'Nenhuma tarefa liberada encontrada!';
             }
           }
         } else {

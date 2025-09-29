@@ -1,15 +1,18 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "chrome",
-            "request": "launch",
-            "name": "Launch Chrome against localhost",
-            "url": "http://localhost:4200",
-            "webRoot": "${workspaceFolder}"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome", // ou "msedge"
+      "request": "launch",
+      "name": "Debug TS - Chrome",
+      "url": "http://localhost:4200", // <-- VERIFIQUE se a porta está correta
+      "webRoot": "${workspaceFolder}/src", // <-- APONTE para sua pasta de código fonte (geralmente 'src')
+      "sourceMaps": true,
+      "trace": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    }
+  ]
 }

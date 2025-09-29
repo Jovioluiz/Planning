@@ -85,7 +85,6 @@ carregarListas() {
           this.tarefaEmVotacao = tarefas.length ? tarefas[0] : null;
           this.carregarResumoVotos(this.tarefaEmVotacao.id);
           this.verificarLiberacoes(this.tarefaEmVotacao.id);
-          // this.carregarEstimativas(this.tarefaEmVotacao.id);
           this.carregarFilaTarefas();
         } else {
           this.tarefaEmVotacao = null;
@@ -99,6 +98,7 @@ carregarListas() {
   }
 
   iniciarEstimativa(id: string): void {
+      console.log('Iniciando estimativa para tarefa ID:', id);
       this.taskService.liberarTarefa(id).subscribe({
         next: () => {
           alert('Tarefa liberada com sucesso!');
