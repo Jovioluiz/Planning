@@ -1,5 +1,6 @@
 package com.planningapp.controller;
 
+import com.planningapp.dto.TaskDTO;
 import com.planningapp.entity.Task;
 import com.planningapp.service.TaskService;
 
@@ -10,10 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+// CORRIGIDO: removido @CrossOrigin — CORS centralizado em WebConfig.
 @RestController
 @RequestMapping("/api/tasks")
-@CrossOrigin
 public class TaskController {
+
     @Autowired
     private TaskService taskService;
 
@@ -22,59 +24,56 @@ public class TaskController {
         return taskService.findAll();
     }
 
-    @PostMapping("/criarTask")
-    public Task create(@RequestBody Task task) {
-        return taskService.save(task);
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getById(@PathVariable Long id) {
+        return taskService.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        taskService.delete(id);
-    }
-    
+    // CORRIGIDO: recebe TaskDTO em vez de expor a entidade JPA diretamente ao cliente.
     @PostMapping("/importar")
-    public ResponseEntity<?> importarTarefas(@RequestBody List<Task> tarefas) {
-        taskService.saveAll(tarefas);
-        return ResponseEntity.ok(Map.of("sucess", true,
-        								"message", "tarefas importadas com sucesso"));
+    public ResponseEntity<?> importarTarefas(@RequestBody List<TaskDTO> dtos) {
+        taskService.importarDTOs(dtos);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Tarefas importadas com sucesso"));
     }
-    
-    @GetMapping("/ativa")
-    public ResponseEntity<List<Task>> tarefaAtiva() {
-        return ResponseEntity.ok(taskService.listarTarefasLiberadasParaEstimativa());
-    }
-    
+
     @GetMapping("/liberadas")
     public ResponseEntity<List<Task>> listarLiberadas() {
         return ResponseEntity.ok(taskService.listarTarefasLiberadasParaEstimativa());
     }
-    
+
     @GetMapping("/votadas")
     public ResponseEntity<List<Task>> listarVotadas() {
         return ResponseEntity.ok(taskService.listarTarefasJaVotadas());
     }
-    
-    //alterar para buscar pelo numero
-    @PostMapping("/{id}/liberar")
-    public ResponseEntity<?> liberarTarefa(@PathVariable("id") Long taskId) {
-    	var liberada = taskService.liberarTarefa(taskId);
-    	
-    	if (liberada) {
-    		return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa liberada"));
-    	} else {
-    		return ResponseEntity.status(404).body(Map.of("success", false, "message", "Tarefa não encontrada"));
-    	}
-    }
-    
+
     @GetMapping("/fila")
     public List<Task> listarFilaEstimativas() {
         return taskService.findNaoEstimadasENaoLiberadas();
     }
-    
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getById(@PathVariable Long id) {
-        return taskService.findById(id)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+
+    @PostMapping("/{id}/liberar")
+    public ResponseEntity<?> liberarTarefa(@PathVariable("id") Long taskId) {
+        boolean liberada = taskService.liberarTarefa(taskId);
+        if (liberada) {
+            return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa liberada"));
+        } else {
+            return ResponseEntity.status(404).body(Map.of("success", false, "message", "Tarefa não encontrada"));
+        }
+    }
+
+    // CORRIGIDO: rota alinhada com o que o frontend chama (DELETE /api/tasks/excluirTarefa/{id})
+    @DeleteMapping("/excluirTarefa/{id}")
+    public ResponseEntity<?> excluirTarefa(@PathVariable Long id) {
+        taskService.delete(id);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa removida"));
+    }
+
+    // Mantida a rota original também para compatibilidade
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        taskService.delete(id);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa removida"));
     }
 }

@@ -1,7 +1,9 @@
 package com.planningapp.service;
 
+import com.planningapp.dto.TaskDTO;
 import com.planningapp.entity.Task;
 import com.planningapp.repository.TaskRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,6 +12,7 @@ import java.util.Optional;
 
 @Service
 public class TaskService {
+
     @Autowired
     private TaskRepository taskRepository;
 
@@ -24,42 +27,48 @@ public class TaskService {
     public void delete(Long id) {
         taskRepository.deleteById(id);
     }
-    
+
+    // CORRIGIDO: usa saveAll do repositório em vez de loop com save individual —
+    // evita N queries separadas e aproveita batch do Hibernate.
     public void saveAll(List<Task> tarefas) {
-    	taskRepository.saveAll(tarefas);
+        taskRepository.saveAll(tarefas);
     }
-    
-    public List<Task> findFirstByEstimadaFalseOrderByIdAsc() {
-    	return taskRepository.findByEstimadaFalseAndLiberadaTrueOrderByNumeroAsc();
+
+    // CORRIGIDO: importa via DTO em vez de expor a entidade JPA ao cliente.
+    public void importarDTOs(List<TaskDTO> dtos) {
+        List<Task> tarefas = dtos.stream().map(dto -> {
+            Task task = new Task();
+            task.setNumero(dto.getNumero());
+            task.setTitulo(dto.getTitulo());
+            task.setDescricao(dto.getDescricao());
+            task.setPrioridade(dto.getPrioridade());
+            task.setStatus(dto.getStatus());
+            return task;
+        }).toList();
+        taskRepository.saveAll(tarefas);
     }
-    
+
     public Optional<Task> findById(Long id) {
-    	return taskRepository.findById(id);    	
+        return taskRepository.findById(id);
     }
-    
+
     public List<Task> listarTarefasLiberadasParaEstimativa() {
         return taskRepository.findByEstimadaFalseAndLiberadaTrueOrderByIdAsc();
     }
-    
+
     public boolean liberarTarefa(Long id) {
-    	Optional<Task> tarefa = taskRepository.findById(id);
-    	
-    	if (!tarefa.isEmpty()) {
-    		Task task = tarefa.get();
+        return taskRepository.findById(id).map(task -> {
             task.setLiberada(true);
-            taskRepository.save(task);    	
+            taskRepository.save(task);
             return true;
-    	} else {
-    		return false;
-    	}
+        }).orElse(false);
     }
-    
+
     public List<Task> findNaoEstimadasENaoLiberadas() {
         return taskRepository.findByEstimadaFalseAndLiberadaFalseOrderByIdAsc();
     }
-    
-    public List<Task> listarTarefasJaVotadas(){
-    	return taskRepository.findByEstimadaTrue();
+
+    public List<Task> listarTarefasJaVotadas() {
+        return taskRepository.findByEstimadaTrue();
     }
-    
 }

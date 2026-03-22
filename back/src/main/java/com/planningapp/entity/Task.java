@@ -5,79 +5,51 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "tarefas")
 public class Task {
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
-	private Long numero;
-	private String titulo;
-	private String descricao;
-	private Integer prioridade;
-	private String status;
-	private boolean estimada = false;
-	private boolean liberada = false;
-	
-	public Long getId() {
-		return id;
-	}
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	public Long getNumero() {
-		return numero;
-	}
+    private Long numero;
+    private String titulo;
+    private String descricao;
+    private Integer prioridade;
+    private String status;
+    private boolean estimada = false;
+    private boolean liberada = false;
 
-	public void setNumero(Long numero) {
-		this.numero = numero;
-	}
+    // CORRIGIDO: campos que o frontend usa para controlar estado da votação
+    // mas que não existiam na entidade — causava NullPointerException silencioso.
+    private boolean pontosRevelados = false;
+    private boolean horasReveladas = false;
 
-	public String getTitulo() {
-		return titulo;
-	}
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-	public void setTitulo(String titulo) {
-		this.titulo = titulo;
-	}
+    public Long getNumero() { return numero; }
+    public void setNumero(Long numero) { this.numero = numero; }
 
-	public String getDescricao() {
-		return descricao;
-	}
+    public String getTitulo() { return titulo; }
+    public void setTitulo(String titulo) { this.titulo = titulo; }
 
-	public void setDescricao(String descricao) {
-		this.descricao = descricao;
-	}
+    public String getDescricao() { return descricao; }
+    public void setDescricao(String descricao) { this.descricao = descricao; }
 
-	public Integer getPrioridade() {
-		return prioridade;
-	}
+    public Integer getPrioridade() { return prioridade; }
+    public void setPrioridade(Integer prioridade) { this.prioridade = prioridade; }
 
-	public void setPrioridade(Integer prioridade) {
-		this.prioridade = prioridade;
-	}
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-	public String getStatus() {
-		return status;
-	}
+    public boolean getEstimada() { return estimada; }
+    public void setEstimada(boolean estimada) { this.estimada = estimada; }
 
-	public void setStatus(String status) {
-		this.status = status;
-	}
+    public boolean isLiberada() { return liberada; }
+    public void setLiberada(boolean liberada) { this.liberada = liberada; }
 
-	public boolean getEstimada() {
-		return estimada;
-	}
+    public boolean isPontosRevelados() { return pontosRevelados; }
+    public void setPontosRevelados(boolean pontosRevelados) { this.pontosRevelados = pontosRevelados; }
 
-	public void setEstimada(boolean estimada) {
-		this.estimada = estimada;
-	}
-
-	public boolean isLiberada() {
-		return liberada;
-	}
-
-	public void setLiberada(boolean liberada) {
-		this.liberada = liberada;
-	}
-
+    public boolean isHorasReveladas() { return horasReveladas; }
+    public void setHorasReveladas(boolean horasReveladas) { this.horasReveladas = horasReveladas; }
 }

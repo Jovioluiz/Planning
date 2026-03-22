@@ -1,8 +1,8 @@
-
 <p>Usuário logado: {{ usuario }}</p>
 <h3>Importar Tarefas</h3>
 
-<input type="file" (change)="onFileSelected($event)" accept=".csv" />
+<input type="file" (change)="onFileSelected($event)" accept=".csv" [disabled]="importando" />
+<span *ngIf="importando"> Importando...</span>
 <p><small>O arquivo CSV deve conter colunas: <code>numero</code>, <code>titulo</code>, <code>descricao</code></small></p>
 
 <hr />
@@ -14,7 +14,6 @@
       <th>Número</th>
       <th>Título</th>
       <th>Descrição</th>
-      <th>Ação</th>
     </tr>
   </thead>
   <tbody>
@@ -35,6 +34,7 @@
       <th>Número</th>
       <th>Título</th>
       <th>Descrição</th>
+      <th>Ação</th>
     </tr>
   </thead>
   <tbody>
@@ -42,15 +42,16 @@
       <td>{{ t.numero }}</td>
       <td>{{ t.titulo }}</td>
       <td>{{ t.descricao }}</td>
-      <td><button (click)="iniciarEstimativa(t.id)">Iniciar Estimativa</button></td>
-      <td><button (click)="removerTarefaEstimativa(t.id)">Remover Tarefa</button></td>
+      <td>
+        <button (click)="iniciarEstimativa(t.id)" [disabled]="tarefaEmVotacao">Iniciar Estimativa</button>
+        <button (click)="removerTarefaEstimativa(t.id)">Remover</button>
+      </td>
     </tr>
   </tbody>
 </table>
 <p *ngIf="tarefasFila.length === 0">Nenhuma tarefa na fila.</p>
 
-
-<h4>Tarefas em votação</h4>
+<h4>Tarefa em votação</h4>
 <table *ngIf="tarefaEmVotacao" class="tabela-tarefa">
   <tr>
     <th>Id</th>
@@ -66,7 +67,6 @@
   </tr>
 </table>
 
-<!-- Botões de controle -->
 <div class="botoes-admin">
   <button (click)="revelarPontos()" [disabled]="!podeRevelarPontos">
     Revelar Pontos
@@ -94,7 +94,6 @@
   <p>Nenhuma tarefa liberada para votação no momento.</p>
 </div>
 
-
 <h4>Tarefas Estimadas</h4>
 <table *ngIf="tarefasEstimadas.length > 0">
   <tr>
@@ -102,7 +101,7 @@
     <th>Título</th>
     <th>Descrição</th>
   </tr>
-  <tr *ngFor="let tarefa of tarefasEstimadas"> 
+  <tr *ngFor="let tarefa of tarefasEstimadas">
     <td>{{ tarefa.numero }}</td>
     <td>{{ tarefa.titulo }}</td>
     <td>{{ tarefa.descricao }}</td>

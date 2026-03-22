@@ -1,11 +1,12 @@
+import * as Papa from 'papaparse';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TaskService } from '../services/task.service';
-import { RouterModule, Router } from '@angular/router';
+import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../services/auth.service';
+import { TaskService } from '../services/task.service';
 import { EstimationService } from '../services/estimation.service';
-import Papa from 'papaparse';
 
 @Component({
   selector: 'app-importar-tarefas',
@@ -17,72 +18,86 @@ import Papa from 'papaparse';
 
 export class ImportarTarefas implements OnInit {
   usuario: string | null = '';
-  csvData: string = '';
-  tarefaEmVotacao: any = null;
   tarefas: any[] = [];
+  tarefaEmVotacao: any = null;
   tarefasFila: any[] = [];
   tarefasEstimadas: any[] = [];
   estimativas: any[] = [];
   podeRevelarPontos = false;
   podeRevelarHoras = false;
+  importando = false;
 
+  constructor(
+    private taskService: TaskService,
+    private router: Router,
+    private auth: AuthService,
+    private estimationService: EstimationService
+  ) {}
 
-  constructor(private taskService: TaskService, private router: Router, private auth: AuthService, private estimationService: EstimationService) {}
-
-  ngOnInit() {
+  ngOnInit(): void {
     this.usuario = this.auth.getUsuario();
     this.carregarFilaTarefas();
     this.carregarListas();
     this.carregarTarefaEmVotacao();
   }
 
-onFileSelected(event: Event) {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
 
-  if (!file) {
-    alert("Nenhum arquivo selecionado.");
-    return;
+    if (!file) {
+      alert('Nenhum arquivo selecionado.');
+      return;
+    }
+
+    this.importando = true;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (result: { data: any[]; }) => {
+        const dados = (result.data as any[]).filter(
+          (t: any) => t.numero && t.titulo && t.descricao
+        );
+
+        if (dados.length === 0) {
+          alert('Nenhuma tarefa válida encontrada no CSV.');
+          this.importando = false;
+          return;
+        }
+
+        this.tarefas = dados;
+
+        try {
+          await firstValueFrom(this.taskService.importarCSV(dados));
+          alert('Tarefas importadas com sucesso!');
+          this.carregarFilaTarefas();
+          this.carregarListas();
+        } catch (err) {
+          console.error('Erro ao importar tarefas:', err);
+          alert('Erro ao importar tarefas.');
+        } finally {
+          this.importando = false;
+        }
+      },
+      error: (err: any) => {
+        console.error('Erro ao ler o CSV:', err);
+        alert('Falha ao processar o arquivo CSV.');
+        this.importando = false;
+      }
+    });
   }
 
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    complete: async (result) => {
-      const dados = result.data.filter((t: any) => t.numero && t.titulo && t.descricao);
-      
-      if (dados.length === 0) {
-        alert("Nenhuma tarefa válida encontrada no CSV.");
-        return;
-      }
+  carregarListas(): void {
+    this.taskService.getTarefasFila().subscribe((res: any[]) => this.tarefasFila = res);
+    this.taskService.getTarefasVotadas().subscribe((res: any[]) => this.tarefasEstimadas = res);
+  }
 
-      this.tarefas = dados;
-
-      try {
-        await this.taskService.importarCSV(dados).toPromise();
-        alert('Tarefas importadas com sucesso!');
-      } catch (err) {
-        console.error('Erro ao importar tarefas:', err);
-        alert('Erro ao importar tarefas.');
-      }
-    },
-    error: (err) => {
-      console.error('Erro ao ler o CSV:', err);
-      alert('Falha ao processar o arquivo CSV.');
-    }
-  });
-}
-
-carregarListas() {
-  this.taskService.getTarefasFila().subscribe(res => this.tarefasFila = res);
-  this.taskService.getTarefasVotadas().subscribe(res => this.tarefasEstimadas = res);
-}
-
-  carregarTarefaEmVotacao() {
+  carregarTarefaEmVotacao(): void {
     this.taskService.getTarefasLiberadas().subscribe({
-      next: (tarefas) => {
+      next: (tarefas: any[]) => {
         if (tarefas.length > 0) {
-          this.tarefaEmVotacao = tarefas.length ? tarefas[0] : null;
+          this.tarefaEmVotacao = tarefas[0];
           this.carregarResumoVotos(this.tarefaEmVotacao.id);
           this.verificarLiberacoes(this.tarefaEmVotacao.id);
           this.carregarFilaTarefas();
@@ -90,7 +105,7 @@ carregarListas() {
           this.tarefaEmVotacao = null;
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Erro ao carregar tarefas liberadas:', err);
         this.tarefaEmVotacao = null;
       }
@@ -98,67 +113,69 @@ carregarListas() {
   }
 
   iniciarEstimativa(id: string): void {
-      console.log('Iniciando estimativa para tarefa ID:', id);
-      this.taskService.liberarTarefa(id).subscribe({
-        next: () => {
-          alert('Tarefa liberada com sucesso!');
-          this.carregarListas();
-          this.carregarTarefaEmVotacao();
-          if (this.usuario != 'admin') {
-            this.router.navigate([`/estimativas/${id}`]);
-          }
-        },
-        error: err => {
-          console.error('Erro ao liberar tarefa', err);
-        }
+    this.taskService.liberarTarefa(id).subscribe({
+      next: () => {
+        this.carregarListas();
+        this.carregarTarefaEmVotacao();
+        // Admin permanece na tela de controle
+      },
+      error: (err: any) => console.error('Erro ao liberar tarefa', err)
     });
   }
 
   removerTarefaEstimativa(id: string): void {
-    console.log('ID', id);
-    this.taskService.removerTarefa(id);
-    this.carregarFilaTarefas();
+    // CORREÇÃO: adicionado .subscribe() — sem ele a requisição HTTP nunca era enviada
+    this.taskService.removerTarefa(id).subscribe({
+      next: () => {
+        this.carregarFilaTarefas();
+        this.carregarListas();
+      },
+      error: (err: any) => console.error('Erro ao remover tarefa:', err)
+    });
   }
 
-  carregarFilaTarefas() {
-  this.taskService.getTarefasFila().subscribe({
-    next: (dados) => this.tarefasFila = dados,
-    error: (err) => console.error('Erro ao buscar tarefas na fila', err)
-  });
-}
+  carregarFilaTarefas(): void {
+    this.taskService.getTarefasFila().subscribe({
+      next: (dados: any[]) => this.tarefasFila = dados,
+      error: (err: any) => console.error('Erro ao buscar tarefas na fila', err)
+    });
+  }
 
-carregarResumoVotos(taskId: string): void {
-  this.estimationService.getResumoVotos(taskId).subscribe({
-    next: (res) => {
-      this.estimativas = res;
-    },
-    error: (err) => console.error('Erro ao buscar resumo de votos:', err)
-  });
-}
+  carregarResumoVotos(taskId: string): void {
+    this.estimationService.getResumoVotos(taskId).subscribe({
+      next: (res: any[]) => { this.estimativas = res; },
+      error: (err: any) => console.error('Erro ao buscar resumo de votos:', err)
+    });
+  }
 
-verificarLiberacoes(taskId: string) {
-  this.estimationService.todosVotaramPontos(taskId).subscribe(res => {
-    this.podeRevelarPontos = res;
-  });
+  verificarLiberacoes(taskId: string): void {
+    this.estimationService.todosVotaramPontos(taskId).subscribe(res => {
+      this.podeRevelarPontos = res;
+    });
 
-  this.estimationService.todosVotaramHoras(taskId).subscribe(res => {
-    this.podeRevelarHoras = res && this.tarefaEmVotacao.pontosRevelados;
-  });
-}
+    this.estimationService.todosVotaramHoras(taskId).subscribe(res => {
+      this.podeRevelarHoras = res && this.tarefaEmVotacao?.pontosRevelados;
+    });
+  }
 
-revelarHoras() {
-  this.estimationService.revelarHoras(this.tarefaEmVotacao.id).subscribe(() => {
-    console.log("Horas reveladas!");
-  });
-}
+  revelarHoras(): void {
+    this.estimationService.revelarHoras(this.tarefaEmVotacao.id).subscribe({
+      next: () => {
+        this.carregarResumoVotos(this.tarefaEmVotacao.id);
+        this.verificarLiberacoes(this.tarefaEmVotacao.id);
+      },
+      error: (err: any) => console.error('Erro ao revelar horas:', err)
+    });
+  }
 
-revelarPontos() {
-  this.estimationService.revelarPontos(this.tarefaEmVotacao.id).subscribe(() => {
-    console.log("Pontos revelados!");
-    this.carregarListas();
-    this.carregarResumoVotos(this.tarefaEmVotacao.id);
-    this.verificarLiberacoes(this.tarefaEmVotacao.id);
-  });
-}
-
+  revelarPontos(): void {
+    this.estimationService.revelarPontos(this.tarefaEmVotacao.id).subscribe({
+      next: () => {
+        this.carregarListas();
+        this.carregarResumoVotos(this.tarefaEmVotacao.id);
+        this.verificarLiberacoes(this.tarefaEmVotacao.id);
+      },
+      error: (err: any) => console.error('Erro ao revelar pontos:', err)
+    });
+  }
 }

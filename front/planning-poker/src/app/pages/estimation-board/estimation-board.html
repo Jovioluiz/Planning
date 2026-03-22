@@ -20,19 +20,14 @@
         [class.selecionada]="valor === pontoSelecionado"
         (click)="votarPontosDireto(valor)"
       >
-        <ng-container *ngIf="valor !== -1; else cafe"> {{ valor }} </ng-container>
+        <ng-container *ngIf="valor !== CARTA_CAFE; else cafe">{{ valor }}</ng-container>
         <ng-template #cafe>☕</ng-template>
-      </button> 
+      </button>
     </div>
-
-      <!-- Para usuários comuns, apenas instrução -->
-    <h3>
-      Aguarde o administrador confirmar a votação de pontos.
-    </h3>
+    <h3>Aguarde o administrador confirmar a votação de pontos.</h3>
   </div>
 
   <!-- ETAPA 2: Votação de Horas -->
-
   <div *ngIf="estadoVotacao === 'horas'">
     <div class="cartas-titulo">Quantas horas para concluir?</div>
     <div class="cartas">
@@ -45,7 +40,7 @@
       </button>
     </div>
     <button
-        class="btn-votar"
+      class="btn-votar"
       [disabled]="!horaSelecionada"
       (click)="votarHoras()"
     >
@@ -53,10 +48,16 @@
     </button>
   </div>
 
-
   <!-- ETAPA FINAL -->
   <div *ngIf="estadoVotacao === 'finalizado'">
     <p class="mensagem-sucesso">Seu voto foi registrado com sucesso!</p>
+  </div>
+
+  <!-- Controles do Admin -->
+  <div *ngIf="isAdmin" class="admin-controls">
+    <button (click)="revelar()" [disabled]="!todosVotaram">Revelar Votos</button>
+    <button (click)="resetar()">Resetar Votação</button>
+    <p *ngIf="!todosVotaram" class="aviso-admin">Aguardando todos os participantes votarem...</p>
   </div>
 
   <h3>Estimativas dos Participantes</h3>

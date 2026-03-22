@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
-import { RouterModule, Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
-import { TaskService } from '../../services/task.service';
-import { firstValueFrom } from 'rxjs/internal/firstValueFrom';
+import { firstValueFrom } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
+import { TaskService, ITask } from '../../services/task.service';
 
 @Component({
   selector: 'app-login',
@@ -13,63 +13,58 @@ import { firstValueFrom } from 'rxjs/internal/firstValueFrom';
   templateUrl: './login.html',
   styleUrls: ['./login.scss']
 })
-
 export class Login {
   usuario = '';
   senha = '';
   perfil = '';
   erro = '';
+  carregando = false;
 
-  constructor(private auth: AuthService, private router: Router, private taskService: TaskService) {}
+  constructor(
+    private auth: AuthService,
+    private router: Router,
+    private taskService: TaskService
+  ) {}
 
-  async login(event: Event) {
-      event.preventDefault();
-      this.erro = '';
-      
-      if (!this.usuario || !this.senha || !this.perfil) {
-        this.erro = 'Preencha todos os campos';
-        return;
-      }
+  async login(event: Event): Promise<void> {
+    event.preventDefault();
+    this.erro = '';
 
-      console.log('Usuario:', this.usuario);
-      try {
-        const response = await this.auth.login(this.usuario, this.senha, this.perfil).toPromise();
-        if (response) {
-          console.log('response:', response);
-          console.log('perfil:', this.perfil);
-          if (this.perfil == 'ADMIN'){
-            this.router.navigate(['/importar']);
-          } else {
-            // this.getTarefaLiberada();
-            console.log('Tarefas Liberadas: ', this.getTarefaLiberada());
-            const id = await this.getTarefaLiberada();
+    if (!this.usuario || !this.senha || !this.perfil) {
+      this.erro = 'Preencha todos os campos';
+      return;
+    }
 
-            console.log('ID da tarefa liberada:', id);
-            if (id) {
-              this.router.navigate(['/estimativas/'+id]);
-            } else {
-              this.router.navigate(['/estimativas/0']);
-              //this.erro = 'Nenhuma tarefa liberada encontrada!';
-            }
-          }
+    this.carregando = true;
+
+    try {
+      const response = await firstValueFrom(
+        this.auth.login(this.usuario, this.senha, this.perfil)
+      );
+
+      if (response) {
+        if (this.auth.isAdmin()) {
+          this.router.navigate(['/importar']);
         } else {
-          this.erro = 'Usuário ou senha inválidos';
+          const id = await this.getTarefaLiberada();
+          this.router.navigate(['/estimativas', id ?? '0']);
         }
-      } catch (e) {
-        console.error('Erro no login', e);
-        this.erro = 'Erro ao conectar com o servidor';
+      } else {
+        this.erro = 'Usuário ou senha inválidos';
       }
+    } catch {
+      this.erro = 'Erro ao conectar com o servidor';
+    } finally {
+      this.carregando = false;
     }
-
-    async getTarefaLiberada(): Promise<string | null> {
-      try {
-        const res: ITask[] = await firstValueFrom(this.taskService.getTarefasLiberadas());
-        const tarefa = res.length > 0 ? res[0] : null;
-        return tarefa?.id?.toString() || null;
-      } catch (err) {
-        console.error('Erro ao buscar tarefa liberada', err);
-        return null;
-      }
-    }
-
   }
+
+  private async getTarefaLiberada(): Promise<string | null> {
+    try {
+      const res = await firstValueFrom(this.taskService.getTarefasLiberadas());
+      return res.length > 0 ? res[0].id.toString() : null;
+    } catch {
+      return null;
+    }
+  }
+}

@@ -2,16 +2,16 @@ package com.planningapp.service;
 
 import com.planningapp.entity.Estimation;
 import com.planningapp.repository.EstimationRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class EstimationService {
+
     @Autowired
     private EstimationRepository estimationRepository;
 
@@ -26,42 +26,38 @@ public class EstimationService {
     public Estimation save(Estimation estimation) {
         return estimationRepository.save(estimation);
     }
-    
-    public void saveAll(List<Estimation> estimation) {
-    	for (Estimation est : estimation) {
-            estimationRepository.save(est);
-		}
+
+    // CORRIGIDO: usa saveAll do repositório em vez de loop individual —
+    // reduz N queries para 1 batch.
+    public void saveAll(List<Estimation> estimations) {
+        estimationRepository.saveAll(estimations);
     }
 
     public void delete(Long id) {
         estimationRepository.deleteById(id);
     }
-    
-    public void deleteAll(List<Estimation> estimation) {
-    	for (Estimation est : estimation) {
-    		delete(est.getId());
-    	}        
-    }
-    
-//    public boolean existsByTaskAndParticipante(Task task, String participante) {
-//    	return estimationRepository.existsByTaskAndParticipante(task, participante);
-//    }
-    
-    public Optional<Estimation> findByTaskIdAndParticipante(Long taskId, String participante) {
-    	return estimationRepository.findByTaskIdAndParticipante(taskId, participante);
-    }
-    
 
+    public void deleteAll(List<Estimation> estimations) {
+        estimationRepository.deleteAll(estimations);
+    }
+
+    public Optional<Estimation> findByTaskIdAndParticipante(Long taskId, String participante) {
+        return estimationRepository.findByTaskIdAndParticipante(taskId, participante);
+    }
+
+    // CORRIGIDO: usa != null em vez de > 0 para não excluir a carta "café" (pontos = 0).
+    // Antes, quem votava café travava o "todos votaram" indefinidamente.
     public boolean todosVotaramPontos(Long taskId) {
         List<Estimation> estimativas = findByTaskId(taskId);
-        return estimativas.stream().allMatch(e -> e.getPontos() > 0);
+        if (estimativas.isEmpty()) return false;
+        return estimativas.stream().allMatch(e -> e.getPontos() != null);
     }
 
+    // CORRIGIDO: idem — usa != null e > 0 (horas 0 seria inválido, mas não null).
     public boolean todosVotaramHoras(Long taskId) {
         List<Estimation> estimativas = findByTaskId(taskId);
-        return estimativas.stream().allMatch(e -> e.getHoras() > 0);
+        if (estimativas.isEmpty()) return false;
+        return estimativas.stream()
+                .allMatch(e -> e.getHoras() != null && e.getHoras() > 0);
     }
-    
-    
-   
 }

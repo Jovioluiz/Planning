@@ -1,50 +1,58 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { RouterModule, Router } from '@angular/router';
+import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
+
+export interface ITask {
+  id: number;
+  numero: number;
+  titulo: string;
+  descricao: string;
+  prioridade: string | null;
+  status: string | null;
+  estimada: boolean;
+  liberada: boolean;
+  pontosRevelados?: boolean;
+  horasReveladas?: boolean;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class TaskService {
-  url = 'http://localhost:8081/api/tasks';
+  private url = `${environment.apiUrl}/api/tasks`;
 
-  constructor(private http: HttpClient, private router: Router) { }
+  constructor(private http: HttpClient) {}
 
-  buscarTarefaAtiva() {
-    return this.http.get<any>(this.url + '/ativa', {});
-}
+  buscarTarefaAtiva(): Observable<ITask> {
+    return this.http.get<ITask>(`${this.url}/ativa`);
+  }
 
-getTaskById(id: string) {
-  return this.http.get<any>(this.url + `/${id}`);
-}
+  getTaskById(id: string): Observable<ITask> {
+    return this.http.get<ITask>(`${this.url}/${id}`);
+  }
 
-liberarTarefa(id: string) {
-  return this.http.post(this.url + `/${id}/liberar`, {});
-}
+  liberarTarefa(id: string): Observable<any> {
+    return this.http.post(`${this.url}/${id}/liberar`, {});
+  }
 
-getTarefasLiberadas() {
-  return this.http.get<ITask[]>(this.url +'/liberadas');
-}
+  getTarefasLiberadas(): Observable<ITask[]> {
+    return this.http.get<ITask[]>(`${this.url}/liberadas`);
+  }
 
-getTarefasVotadas() {
-  return this.http.get<Task[]>(this.url +'/votadas');
-}
+  getTarefasVotadas(): Observable<ITask[]> {
+    return this.http.get<ITask[]>(`${this.url}/votadas`);
+  }
 
-getTarefasFila() {
-  return this.http.get<Task[]>(this.url + '/fila');
-}
+  getTarefasFila(): Observable<ITask[]> {
+    return this.http.get<ITask[]>(`${this.url}/fila`);
+  }
 
-importarTarefas(arquivo: FormData) {
-  return this.http.post(`${this.url}/importar`, arquivo);
-}
+  importarCSV(tarefas: any[]): Observable<any> {
+    return this.http.post(`${this.url}/importar`, tarefas);
+  }
 
-importarCSV(tarefas: any[]) {
-  return this.http.post(`${this.url}/importar`, tarefas );
-}
-
-removerTarefa(id: string){
-  return this.http.delete(this.url + `/excluirTarefa/${id}`, {});
-}
-
-
+  removerTarefa(id: string): Observable<any> {
+    return this.http.delete(`${this.url}/excluirTarefa/${id}`);
+  }
 }

@@ -5,87 +5,51 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "estimativas")
 public class Estimation {
-	
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
 
-	@Column(name = "id_tarefas", insertable = false, updatable = false)
-	private Long taskId;
-	private String participante;
-	private Integer pontos;
-	@Column(name = "revelada")
-	private boolean revealed = false;
-	private Double horas;
-	@Column(name = "horas_reveladas")
-	private Boolean horas_reveladas = false;
-	
-	@ManyToOne
-	@JoinColumn(name = "id_tarefas", nullable = false)
-	private Task task;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	public Long getId() {
-		return id;
-	}
+    @Column(name = "id_tarefas", insertable = false, updatable = false)
+    private Long taskId;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    private String participante;
+    private Integer pontos;
 
-	public Long getTaskId() {
-		return taskId;
-	}
+    @Column(name = "revelada")
+    private boolean revealed = false;
 
-	public void setTaskId(Long taskId) {
-		this.taskId = taskId;
-	}
+    private Double horas;
 
-	public String getParticipante() {
-		return participante;
-	}
+    @Column(name = "horas_reveladas")
+    private Boolean horasReveladas = false;
 
-	public void setParticipante(String participante) {
-		this.participante = participante;
-	}
+    @ManyToOne
+    @JoinColumn(name = "id_tarefas", nullable = false)
+    private Task task;
 
-	public Integer getPontos() {
-		return pontos;
-	}
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-	public void setPontos(Integer pontos) {
-		this.pontos = pontos;
-	}
+    public Long getTaskId() { return taskId; }
+    public void setTaskId(Long taskId) { this.taskId = taskId; }
 
-	public boolean isRevealed() {
-		return revealed;
-	}
+    public String getParticipante() { return participante; }
+    public void setParticipante(String participante) { this.participante = participante; }
 
-	public void setRevealed(boolean revealed) {
-		this.revealed = revealed;
-	}
+    public Integer getPontos() { return pontos; }
+    public void setPontos(Integer pontos) { this.pontos = pontos; }
 
-	public Double getHoras() {
-		if (horas == null) {
-			return 0.0;
-		} else {
-			return horas;			
-		}
-	}
+    public boolean isRevealed() { return revealed; }
+    public void setRevealed(boolean revealed) { this.revealed = revealed; }
 
-	public void setHoras(Double horas) {
-		this.horas = horas;
-	}
+    // CORRIGIDO: retorna null em vez de 0.0 quando não votou —
+    // assim todosVotaramHoras() consegue distinguir "não votou" de "votou 0 horas".
+    public Double getHoras() { return horas; }
+    public void setHoras(Double horas) { this.horas = horas; }
 
-	public void setTarefa(Task task2) {
-		this.task = task2;
-		
-	}
+    public void setTarefa(Task task) { this.task = task; }
 
-	public Boolean isHorasReveladas() {
-		return horas_reveladas;
-	}
-
-	public void setHorasReveladas(boolean horasReveladas) {
-		this.horas_reveladas = horasReveladas;
-	}
+    public Boolean isHorasReveladas() { return horasReveladas; }
+    public void setHorasReveladas(boolean horasReveladas) { this.horasReveladas = horasReveladas; }
 }

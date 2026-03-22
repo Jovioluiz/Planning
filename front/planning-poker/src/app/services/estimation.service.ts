@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin, Observable , map} from 'rxjs';
+import { forkJoin, Observable, map } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EstimationService {
-  private api = 'http://localhost:8081/api';
+  private api = `${environment.apiUrl}/api`;
 
   constructor(private http: HttpClient) {}
 
@@ -15,11 +16,10 @@ export class EstimationService {
       participante,
       pontos
     });
-
   }
 
   votarHoras(taskId: string, participante: string, horaSelecionada: number | string): Observable<any> {
-      return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/votarHoras`, {
+    return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/votarHoras`, {
       participante,
       horaSelecionada
     });
@@ -29,23 +29,20 @@ export class EstimationService {
     return this.http.get<any[]>(`${this.api}/tarefas/${taskId}/estimativas/listar`);
   }
 
-  todosVotaram(taskId: string): Observable<{ todosVotaram: boolean }>{
+  todosVotaram(taskId: string): Observable<{ todosVotaram: boolean }> {
     return forkJoin({
       pontos: this.todosVotaramPontos(taskId),
       horas: this.todosVotaramHoras(taskId)
-  })  .pipe(
+    }).pipe(
       map(result => ({
-          todosVotaram: result.pontos && result.horas
+        todosVotaram: result.pontos && result.horas
       }))
-  );
+    );
   }
 
   getResumoVotos(taskId: string): Observable<any[]> {
-  return this.http.get<any[]>(
-    `${this.api}/tarefas/${taskId}/estimativas/resumo-votos`
-  );
-}
-
+    return this.http.get<any[]>(`${this.api}/tarefas/${taskId}/estimativas/resumo-votos`);
+  }
 
   revelar(taskId: string): Observable<any> {
     return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/revelar`, {});
@@ -70,6 +67,4 @@ export class EstimationService {
   todosVotaramHoras(taskId: string): Observable<boolean> {
     return this.http.get<boolean>(`${this.api}/tarefas/${taskId}/estimativas/todos-votaram-horas`);
   }
-  
-
 }
