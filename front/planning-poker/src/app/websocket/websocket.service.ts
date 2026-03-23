@@ -2,6 +2,7 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { environment } from '../../environments/environment';
+import { AuthService } from '../services/auth.service'; // Importar o serviço
 
 interface PendingSubscription {
   topic: string;
@@ -11,17 +12,26 @@ interface PendingSubscription {
 @Injectable({ providedIn: 'root' })
 export class WebSocketService implements OnDestroy {
   private client: Client;
-  // Assinaturas ativas (quando já conectado)
   private activeSubscriptions: Map<string, StompSubscription> = new Map();
-  // Fila de assinaturas aguardando conexão
   private pendingSubscriptions: PendingSubscription[] = [];
 
-  constructor() {
+  // Injetar o AuthService
+  constructor(private authService: AuthService) {
     this.client = new Client({
       webSocketFactory: () => new SockJS(`${environment.apiUrl}/ws-planning`),
       reconnectDelay: 5000,
+      
+      // NOVO: Adiciona o token antes de tentar conectar via STOMP
+      beforeConnect: () => {
+        const token = this.authService.getToken();
+        if (token) {
+          this.client.connectHeaders = {
+            Authorization: `Bearer ${token}`
+          };
+        }
+      },
+
       onConnect: () => {
-        // Registra todas as assinaturas pendentes após conectar (ou reconectar)
         for (const pending of this.pendingSubscriptions) {
           this.doSubscribe(pending.topic, pending.callback);
         }
@@ -34,7 +44,6 @@ export class WebSocketService implements OnDestroy {
     if (this.client.connected) {
       this.doSubscribe(topic, callback);
     } else {
-      // Adiciona à fila — será registrado assim que a conexão for estabelecida
       this.pendingSubscriptions.push({ topic, callback });
     }
   }
@@ -49,7 +58,6 @@ export class WebSocketService implements OnDestroy {
   }
 
   private doSubscribe(topic: string, callback: (message: IMessage) => void): void {
-    // Evita assinaturas duplicadas no mesmo tópico
     if (this.activeSubscriptions.has(topic)) {
       this.activeSubscriptions.get(topic)!.unsubscribe();
     }

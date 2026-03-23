@@ -10,6 +10,12 @@ export default defineConfig({
       global: ['globalThis', 'global'], // Corrige "global is not defined"
     }),
   ],
+  resolve: {
+    alias: {
+      // Força o Vite a resolver 'buffer' para o pacote NPM instalado no navegador
+      buffer: 'buffer/', 
+    }
+  },
   define: {
     global: {},
     'process.env': {},

@@ -3,7 +3,8 @@
 
 <input type="file" (change)="onFileSelected($event)" accept=".csv" [disabled]="importando" />
 <span *ngIf="importando"> Importando...</span>
-<p><small>O arquivo CSV deve conter colunas: <code>numero</code>, <code>titulo</code>, <code>descricao</code></small></p>
+<p><small>O arquivo CSV deve conter colunas como cabeçalho: <code>numero</code>, <code>titulo</code>, <code>descricao</code></small></p>
+<p><small>Os valores das colunas devem estar separados por ;</small></p>
 
 <hr />
 
@@ -14,6 +15,7 @@
       <th>Número</th>
       <th>Título</th>
       <th>Descrição</th>
+      <th>Ação</th>
     </tr>
   </thead>
   <tbody>
@@ -42,10 +44,8 @@
       <td>{{ t.numero }}</td>
       <td>{{ t.titulo }}</td>
       <td>{{ t.descricao }}</td>
-      <td>
-        <button (click)="iniciarEstimativa(t.id)" [disabled]="tarefaEmVotacao">Iniciar Estimativa</button>
-        <button (click)="removerTarefaEstimativa(t.id)">Remover</button>
-      </td>
+      <td><button (click)="iniciarEstimativa(t.id)">Iniciar Estimativa</button></td>
+      <td><button (click)="removerTarefaEstimativa(t.id)">Remover Tarefa</button></td>
     </tr>
   </tbody>
 </table>

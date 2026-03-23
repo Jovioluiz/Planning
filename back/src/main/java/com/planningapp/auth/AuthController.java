@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.*;
 
 import com.planningapp.dto.LoginDTO;
 import com.planningapp.repository.UserRepository;
+import com.planningapp.security.JwtTokenProvider; // <--- Import do Provider
 
-// CORRIGIDO: removido @CrossOrigin — CORS centralizado em WebConfig.
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -20,6 +20,9 @@ public class AuthController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtTokenProvider tokenProvider; // <--- Injeta o Provider do Token
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginDTO login) {
@@ -33,15 +36,19 @@ public class AuthController {
         String senha = login.getSenha().trim();
 
         return userRepository.findByUsuario(usuario)
-                // CORRIGIDO: usa BCrypt para comparar — nunca texto puro.
                 .filter(user -> passwordEncoder.matches(senha, user.getSenha()))
-                .map(user -> ResponseEntity.ok(Map.of(
-                        "success", true,
-                        "message", "Login realizado com sucesso",
-                        "perfil", user.getTipoPerfil())))
+                .map(user -> {
+                    // GERAR O TOKEN AQUI
+                    String token = tokenProvider.generateToken(user.getUsuario(), user.getTipoPerfil().name());
+                    
+                    return ResponseEntity.ok(Map.of(
+                            "success", true,
+                            "message", "Login realizado com sucesso",
+                            "perfil", user.getTipoPerfil(),
+                            "token", token // <--- Envia o token para o Frontend Angular
+                    ));
+                })
                 .orElseGet(() ->
-                    // CORRIGIDO: retorna 401 em vez de criar automaticamente um novo usuário
-                    // com o perfil enviado pelo cliente (vulnerabilidade crítica anterior).
                     ResponseEntity.status(401)
                             .body(Map.of("success", false, "message", "Usuário ou senha inválidos."))
                 );

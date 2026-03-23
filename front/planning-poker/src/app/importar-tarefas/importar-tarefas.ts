@@ -36,7 +36,7 @@ export class ImportarTarefas implements OnInit {
 
   ngOnInit(): void {
     this.usuario = this.auth.getUsuario();
-    this.carregarFilaTarefas();
+    //this.carregarFilaTarefas();
     this.carregarListas();
     this.carregarTarefaEmVotacao();
   }
