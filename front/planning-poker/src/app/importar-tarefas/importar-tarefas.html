@@ -1,140 +1,243 @@
-<div class="importar-container">
-  <div class="top-bar">
-    <span>Usuário: {{ usuario }}</span>
-    <button (click)="logout()">Sair</button>
-  </div>
+<div class="admin-page">
 
-  <!-- Mensagem de feedback inline -->
-  <div *ngIf="mensagem" [class]="'mensagem mensagem-' + mensagemTipo">
+  <!-- ─── Header ─────────────────────────────────────────── -->
+  <header class="admin-header">
+    <div class="header-brand">
+      <span class="brand-icon">🃏</span>
+      <span class="brand-name">Planning Poker</span>
+      <span class="brand-role">Admin</span>
+    </div>
+    <div class="header-user">
+      <span class="user-avatar">{{ (usuario || 'A')[0].toUpperCase() }}</span>
+      <span class="user-name">{{ usuario }}</span>
+      <button class="btn-logout" (click)="logout()">Sair</button>
+    </div>
+  </header>
+
+  <!-- ─── Toast de feedback ──────────────────────────────── -->
+  <div *ngIf="mensagem" class="toast" [class.toast-sucesso]="mensagemTipo === 'sucesso'" [class.toast-erro]="mensagemTipo === 'erro'">
+    <span class="toast-icon">{{ mensagemTipo === 'sucesso' ? '✓' : '✕' }}</span>
     {{ mensagem }}
   </div>
 
-  <h3>Importar Tarefas</h3>
-  <input type="file" (change)="onFileSelected($event)" accept=".csv" [disabled]="importando" />
-  <span *ngIf="importando"> Importando...</span>
-  <p><small>O arquivo CSV deve conter colunas: <code>numero</code>, <code>titulo</code>, <code>descricao</code> (separadas por ponto e vírgula)</small></p>
-
-  <hr />
-
-  <h4>Tarefas Importadas (sessão atual)</h4>
-  <table *ngIf="tarefas.length > 0" border="1" cellpadding="5">
-    <thead>
-      <tr>
-        <th>Número</th>
-        <th>Título</th>
-        <th>Descrição</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let t of tarefas">
-        <td>{{ t.numero }}</td>
-        <td>{{ t.titulo }}</td>
-        <td>{{ t.descricao }}</td>
-      </tr>
-    </tbody>
-  </table>
-  <p *ngIf="tarefas.length === 0"><em>Nenhuma tarefa importada nesta sessão.</em></p>
-
-  <hr />
-
-  <h3>Tarefas na Fila para Estimativa</h3>
-  <table *ngIf="tarefasFila.length > 0" class="tabela-fila">
-    <thead>
-      <tr>
-        <th>Número</th>
-        <th>Título</th>
-        <th>Descrição</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let t of tarefasFila">
-        <td>{{ t.numero }}</td>
-        <td>{{ t.titulo }}</td>
-        <td>{{ t.descricao }}</td>
-        <td>
-          <button (click)="iniciarEstimativa(t.id)">Iniciar Estimativa</button>
-          <button (click)="removerTarefaEstimativa(t.id)">Remover</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  <p *ngIf="tarefasFila.length === 0">Nenhuma tarefa na fila.</p>
-
-  <hr />
-
-  <h4>Tarefa em Votação</h4>
-  <div *ngIf="tarefaEmVotacao; else semTarefa">
-    <table class="tabela-tarefa">
-      <thead>
-        <tr>
-          <th>Id</th>
-          <th>Número</th>
-          <th>Título</th>
-          <th>Descrição</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>{{ tarefaEmVotacao.id }}</td>
-          <td>{{ tarefaEmVotacao.numero }}</td>
-          <td>{{ tarefaEmVotacao.titulo }}</td>
-          <td>{{ tarefaEmVotacao.descricao }}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="botoes-admin">
-      <button (click)="revelarPontos()" [disabled]="!podeRevelarPontos">
-        Revelar Pontos
-      </button>
-      <button (click)="revelarHoras()" [disabled]="!podeRevelarHoras">
-        Revelar Horas
-      </button>
+  <!-- ─── Stats ──────────────────────────────────────────── -->
+  <section class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value">{{ tarefasFila.length }}</div>
+      <div class="stat-label">Na Fila</div>
     </div>
+    <div class="stat-card stat-active">
+      <div class="stat-value">{{ tarefaEmVotacao ? 1 : 0 }}</div>
+      <div class="stat-label">Em Votação</div>
+    </div>
+    <div class="stat-card stat-done">
+      <div class="stat-value">{{ tarefasEstimadas.length }}</div>
+      <div class="stat-label">Estimadas</div>
+    </div>
+  </section>
 
-    <h4>Participantes</h4>
-    <table *ngIf="estimativas.length > 0">
-      <thead>
-        <tr>
-          <th>Participante</th>
-          <th>Pontos</th>
-          <th>Horas</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let est of estimativas">
-          <td>{{ est.participante }}</td>
-          <td>{{ est.pontos }}</td>
-          <td>{{ est.horas }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p *ngIf="estimativas.length === 0"><em>Nenhum voto registrado ainda.</em></p>
+  <!-- ─── Conteúdo principal + painel lateral ────────────── -->
+  <div class="admin-body">
+
+    <!-- Coluna principal -->
+    <main class="main-col">
+
+      <!-- Importar CSV -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Importar Tarefas</h2>
+        </div>
+        <div class="card-body import-area">
+          <label class="file-label" [class.loading]="importando">
+            <span *ngIf="!importando">📂 Selecionar arquivo CSV</span>
+            <span *ngIf="importando" class="importing-row">
+              <span class="spinner-sm"></span> Importando...
+            </span>
+            <input type="file" (change)="onFileSelected($event)" accept=".csv" [disabled]="importando" hidden />
+          </label>
+          <p class="file-hint">Colunas obrigatórias: <code>numero</code>, <code>titulo</code>, <code>descricao</code> — separadas por <code>;</code></p>
+        </div>
+      </div>
+
+      <!-- Fila de tarefas -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Fila de Tarefas</h2>
+          <div class="card-actions" *ngIf="tarefasFila.length > 0">
+            <button class="btn btn-primary"
+              [disabled]="tarefaSelecionadaId === null || tarefaEmVotacao !== null"
+              (click)="iniciarVotacaoSelecionada()">
+              ▶ Iniciar Votação
+            </button>
+            <button class="btn btn-danger"
+              [disabled]="tarefaSelecionadaId === null"
+              (click)="excluirSelecionada()">
+              🗑 Excluir
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div *ngIf="tarefasFila.length > 0; else filaVazia">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-check"></th>
+                  <th>Número</th>
+                  <th>Título</th>
+                  <th>Descrição</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let t of tarefasFila"
+                    [class.row-selected]="tarefaSelecionadaId === t.id"
+                    (click)="selecionarTarefa(t.id)">
+                  <td class="col-check">
+                    <input type="checkbox"
+                      [checked]="tarefaSelecionadaId === t.id"
+                      (change)="selecionarTarefa(t.id)"
+                      (click)="$event.stopPropagation()" />
+                  </td>
+                  <td><span class="badge-num">#{{ t.numero }}</span></td>
+                  <td class="td-title">{{ t.titulo }}</td>
+                  <td class="td-desc">{{ t.descricao }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p *ngIf="tarefaSelecionadaId === null" class="select-hint">Clique em uma linha para selecionar a tarefa</p>
+            <p *ngIf="tarefaEmVotacao !== null && tarefaSelecionadaId !== null" class="select-hint warn">
+              Finalize a votação atual antes de iniciar outra
+            </p>
+          </div>
+          <ng-template #filaVazia>
+            <div class="empty-state">
+              <span>📋</span>
+              <p>Nenhuma tarefa na fila. Importe um CSV para começar.</p>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Tarefas estimadas -->
+      <div class="card" *ngIf="tarefasEstimadas.length > 0">
+        <div class="card-header">
+          <h2 class="card-title">Tarefas Estimadas</h2>
+          <span class="badge badge-done">{{ tarefasEstimadas.length }} concluídas</span>
+        </div>
+        <div class="card-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Número</th>
+                <th>Título</th>
+                <th>Descrição</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let tarefa of tarefasEstimadas">
+                <td><span class="badge-num">#{{ tarefa.numero }}</span></td>
+                <td>{{ tarefa.titulo }}</td>
+                <td class="td-desc">{{ tarefa.descricao }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Painel lateral -->
+    <aside class="side-col">
+      <div class="card side-card">
+        <div class="card-header">
+          <h2 class="card-title">Votação Ativa</h2>
+          <span class="status-dot" [class.active]="tarefaEmVotacao !== null"></span>
+        </div>
+        <div class="card-body">
+
+          <div *ngIf="tarefaEmVotacao; else semVotacao">
+            <div class="voting-task">
+              <span class="badge-num">#{{ tarefaEmVotacao.numero }}</span>
+              <h3 class="voting-title">{{ tarefaEmVotacao.titulo }}</h3>
+              <p class="voting-desc">{{ tarefaEmVotacao.descricao }}</p>
+            </div>
+
+            <div class="reveal-actions">
+              <button class="btn btn-primary btn-full"
+                [disabled]="!podeRevelarPontos || tarefaEmVotacao.pontosRevelados"
+                (click)="revelarPontos()">
+                {{ tarefaEmVotacao.pontosRevelados ? '✓ Pontos Revelados' : '👁 Revelar Pontos' }}
+              </button>
+              <button class="btn btn-secondary btn-full"
+                [disabled]="!podeRevelarHoras || tarefaEmVotacao.horasReveladas"
+                (click)="revelarHoras()">
+                {{ tarefaEmVotacao.horasReveladas ? '✓ Horas Reveladas' : '⏱ Revelar Horas' }}
+              </button>
+            </div>
+
+            <!-- Média de horas (exibida após revelar horas) -->
+            <div *ngIf="mediaHoras !== null" class="media-horas">
+              <span class="media-label">Média de horas</span>
+              <span class="media-value">{{ mediaHoras }}h</span>
+            </div>
+
+            <div *ngIf="!podeRevelarPontos && !tarefaEmVotacao.pontosRevelados" class="waiting-hint">
+              Aguardando todos votarem pontos...
+            </div>
+            <div *ngIf="tarefaEmVotacao.pontosRevelados && !podeRevelarHoras && !tarefaEmVotacao.horasReveladas" class="waiting-hint">
+              Aguardando todos votarem horas...
+            </div>
+
+            <!-- Ações finais (visíveis após ambas as revelações) -->
+            <div *ngIf="tarefaEmVotacao.pontosRevelados && tarefaEmVotacao.horasReveladas" class="final-actions">
+              <button class="btn btn-success btn-full" (click)="finalizarVotacao()">
+                ✓ Finalizar Tarefa
+              </button>
+              <button class="btn btn-warning btn-full" (click)="pularVotacao()">
+                ↷ Passar sem Estimar
+              </button>
+            </div>
+
+            <!-- Pular também disponível antes do reveal completo -->
+            <div *ngIf="!tarefaEmVotacao.pontosRevelados || !tarefaEmVotacao.horasReveladas" class="skip-action">
+              <button class="btn btn-ghost btn-full" (click)="pularVotacao()">
+                ↷ Passar sem Estimar
+              </button>
+            </div>
+
+            <!-- Participantes que já votaram -->
+            <div class="participants" *ngIf="estimativas.length > 0">
+              <h4 class="participants-title">Votaram</h4>
+              <div class="participant-row" *ngFor="let est of estimativas">
+                <span class="participant-name">{{ est.participante }}</span>
+                <span class="participant-vote">{{ est.pontos }}</span>
+                <span class="participant-hours">{{ est.horas !== null ? est.horas : '—' }}</span>
+              </div>
+              <div class="participants-legend">
+                <span>Pontos</span>
+                <span>Horas</span>
+              </div>
+            </div>
+
+            <!-- Quem ainda não votou -->
+            <div class="pending-voters" *ngIf="quemNaoVotou.length > 0">
+              <h4 class="participants-title pending-title">Aguardando</h4>
+              <div class="pending-name" *ngFor="let nome of quemNaoVotou">
+                <span class="dot-pending"></span>{{ nome }}
+              </div>
+            </div>
+          </div>
+
+          <ng-template #semVotacao>
+            <div class="empty-state">
+              <span>🎯</span>
+              <p>Nenhuma tarefa em votação.<br>Selecione uma tarefa da fila e clique em <strong>Iniciar Votação</strong>.</p>
+            </div>
+          </ng-template>
+
+        </div>
+      </div>
+    </aside>
+
   </div>
-
-  <ng-template #semTarefa>
-    <p><em>Nenhuma tarefa liberada para votação no momento.</em></p>
-  </ng-template>
-
-  <hr />
-
-  <h4>Tarefas Estimadas</h4>
-  <table *ngIf="tarefasEstimadas.length > 0">
-    <thead>
-      <tr>
-        <th>Número</th>
-        <th>Título</th>
-        <th>Descrição</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let tarefa of tarefasEstimadas">
-        <td>{{ tarefa.numero }}</td>
-        <td>{{ tarefa.titulo }}</td>
-        <td>{{ tarefa.descricao }}</td>
-      </tr>
-    </tbody>
-  </table>
-  <p *ngIf="tarefasEstimadas.length === 0"><em>Nenhuma tarefa estimada ainda.</em></p>
 </div>

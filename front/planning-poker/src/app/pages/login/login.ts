@@ -2,9 +2,8 @@ import { Component } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { TaskService, ITask } from '../../services/task.service';
+import { TaskService } from '../../services/task.service';
 
 @Component({
   selector: 'app-login',
@@ -26,7 +25,7 @@ export class Login {
     private taskService: TaskService
   ) {}
 
-  async login(event: Event): Promise<void> {
+  login(event: Event): void {
     event.preventDefault();
     this.erro = '';
 
@@ -37,38 +36,41 @@ export class Login {
 
     this.carregando = true;
 
-    try {
-      const sucesso = await firstValueFrom(
-        this.auth.login(this.usuario, this.senha, this.perfil)
-      );
+    this.auth.login(this.usuario, this.senha, this.perfil).subscribe({
+      next: (sucesso) => {
+        if (!sucesso) {
+          this.erro = 'Usuário ou senha inválidos';
+          this.carregando = false;
+          return;
+        }
 
-      if (sucesso) {
         if (this.auth.isAdmin()) {
+          this.carregando = false;
           this.router.navigate(['/importar']);
-        } else {
-          const id = await this.getTarefaLiberada();
-          if (id) {
-            this.router.navigate(['/estimativas', id]);
-          } else {
+          return;
+        }
+
+        // Busca tarefa liberada sem async/await para manter a NgZone
+        this.taskService.getTarefasLiberadas().subscribe({
+          next: (tarefas) => {
+            this.carregando = false;
+            if (tarefas.length > 0) {
+              this.router.navigate(['/estimativas', tarefas[0].id]);
+            } else {
+              this.router.navigate(['/aguardando']);
+            }
+          },
+          error: () => {
+            this.carregando = false;
             this.router.navigate(['/aguardando']);
           }
-        }
-      } else {
-        this.erro = 'Usuário ou senha inválidos';
+        });
+      },
+      error: (err: Error) => {
+        // Exibe a mensagem específica do backend (ex: bloqueio de ADMIN)
+        this.erro = err.message || 'Erro ao conectar com o servidor';
+        this.carregando = false;
       }
-    } catch {
-      this.erro = 'Erro ao conectar com o servidor';
-    } finally {
-      this.carregando = false;
-    }
-  }
-
-  private async getTarefaLiberada(): Promise<string | null> {
-    try {
-      const res = await firstValueFrom(this.taskService.getTarefasLiberadas());
-      return res.length > 0 ? res[0].id.toString() : null;
-    } catch {
-      return null;
-    }
+    });
   }
 }

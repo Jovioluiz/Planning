@@ -10,6 +10,7 @@ public class LoginDTO {
     @NotBlank(message = "Senha é obrigatória")
     private String senha;
 
+    @NotBlank(message = "Perfil é obrigatório")
     private String perfil;
 
     public String getUsuario() { return usuario; }

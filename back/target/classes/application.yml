@@ -3,13 +3,18 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/planningdb
-    username: postgres
-    password: postgres
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/planningdb}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postgres}
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
-  properties:
-    hibernate:
-      format_sql: true
+    show-sql: false
+
+jwt:
+  # Em produção, defina a variável de ambiente JWT_SECRET com uma string aleatória de pelo menos 32 caracteres.
+  secret: ${JWT_SECRET:planning-poker-dev-insecure-secret-key-change-in-prod-abc123!}
+
+logging:
+  level:
+    com.planningapp.security: DEBUG

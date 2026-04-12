@@ -39,6 +39,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Mapeia o role do token (ADMIN, JOGADOR, OBSERVADOR) para a authority do Spring Security
                 String authority = "ROLE_" + (role != null ? role : "JOGADOR");
 
+                log.debug("JWT autenticado: usuario={} role={} authority={}", username, role, authority);
+
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         username, null, Collections.singletonList(new SimpleGrantedAuthority(authority)));
 

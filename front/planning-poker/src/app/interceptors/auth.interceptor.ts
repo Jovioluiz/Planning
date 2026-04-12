@@ -1,21 +1,18 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { AuthService } from '../services/auth.service';
 
+// Lê o token diretamente do sessionStorage em vez de usar inject(AuthService),
+// pois inject() pode falhar quando o HttpClient é chamado fora do contexto de
+// injeção do Angular (ex: callbacks de PapaParse, setTimeout, etc.).
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
-  const token = authService.getToken();
+  const token = typeof sessionStorage !== 'undefined'
+    ? sessionStorage.getItem('token')
+    : null;
 
-  // Se o token existir e a requisição for para a nossa API (evita enviar token para APIs externas), injeta o header
   if (token && req.url.includes('/api/')) {
-    const clonedReq = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    return next(clonedReq);
+    return next(req.clone({
+      setHeaders: { Authorization: `Bearer ${token}` }
+    }));
   }
 
-  // Se não tem token (ex: rota de login), passa a requisição original adiante
   return next(req);
 };

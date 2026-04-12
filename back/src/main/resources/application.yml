@@ -14,3 +14,7 @@ spring:
 jwt:
   # Em produção, defina a variável de ambiente JWT_SECRET com uma string aleatória de pelo menos 32 caracteres.
   secret: ${JWT_SECRET:planning-poker-dev-insecure-secret-key-change-in-prod-abc123!}
+
+logging:
+  level:
+    com.planningapp.security: DEBUG

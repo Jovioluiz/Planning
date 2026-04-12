@@ -11,4 +11,5 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByEstimadaFalseAndLiberadaFalseOrderByIdAsc();
     List<Task> findByEstimadaFalseAndLiberadaTrueOrderByIdAsc();
     List<Task> findByEstimadaTrue();
+    boolean existsByNumero(Long numero);
 }

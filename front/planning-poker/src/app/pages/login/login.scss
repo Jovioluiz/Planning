@@ -1,44 +1,199 @@
-.login-container {
+/* ─── Página ─────────────────────────────────────────────── */
+.login-page {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh; /* altura total da tela */
-  background-color: #f7f7f7;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  overflow: hidden;
+  font-family: 'Segoe UI', Arial, sans-serif;
 }
 
-.login-box {
-  background: white;
-  padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  width: 300px;
+/* ─── Cartas decorativas ao fundo ───────────────────────── */
+.cards-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.card-deco {
+  position: absolute;
+  width: 80px;
+  height: 110px;
+  background: linear-gradient(145deg, #ffffff14, #ffffff08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(2px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Posicionamento e rotação de cada carta */
+.card-1  { top: 8%;   left: 6%;   transform: rotate(-15deg); animation-delay: 0s;    }
+.card-2  { top: 18%;  left: 16%;  transform: rotate(8deg);   animation-delay: 0.8s;  }
+.card-3  { top: 55%;  left: 4%;   transform: rotate(-20deg); animation-delay: 1.5s;  }
+.card-4  { top: 75%;  left: 12%;  transform: rotate(12deg);  animation-delay: 0.3s;  }
+.card-5  { top: 5%;   right: 8%;  transform: rotate(18deg);  animation-delay: 1.2s;  }
+.card-6  { top: 30%;  right: 5%;  transform: rotate(-10deg); animation-delay: 0.6s;  }
+.card-7  { top: 65%;  right: 10%; transform: rotate(22deg);  animation-delay: 1.8s;  }
+.card-8  { top: 82%;  right: 20%; transform: rotate(-8deg);  animation-delay: 0.4s;  }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+
+/* ─── Card do formulário ─────────────────────────────────── */
+.login-card {
+  position: relative;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 20px;
+  padding: 44px 40px 36px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* ─── Cabeçalho ──────────────────────────────────────────── */
+.login-header {
   text-align: center;
+  margin-bottom: 32px;
+}
 
-  h2 {
-    margin-bottom: 20px;
+.logo-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.login-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 6px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #7a8599;
+  margin: 0;
+}
+
+/* ─── Campos ─────────────────────────────────────────────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
   }
 
-  input {
-    display: block;
-    width: 100%;
-    margin-bottom: 15px;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
+  input,
+  select {
+    padding: 11px 14px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #1f2937;
+    background: #f9fafb;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+
+    &:focus {
+      border-color: #0f3460;
+      box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.12);
+      background: #fff;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+/* ─── Botão ──────────────────────────────────────────────── */
+.btn-entrar {
+  width: 100%;
+  padding: 12px;
+  margin-top: 6px;
+  background: linear-gradient(135deg, #0f3460, #e94560);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  letter-spacing: 0.3px;
+
+  &:hover:not(:disabled) {
+    opacity: 0.92;
+    transform: translateY(-1px);
   }
 
-  button {
-    width: 100%;
-    padding: 10px;
-    border: none;
-    background-color: #007bff;
-    color: white;
-    border-radius: 6px;
-    cursor: pointer;
+  &:active:not(:disabled) {
+    transform: translateY(0);
   }
 
-  .erro {
-    margin-top: 10px;
-    color: red;
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
   }
+}
+
+/* ─── Spinner ────────────────────────────────────────────── */
+.spinner-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Mensagens ──────────────────────────────────────────── */
+.erro {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 13px;
+  text-align: center;
+}
+
+.hint {
+  margin-top: 18px;
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  line-height: 1.5;
 }

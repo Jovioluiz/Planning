@@ -2,6 +2,7 @@ package com.planningapp.controller;
 
 import com.planningapp.dto.TaskDTO;
 import com.planningapp.entity.Task;
+import com.planningapp.notification.service.EstimationNotificationService;
 import com.planningapp.service.TaskService;
 
 import jakarta.validation.Valid;
@@ -11,7 +12,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,6 +21,9 @@ public class TaskController {
 
     @Autowired
     private TaskService taskService;
+
+    @Autowired
+    private EstimationNotificationService notificationService;
 
     @GetMapping
     public List<Task> listarTarefas() {
@@ -33,11 +37,14 @@ public class TaskController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/importar")
-    public ResponseEntity<?> importarTarefas(@Valid @RequestBody List<TaskDTO> dtos) {
-        taskService.importarDTOs(dtos);
-        return ResponseEntity.ok(Map.of("success", true, "message", "Tarefas importadas com sucesso"));
+    public ResponseEntity<?> importarTarefas(@Valid @RequestBody List<TaskDTO> dtos, Authentication auth) {
+        if (!isAdmin(auth)) return forbidden();
+        int inseridas = taskService.importarDTOs(dtos);
+        int duplicadas = dtos.size() - inseridas;
+        String msg = inseridas + " tarefa(s) importada(s)."
+                + (duplicadas > 0 ? " " + duplicadas + " ignorada(s) por já existirem no banco." : "");
+        return ResponseEntity.ok(Map.of("success", true, "message", msg, "inseridas", inseridas, "duplicadas", duplicadas));
     }
 
     @GetMapping("/liberadas")
@@ -55,9 +62,14 @@ public class TaskController {
         return taskService.findNaoEstimadasENaoLiberadas();
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{id}/participantes")
+    public List<String> getParticipantes(@PathVariable Long id) {
+        return taskService.getParticipantes(id);
+    }
+
     @PostMapping("/{id}/liberar")
-    public ResponseEntity<?> liberarTarefa(@PathVariable("id") Long taskId) {
+    public ResponseEntity<?> liberarTarefa(@PathVariable("id") Long taskId, Authentication auth) {
+        if (!isAdmin(auth)) return forbidden();
         boolean liberada = taskService.liberarTarefa(taskId);
         if (liberada) {
             return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa liberada"));
@@ -66,10 +78,42 @@ public class TaskController {
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{id}/finalizar")
+    public ResponseEntity<?> finalizarTarefa(@PathVariable Long id, Authentication auth) {
+        if (!isAdmin(auth)) return forbidden();
+        boolean ok = taskService.finalizarTarefa(id);
+        if (ok) {
+            notificationService.notificarTodos("TAREFA_FINALIZADA", id);
+            return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa finalizada"));
+        }
+        return ResponseEntity.status(404).body(Map.of("success", false, "message", "Tarefa não encontrada"));
+    }
+
+    @PostMapping("/{id}/pular")
+    public ResponseEntity<?> pularTarefa(@PathVariable Long id, Authentication auth) {
+        if (!isAdmin(auth)) return forbidden();
+        boolean ok = taskService.pularTarefa(id);
+        if (ok) {
+            notificationService.notificarTodos("TAREFA_PULADA", id);
+            return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa devolvida para a fila"));
+        }
+        return ResponseEntity.status(404).body(Map.of("success", false, "message", "Tarefa não encontrada"));
+    }
+
     @DeleteMapping("/excluirTarefa/{id}")
-    public ResponseEntity<?> excluirTarefa(@PathVariable Long id) {
+    public ResponseEntity<?> excluirTarefa(@PathVariable Long id, Authentication auth) {
+        if (!isAdmin(auth)) return forbidden();
         taskService.delete(id);
         return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa removida"));
+    }
+
+    private boolean isAdmin(Authentication auth) {
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    private ResponseEntity<?> forbidden() {
+        return ResponseEntity.status(403)
+                .body(Map.of("success", false, "message", "Acesso negado: apenas administradores"));
     }
 }

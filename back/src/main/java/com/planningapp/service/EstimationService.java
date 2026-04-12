@@ -2,6 +2,7 @@ package com.planningapp.service;
 
 import com.planningapp.entity.Estimation;
 import com.planningapp.repository.EstimationRepository;
+import com.planningapp.repository.TaskParticipantRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,9 @@ public class EstimationService {
 
     @Autowired
     private EstimationRepository estimationRepository;
+
+    @Autowired
+    private TaskParticipantRepository participantRepository;
 
     public List<Estimation> findAll() {
         return estimationRepository.findAll();
@@ -48,17 +52,29 @@ public class EstimationService {
         return estimationRepository.findByTaskIdAndParticipante(taskId, participante);
     }
 
-    // CORRIGIDO: usa != null em vez de > 0 para não excluir a carta "café" (pontos = 0).
+    /**
+     * Todos os PARTICIPANTES VINCULADOS à tarefa votaram pontos.
+     * Retorna false se não há participantes ou se algum ainda não votou.
+     */
     public boolean todosVotaramPontos(Long taskId) {
+        long totalParticipantes = participantRepository.countByTaskId(taskId);
+        if (totalParticipantes == 0) return false;
         List<Estimation> estimativas = findByTaskId(taskId);
-        if (estimativas.isEmpty()) return false;
-        return estimativas.stream().allMatch(e -> e.getPontos() != null);
+        long votaram = estimativas.stream().filter(e -> e.getPontos() != null).count();
+        return votaram >= totalParticipantes;
     }
 
+    /**
+     * Todos os PARTICIPANTES VINCULADOS à tarefa votaram horas.
+     * Retorna false se não há participantes ou se algum ainda não votou horas.
+     */
     public boolean todosVotaramHoras(Long taskId) {
+        long totalParticipantes = participantRepository.countByTaskId(taskId);
+        if (totalParticipantes == 0) return false;
         List<Estimation> estimativas = findByTaskId(taskId);
-        if (estimativas.isEmpty()) return false;
-        return estimativas.stream()
-                .allMatch(e -> e.getHoras() != null && e.getHoras() > 0);
+        long votaramHoras = estimativas.stream()
+                .filter(e -> e.getHoras() != null && e.getHoras() > 0)
+                .count();
+        return votaramHoras >= totalParticipantes;
     }
 }

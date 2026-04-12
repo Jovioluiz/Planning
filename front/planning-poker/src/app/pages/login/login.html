@@ -1,33 +1,73 @@
-<div class="login-container">
-  <div class="login-box">
-    <h2>Login</h2>
+<div class="login-page">
+
+  <!-- Cartas decorativas ao fundo -->
+  <div class="cards-bg" aria-hidden="true">
+    <div class="card-deco card-1">1</div>
+    <div class="card-deco card-2">2</div>
+    <div class="card-deco card-3">3</div>
+    <div class="card-deco card-4">5</div>
+    <div class="card-deco card-5">8</div>
+    <div class="card-deco card-6">13</div>
+    <div class="card-deco card-7">21</div>
+    <div class="card-deco card-8">☕</div>
+  </div>
+
+  <!-- Formulário de login -->
+  <div class="login-card">
+    <div class="login-header">
+      <div class="logo-icon">🃏</div>
+      <h1>Planning Poker</h1>
+      <p class="subtitle">Estime suas tarefas em equipe</p>
+    </div>
+
     <form (ngSubmit)="login($event)" novalidate>
-      <input
-        type="text"
-        [(ngModel)]="usuario"
-        name="usuario"
-        placeholder="Usuário"
-        required
-        [disabled]="carregando"
-      />
-      <input
-        type="password"
-        [(ngModel)]="senha"
-        name="senha"
-        placeholder="Senha"
-        required
-        [disabled]="carregando"
-      />
-      <select [(ngModel)]="perfil" name="perfil" required [disabled]="carregando">
-        <option value="" disabled selected>Selecione um perfil</option>
-        <option value="ADMIN">Administrador</option>
-        <option value="JOGADOR">Desenvolvedor</option>
-        <option value="OBSERVADOR">Observador</option>
-      </select>
-      <button type="submit" [disabled]="carregando">
-        {{ carregando ? 'Entrando...' : 'Entrar' }}
+      <div class="field">
+        <label for="usuario">Usuário</label>
+        <input
+          id="usuario"
+          type="text"
+          [(ngModel)]="usuario"
+          name="usuario"
+          placeholder="Seu nome de usuário"
+          autocomplete="username"
+          [disabled]="carregando"
+        />
+      </div>
+
+      <div class="field">
+        <label for="senha">Senha</label>
+        <input
+          id="senha"
+          type="password"
+          [(ngModel)]="senha"
+          name="senha"
+          placeholder="Sua senha"
+          autocomplete="current-password"
+          [disabled]="carregando"
+        />
+      </div>
+
+      <div class="field">
+        <label for="perfil">Perfil</label>
+        <select id="perfil" [(ngModel)]="perfil" name="perfil" [disabled]="carregando">
+          <option value="" disabled selected>Selecione um perfil</option>
+          <option value="ADMIN">Administrador</option>
+          <option value="JOGADOR">Desenvolvedor</option>
+          <option value="OBSERVADOR">Observador</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn-entrar" [disabled]="carregando">
+        <span *ngIf="!carregando">Entrar</span>
+        <span *ngIf="carregando" class="spinner-row">
+          <span class="spinner"></span> Entrando...
+        </span>
       </button>
     </form>
+
     <p *ngIf="erro" class="erro">{{ erro }}</p>
+
+    <p class="hint">Novo usuário? Basta entrar que sua conta será criada automaticamente.</p>
   </div>
+
 </div>

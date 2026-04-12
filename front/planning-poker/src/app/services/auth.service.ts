@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { tap, catchError, map } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -26,7 +26,11 @@ export class AuthService {
         }
         return false;
       }),
-      catchError(() => of(false))
+      // Propaga o erro com a mensagem do backend para que o componente possa exibi-la
+      catchError((err) => {
+        const message = err?.error?.message || 'Erro ao conectar com o servidor';
+        return throwError(() => new Error(message));
+      })
     );
   }
 

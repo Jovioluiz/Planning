@@ -24,35 +24,59 @@ export class TaskService {
 
   constructor(private http: HttpClient) {}
 
+  // O interceptor funcional falha quando HttpClient é chamado fora do contexto de
+  // injeção do Angular (ex: callbacks de PapaParse, FileReader, etc.).
+  // Este helper garante que o token seja sempre enviado independente do contexto.
+  private get authOptions() {
+    const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('token') : null;
+    return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  }
+
   buscarTarefaAtiva(): Observable<ITask> {
-    return this.http.get<ITask>(`${this.url}/ativa`);
+    return this.http.get<ITask>(`${this.url}/ativa`, this.authOptions);
   }
 
   getTaskById(id: string): Observable<ITask> {
-    return this.http.get<ITask>(`${this.url}/${id}`);
+    return this.http.get<ITask>(`${this.url}/${id}`, this.authOptions);
   }
 
   liberarTarefa(id: string): Observable<any> {
-    return this.http.post(`${this.url}/${id}/liberar`, {});
+    return this.http.post(`${this.url}/${id}/liberar`, {}, this.authOptions);
   }
 
   getTarefasLiberadas(): Observable<ITask[]> {
-    return this.http.get<ITask[]>(`${this.url}/liberadas`);
+    return this.http.get<ITask[]>(`${this.url}/liberadas`, this.authOptions);
   }
 
   getTarefasVotadas(): Observable<ITask[]> {
-    return this.http.get<ITask[]>(`${this.url}/votadas`);
+    return this.http.get<ITask[]>(`${this.url}/votadas`, this.authOptions);
   }
 
   getTarefasFila(): Observable<ITask[]> {
-    return this.http.get<ITask[]>(`${this.url}/fila`);
+    return this.http.get<ITask[]>(`${this.url}/fila`, this.authOptions);
   }
 
   importarCSV(tarefas: any[]): Observable<any> {
-    return this.http.post(`${this.url}/importar`, tarefas);
+    return this.http.post(`${this.url}/importar`, tarefas, this.authOptions);
   }
 
   removerTarefa(id: string): Observable<any> {
-    return this.http.delete(`${this.url}/excluirTarefa/${id}`);
+    return this.http.delete(`${this.url}/excluirTarefa/${id}`, this.authOptions);
+  }
+
+  getJogadores(): Observable<string[]> {
+    return this.http.get<string[]>(`${environment.apiUrl}/api/auth/jogadores`, this.authOptions);
+  }
+
+  getParticipantesTarefa(taskId: string): Observable<string[]> {
+    return this.http.get<string[]>(`${this.url}/${taskId}/participantes`, this.authOptions);
+  }
+
+  finalizarTarefa(id: string): Observable<any> {
+    return this.http.post(`${this.url}/${id}/finalizar`, {}, this.authOptions);
+  }
+
+  pularTarefa(id: string): Observable<any> {
+    return this.http.post(`${this.url}/${id}/pular`, {}, this.authOptions);
   }
 }
