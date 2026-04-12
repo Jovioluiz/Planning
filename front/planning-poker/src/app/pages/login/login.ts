@@ -38,16 +38,20 @@ export class Login {
     this.carregando = true;
 
     try {
-      const response = await firstValueFrom(
+      const sucesso = await firstValueFrom(
         this.auth.login(this.usuario, this.senha, this.perfil)
       );
 
-      if (response) {
+      if (sucesso) {
         if (this.auth.isAdmin()) {
           this.router.navigate(['/importar']);
         } else {
           const id = await this.getTarefaLiberada();
-          this.router.navigate(['/estimativas', id ?? '0']);
+          if (id) {
+            this.router.navigate(['/estimativas', id]);
+          } else {
+            this.router.navigate(['/aguardando']);
+          }
         }
       } else {
         this.erro = 'Usuário ou senha inválidos';

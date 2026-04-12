@@ -1,109 +1,140 @@
-<p>Usuário logado: {{ usuario }}</p>
-<h3>Importar Tarefas</h3>
+<div class="importar-container">
+  <div class="top-bar">
+    <span>Usuário: {{ usuario }}</span>
+    <button (click)="logout()">Sair</button>
+  </div>
 
-<input type="file" (change)="onFileSelected($event)" accept=".csv" [disabled]="importando" />
-<span *ngIf="importando"> Importando...</span>
-<p><small>O arquivo CSV deve conter colunas como cabeçalho: <code>numero</code>, <code>titulo</code>, <code>descricao</code></small></p>
-<p><small>Os valores das colunas devem estar separados por ;</small></p>
+  <!-- Mensagem de feedback inline -->
+  <div *ngIf="mensagem" [class]="'mensagem mensagem-' + mensagemTipo">
+    {{ mensagem }}
+  </div>
 
-<hr />
+  <h3>Importar Tarefas</h3>
+  <input type="file" (change)="onFileSelected($event)" accept=".csv" [disabled]="importando" />
+  <span *ngIf="importando"> Importando...</span>
+  <p><small>O arquivo CSV deve conter colunas: <code>numero</code>, <code>titulo</code>, <code>descricao</code> (separadas por ponto e vírgula)</small></p>
 
-<h4>Tarefas importadas</h4>
-<table *ngIf="tarefas.length > 0" border="1" cellpadding="5">
-  <thead>
-    <tr>
-      <th>Número</th>
-      <th>Título</th>
-      <th>Descrição</th>
-      <th>Ação</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let t of tarefas">
-      <td>{{ t.numero }}</td>
-      <td>{{ t.titulo }}</td>
-      <td>{{ t.descricao }}</td>
-    </tr>
-  </tbody>
-</table>
+  <hr />
 
-<hr />
+  <h4>Tarefas Importadas (sessão atual)</h4>
+  <table *ngIf="tarefas.length > 0" border="1" cellpadding="5">
+    <thead>
+      <tr>
+        <th>Número</th>
+        <th>Título</th>
+        <th>Descrição</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let t of tarefas">
+        <td>{{ t.numero }}</td>
+        <td>{{ t.titulo }}</td>
+        <td>{{ t.descricao }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <p *ngIf="tarefas.length === 0"><em>Nenhuma tarefa importada nesta sessão.</em></p>
 
-<h3>Tarefas na Fila para Estimativa</h3>
-<table *ngIf="tarefasFila.length > 0" class="tabela-fila">
-  <thead>
-    <tr>
-      <th>Número</th>
-      <th>Título</th>
-      <th>Descrição</th>
-      <th>Ação</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let t of tarefasFila">
-      <td>{{ t.numero }}</td>
-      <td>{{ t.titulo }}</td>
-      <td>{{ t.descricao }}</td>
-      <td><button (click)="iniciarEstimativa(t.id)">Iniciar Estimativa</button></td>
-      <td><button (click)="removerTarefaEstimativa(t.id)">Remover Tarefa</button></td>
-    </tr>
-  </tbody>
-</table>
-<p *ngIf="tarefasFila.length === 0">Nenhuma tarefa na fila.</p>
+  <hr />
 
-<h4>Tarefa em votação</h4>
-<table *ngIf="tarefaEmVotacao" class="tabela-tarefa">
-  <tr>
-    <th>Id</th>
-    <th>Número</th>
-    <th>Título</th>
-    <th>Descrição</th>
-  </tr>
-  <tr>
-    <td>{{ tarefaEmVotacao.id }}</td>
-    <td>{{ tarefaEmVotacao.numero }}</td>
-    <td>{{ tarefaEmVotacao.titulo }}</td>
-    <td>{{ tarefaEmVotacao.descricao }}</td>
-  </tr>
-</table>
+  <h3>Tarefas na Fila para Estimativa</h3>
+  <table *ngIf="tarefasFila.length > 0" class="tabela-fila">
+    <thead>
+      <tr>
+        <th>Número</th>
+        <th>Título</th>
+        <th>Descrição</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let t of tarefasFila">
+        <td>{{ t.numero }}</td>
+        <td>{{ t.titulo }}</td>
+        <td>{{ t.descricao }}</td>
+        <td>
+          <button (click)="iniciarEstimativa(t.id)">Iniciar Estimativa</button>
+          <button (click)="removerTarefaEstimativa(t.id)">Remover</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <p *ngIf="tarefasFila.length === 0">Nenhuma tarefa na fila.</p>
 
-<div class="botoes-admin">
-  <button (click)="revelarPontos()" [disabled]="!podeRevelarPontos">
-    Revelar Pontos
-  </button>
-  <button (click)="revelarHoras()" [disabled]="!podeRevelarHoras">
-    Revelar Horas
-  </button>
+  <hr />
+
+  <h4>Tarefa em Votação</h4>
+  <div *ngIf="tarefaEmVotacao; else semTarefa">
+    <table class="tabela-tarefa">
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Número</th>
+          <th>Título</th>
+          <th>Descrição</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ tarefaEmVotacao.id }}</td>
+          <td>{{ tarefaEmVotacao.numero }}</td>
+          <td>{{ tarefaEmVotacao.titulo }}</td>
+          <td>{{ tarefaEmVotacao.descricao }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="botoes-admin">
+      <button (click)="revelarPontos()" [disabled]="!podeRevelarPontos">
+        Revelar Pontos
+      </button>
+      <button (click)="revelarHoras()" [disabled]="!podeRevelarHoras">
+        Revelar Horas
+      </button>
+    </div>
+
+    <h4>Participantes</h4>
+    <table *ngIf="estimativas.length > 0">
+      <thead>
+        <tr>
+          <th>Participante</th>
+          <th>Pontos</th>
+          <th>Horas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let est of estimativas">
+          <td>{{ est.participante }}</td>
+          <td>{{ est.pontos }}</td>
+          <td>{{ est.horas }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="estimativas.length === 0"><em>Nenhum voto registrado ainda.</em></p>
+  </div>
+
+  <ng-template #semTarefa>
+    <p><em>Nenhuma tarefa liberada para votação no momento.</em></p>
+  </ng-template>
+
+  <hr />
+
+  <h4>Tarefas Estimadas</h4>
+  <table *ngIf="tarefasEstimadas.length > 0">
+    <thead>
+      <tr>
+        <th>Número</th>
+        <th>Título</th>
+        <th>Descrição</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let tarefa of tarefasEstimadas">
+        <td>{{ tarefa.numero }}</td>
+        <td>{{ tarefa.titulo }}</td>
+        <td>{{ tarefa.descricao }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <p *ngIf="tarefasEstimadas.length === 0"><em>Nenhuma tarefa estimada ainda.</em></p>
 </div>
-
-<h4>Participantes</h4>
-<table *ngIf="estimativas.length > 0">
-  <tr>
-    <th>Participante</th>
-    <th>Pontos</th>
-    <th>Horas</th>
-  </tr>
-  <tr *ngFor="let est of estimativas">
-    <td>{{ est.participante }}</td>
-    <td>{{ est.pontos }}</td>
-    <td>{{ est.horas }}</td>
-  </tr>
-</table>
-
-<div *ngIf="!tarefaEmVotacao">
-  <p>Nenhuma tarefa liberada para votação no momento.</p>
-</div>
-
-<h4>Tarefas Estimadas</h4>
-<table *ngIf="tarefasEstimadas.length > 0">
-  <tr>
-    <th>Número</th>
-    <th>Título</th>
-    <th>Descrição</th>
-  </tr>
-  <tr *ngFor="let tarefa of tarefasEstimadas">
-    <td>{{ tarefa.numero }}</td>
-    <td>{{ tarefa.titulo }}</td>
-    <td>{{ tarefa.descricao }}</td>
-  </tr>
-</table>

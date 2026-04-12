@@ -9,8 +9,11 @@ import com.planningapp.notification.service.EstimationNotificationService;
 import com.planningapp.service.EstimationService;
 import com.planningapp.service.TaskService;
 
+import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,7 +21,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-// CORRIGIDO: removido @CrossOrigin — CORS centralizado em WebConfig.
 @RestController
 @RequestMapping("/api/tarefas/{taskId}/estimativas")
 public class EstimationController {
@@ -27,8 +29,6 @@ public class EstimationController {
     @Autowired private TaskService taskService;
     @Autowired private EstimationNotificationService notificationService;
 
-    // CORRIGIDO: endpoint /listar agora usa EstimativaResponseDTO
-    // com os mesmos campos de /resumo-votos — resposta consistente.
     @GetMapping("/listar")
     public List<EstimativaResponseDTO> listarEstimativas(@PathVariable Long taskId) {
         return estimationService.findByTaskId(taskId).stream()
@@ -44,33 +44,30 @@ public class EstimationController {
                 .collect(Collectors.toList());
     }
 
-    // CORRIGIDO: /resumo-votos usa o mesmo DTO — resposta idêntica ao /listar.
+    // Alias mantido para compatibilidade com o frontend — delega ao /listar
     @GetMapping("/resumo-votos")
     public List<EstimativaResponseDTO> listarResumoVotos(@PathVariable Long taskId) {
         return listarEstimativas(taskId);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'JOGADOR')")
     @PostMapping("/votar")
-    public ResponseEntity<?> votar(@PathVariable Long taskId, @RequestBody EstimativaDTO dto) {
-
-        if (dto.getParticipante() == null || dto.getPontos() == null) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", "Dados incompletos"));
-        }
-
+    public ResponseEntity<?> votar(@PathVariable Long taskId, @Valid @RequestBody EstimativaDTO dto) {
         Optional<Task> tarefaOpt = taskService.findById(taskId);
         if (tarefaOpt.isEmpty()) {
             return ResponseEntity.status(404)
                     .body(Map.of("success", false, "message", "Tarefa não encontrada"));
         }
 
-        // CORRIGIDO: busca a estimativa do participante específico —
-        // antes buscava todas e atualizava a primeira (sobrescrevia voto de outro participante).
+        if (!tarefaOpt.get().isLiberada()) {
+            return ResponseEntity.status(400)
+                    .body(Map.of("success", false, "message", "Esta tarefa não está liberada para votação"));
+        }
+
         Optional<Estimation> existente =
                 estimationService.findByTaskIdAndParticipante(taskId, dto.getParticipante());
 
         if (existente.isPresent()) {
-            // Participante já votou — retorna 409 para o frontend tratar
             return ResponseEntity.status(409)
                     .body(Map.of("success", false, "message", "Você já votou nesta tarefa."));
         }
@@ -85,16 +82,9 @@ public class EstimationController {
         return ResponseEntity.ok(Map.of("success", true, "message", "Voto registrado"));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'JOGADOR')")
     @PostMapping("/votarHoras")
-    public ResponseEntity<?> votarHoras(@PathVariable Long taskId, @RequestBody EstimativaHorasDTO dto) {
-
-        // CORRIGIDO: validações movidas para ANTES de usar taskId e dto —
-        // antes o check de taskId == null vinha depois de usá-lo na query.
-        if (dto.getParticipante() == null || dto.getHoras() == null || dto.getHoras() < 0) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("success", false, "message", "Dados incompletos ou inválidos"));
-        }
-
+    public ResponseEntity<?> votarHoras(@PathVariable Long taskId, @Valid @RequestBody EstimativaHorasDTO dto) {
         Optional<Estimation> estOpt =
                 estimationService.findByTaskIdAndParticipante(taskId, dto.getParticipante());
 
@@ -110,13 +100,13 @@ public class EstimationController {
         return ResponseEntity.ok(Map.of("success", true, "message", "Horas registradas"));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/revelarPontos")
     public ResponseEntity<?> revelarPontos(@PathVariable Long taskId) {
         List<Estimation> estimativas = estimationService.findByTaskId(taskId);
         estimativas.forEach(est -> est.setRevealed(true));
         estimationService.saveAll(estimativas);
 
-        // Atualiza flag na tarefa
         taskService.findById(taskId).ifPresent(task -> {
             task.setPontosRevelados(true);
             taskService.save(task);
@@ -126,13 +116,13 @@ public class EstimationController {
         return ResponseEntity.ok(Map.of("success", true, "message", "Pontos revelados"));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/revelar-horas")
     public ResponseEntity<?> revelarHoras(@PathVariable Long taskId) {
         List<Estimation> estimativas = estimationService.findByTaskId(taskId);
         estimativas.forEach(est -> est.setHorasReveladas(true));
         estimationService.saveAll(estimativas);
 
-        // Atualiza flag na tarefa
         taskService.findById(taskId).ifPresent(task -> {
             task.setHorasReveladas(true);
             taskService.save(task);
@@ -142,11 +132,11 @@ public class EstimationController {
         return ResponseEntity.ok(Map.of("success", true, "message", "Horas reveladas"));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/resetar")
     public ResponseEntity<?> resetarVotacao(@PathVariable Long taskId) {
         estimationService.deleteAll(estimationService.findByTaskId(taskId));
 
-        // Reseta flags na tarefa
         taskService.findById(taskId).ifPresent(task -> {
             task.setPontosRevelados(false);
             task.setHorasReveladas(false);
@@ -166,6 +156,7 @@ public class EstimationController {
         return estimationService.todosVotaramHoras(taskId);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/excluirTarefa/{id}")
     public void delete(@PathVariable("id") Long id) {
         estimationService.delete(id);

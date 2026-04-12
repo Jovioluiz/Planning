@@ -19,7 +19,6 @@ const CARTA_CAFE = -1;
 })
 export class EstimationBoard implements OnInit, OnDestroy {
   participante = '';
-  task: any = null;
   taskId: string | null = null;
   erro = '';
   estimativas: any[] = [];
@@ -29,7 +28,8 @@ export class EstimationBoard implements OnInit, OnDestroy {
   estadoVotacao: 'pontos' | 'horas' | 'finalizado' = 'pontos';
   pontoSelecionado: number | null = null;
   horaSelecionada: number = 0;
-  todosVotaram = false;
+  todosVotaram = false; // true quando todos votaram na fase atual
+  votando = false;
   readonly CARTA_CAFE = CARTA_CAFE;
 
   constructor(
@@ -41,19 +41,14 @@ export class EstimationBoard implements OnInit, OnDestroy {
     private auth: AuthService
   ) {}
 
-  get isAdmin(): boolean {
-    return this.auth.isAdmin();
-  }
+  get isAdmin(): boolean { return this.auth.isAdmin(); }
+  get isObservador(): boolean { return this.auth.isObservador(); }
 
   ngOnInit(): void {
     this.participante = this.auth.getUsuario() || '';
     this.taskId = this.route.snapshot.paramMap.get('id')!;
     this.carregarTarefa();
     this.atualizarEstimativas();
-
-    if (this.isAdmin) {
-      this.checkTodosVotaram();
-    }
 
     this.wsService.subscribe('/topic/estimativas', (msg) => {
       const data = JSON.parse(msg.body);
@@ -76,17 +71,26 @@ export class EstimationBoard implements OnInit, OnDestroy {
   }
 
   carregarTarefa(): void {
-    this.taskService.getTaskById(this.taskId!).subscribe(tarefa => {
-      this.tarefa = tarefa;
-
-      if (tarefa.pontosRevelados && tarefa.horasReveladas) {
-        this.estadoVotacao = 'finalizado';
-      } else if (tarefa.pontosRevelados) {
-        this.estadoVotacao = 'horas';
-      } else {
-        this.estadoVotacao = 'pontos';
+    this.taskService.getTaskById(this.taskId!).subscribe({
+      next: (tarefa) => {
+        this.tarefa = tarefa;
+        this.sincronizarEstado(tarefa);
+        if (this.isAdmin) this.checkTodosVotaram();
+      },
+      error: () => {
+        this.erro = 'Não foi possível carregar os dados da tarefa.';
       }
     });
+  }
+
+  private sincronizarEstado(tarefa: any): void {
+    if (tarefa.pontosRevelados && tarefa.horasReveladas) {
+      this.estadoVotacao = 'finalizado';
+    } else if (tarefa.pontosRevelados) {
+      this.estadoVotacao = 'horas';
+    } else {
+      this.estadoVotacao = 'pontos';
+    }
   }
 
   votarHoras(): void {
@@ -95,16 +99,21 @@ export class EstimationBoard implements OnInit, OnDestroy {
       return;
     }
 
+    this.votando = true;
+    this.erro = '';
+
     this.estimationService.votarHoras(this.taskId!, this.participante, this.horaSelecionada).subscribe({
       next: () => {
         this.estadoVotacao = 'finalizado';
         this.atualizarEstimativas();
       },
-      error: () => { this.erro = 'Erro ao votar horas'; }
+      error: () => { this.erro = 'Erro ao registrar horas. Tente novamente.'; },
+      complete: () => { this.votando = false; }
     });
   }
 
   votarPontosDireto(valor: number): void {
+    if (this.votando) return;
     this.pontoSelecionado = valor;
     this.votarPontos();
   }
@@ -114,29 +123,32 @@ export class EstimationBoard implements OnInit, OnDestroy {
       this.erro = 'Informe o nome do participante!';
       return;
     }
-
     if (this.pontoSelecionado === null) {
       this.erro = 'Selecione uma carta de pontos!';
       return;
     }
 
-    // Carta café envia valor 0 para o backend, mas controlamos o estado pelo sentinela CARTA_CAFE
+    this.votando = true;
+    this.erro = '';
+
+    // Carta café envia valor 0 para o backend
     const pontos = this.pontoSelecionado === CARTA_CAFE ? 0 : this.pontoSelecionado;
 
     this.estimationService.votar(this.taskId!, this.participante, pontos).subscribe({
       next: () => {
         this.estadoVotacao = 'horas';
-        this.erro = '';
         this.atualizarEstimativas();
       },
       error: (err: any) => {
         if (err.status === 409) {
           this.erro = err.error?.message || 'Você já votou nesta tarefa.';
+          this.estadoVotacao = 'horas';
           this.atualizarEstimativas();
         } else {
-          this.erro = 'Erro ao votar. Tente novamente.';
+          this.erro = 'Erro ao registrar voto. Tente novamente.';
         }
-      }
+      },
+      complete: () => { this.votando = false; }
     });
   }
 
@@ -149,10 +161,9 @@ export class EstimationBoard implements OnInit, OnDestroy {
           Horas: est.revealed ? est.horas : '🔒'
         }));
 
-        if (!this.isAdmin) {
+        if (!this.isAdmin && !this.isObservador) {
           const self = res.find((e: any) => e.participante === this.participante);
           if (self) {
-            // Verifica por pontos votados: null/undefined = não votou, qualquer número (incluindo 0 do café) = votou
             const votouPontos = self.pontos !== null && self.pontos !== undefined;
             const votouHoras = self.horas !== null && self.horas !== undefined && self.horas > 0;
 
@@ -164,25 +175,42 @@ export class EstimationBoard implements OnInit, OnDestroy {
           }
         }
 
-        if (this.isAdmin) {
-          this.checkTodosVotaram();
-        }
+        if (this.isAdmin) this.checkTodosVotaram();
       },
-      error: (err) => console.error('Erro ao listar estimativas:', err)
+      error: () => { this.erro = 'Erro ao carregar estimativas.'; }
     });
   }
 
+  // Verifica se todos votaram na fase atual
   checkTodosVotaram(): void {
-    this.estimationService.todosVotaram(this.taskId!).subscribe({
-      next: (res) => this.todosVotaram = res.todosVotaram,
-      error: (err) => console.error('Erro ao verificar votos:', err)
-    });
+    if (this.estadoVotacao === 'pontos') {
+      this.estimationService.todosVotaramPontos(this.taskId!).subscribe({
+        next: (res) => this.todosVotaram = res,
+        error: () => {}
+      });
+    } else if (this.estadoVotacao === 'horas') {
+      this.estimationService.todosVotaramHoras(this.taskId!).subscribe({
+        next: (res) => this.todosVotaram = res,
+        error: () => {}
+      });
+    } else {
+      this.todosVotaram = false;
+    }
   }
 
+  // Admin revela a fase atual (pontos ou horas)
   revelar(): void {
-    this.estimationService.revelar(this.taskId!).subscribe(() => {
-      this.atualizarEstimativas();
-    });
+    if (this.estadoVotacao === 'pontos') {
+      this.estimationService.revelarPontos(this.taskId!).subscribe(() => {
+        this.atualizarEstimativas();
+        this.carregarTarefa();
+      });
+    } else if (this.estadoVotacao === 'horas') {
+      this.estimationService.revelarHoras(this.taskId!).subscribe(() => {
+        this.atualizarEstimativas();
+        this.carregarTarefa();
+      });
+    }
   }
 
   resetar(): void {
@@ -190,6 +218,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
       this.pontoSelecionado = null;
       this.horaSelecionada = 0;
       this.estadoVotacao = 'pontos';
+      this.todosVotaram = false;
       this.atualizarEstimativas();
     });
   }

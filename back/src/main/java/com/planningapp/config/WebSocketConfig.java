@@ -59,9 +59,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         
                         if (tokenProvider.validateToken(token)) {
                             String username = tokenProvider.getUsernameFromJWT(token);
-                            // Cria a autenticação para a sessão WebSocket
+                            String role = tokenProvider.getRoleFromJWT(token);
+                            String authority = "ROLE_" + (role != null ? role : "JOGADOR");
                             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                                    username, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+                                    username, null, Collections.singletonList(new SimpleGrantedAuthority(authority)));
                             accessor.setUser(auth);
                         }
                     }

@@ -11,29 +11,37 @@
     <p>{{ tarefa.descricao }}</p>
   </div>
 
-  <!-- ETAPA 1: Votação de Pontos -->
-  <div *ngIf="estadoVotacao === 'pontos'">
+  <!-- Modo Observador -->
+  <div *ngIf="isObservador" class="observador-aviso">
+    <p>Você está no modo <strong>Observador</strong>. Acompanhe a votação abaixo.</p>
+  </div>
+
+  <!-- ETAPA 1: Votação de Pontos (apenas JOGADOR) -->
+  <div *ngIf="!isObservador && estadoVotacao === 'pontos'">
     <div class="cartas-titulo">Escolha a estimativa de esforço:</div>
     <div class="cartas">
       <button
         *ngFor="let valor of cartas"
         [class.selecionada]="valor === pontoSelecionado"
+        [disabled]="votando"
         (click)="votarPontosDireto(valor)"
       >
         <ng-container *ngIf="valor !== CARTA_CAFE; else cafe">{{ valor }}</ng-container>
         <ng-template #cafe>☕</ng-template>
       </button>
     </div>
+    <p *ngIf="votando" class="loading-msg">Registrando voto...</p>
     <h3>Aguarde o administrador confirmar a votação de pontos.</h3>
   </div>
 
-  <!-- ETAPA 2: Votação de Horas -->
-  <div *ngIf="estadoVotacao === 'horas'">
+  <!-- ETAPA 2: Votação de Horas (apenas JOGADOR) -->
+  <div *ngIf="!isObservador && estadoVotacao === 'horas'">
     <div class="cartas-titulo">Quantas horas para concluir?</div>
     <div class="cartas">
       <button
         *ngFor="let h of horas"
         [class.selecionada]="h === horaSelecionada"
+        [disabled]="votando"
         (click)="horaSelecionada = +h"
       >
         {{ h }}
@@ -41,23 +49,31 @@
     </div>
     <button
       class="btn-votar"
-      [disabled]="!horaSelecionada"
+      [disabled]="!horaSelecionada || votando"
       (click)="votarHoras()"
     >
-      Confirmar Horas
+      {{ votando ? 'Registrando...' : 'Confirmar Horas' }}
     </button>
   </div>
 
-  <!-- ETAPA FINAL -->
-  <div *ngIf="estadoVotacao === 'finalizado'">
+  <!-- ETAPA FINAL (apenas JOGADOR) -->
+  <div *ngIf="!isObservador && estadoVotacao === 'finalizado'">
     <p class="mensagem-sucesso">Seu voto foi registrado com sucesso!</p>
   </div>
 
   <!-- Controles do Admin -->
   <div *ngIf="isAdmin" class="admin-controls">
-    <button (click)="revelar()" [disabled]="!todosVotaram">Revelar Votos</button>
+    <button
+      *ngIf="estadoVotacao !== 'finalizado'"
+      (click)="revelar()"
+      [disabled]="!todosVotaram"
+    >
+      {{ estadoVotacao === 'pontos' ? 'Revelar Pontos' : 'Revelar Horas' }}
+    </button>
     <button (click)="resetar()">Resetar Votação</button>
-    <p *ngIf="!todosVotaram" class="aviso-admin">Aguardando todos os participantes votarem...</p>
+    <p *ngIf="estadoVotacao !== 'finalizado' && !todosVotaram" class="aviso-admin">
+      Aguardando todos os participantes votarem {{ estadoVotacao === 'pontos' ? 'pontos' : 'horas' }}...
+    </p>
   </div>
 
   <h3>Estimativas dos Participantes</h3>

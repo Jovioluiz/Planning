@@ -6,6 +6,7 @@ import com.planningapp.repository.TaskRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,21 +21,22 @@ public class TaskService {
         return taskRepository.findAll();
     }
 
+    @Transactional
     public Task save(Task task) {
         return taskRepository.save(task);
     }
 
+    @Transactional
     public void delete(Long id) {
         taskRepository.deleteById(id);
     }
 
-    // CORRIGIDO: usa saveAll do repositório em vez de loop com save individual —
-    // evita N queries separadas e aproveita batch do Hibernate.
+    @Transactional
     public void saveAll(List<Task> tarefas) {
         taskRepository.saveAll(tarefas);
     }
 
-    // CORRIGIDO: importa via DTO em vez de expor a entidade JPA ao cliente.
+    @Transactional
     public void importarDTOs(List<TaskDTO> dtos) {
         List<Task> tarefas = dtos.stream().map(dto -> {
             Task task = new Task();
@@ -56,6 +58,7 @@ public class TaskService {
         return taskRepository.findByEstimadaFalseAndLiberadaTrueOrderByIdAsc();
     }
 
+    @Transactional
     public boolean liberarTarefa(Long id) {
         return taskRepository.findById(id).map(task -> {
             task.setLiberada(true);

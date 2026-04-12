@@ -13,17 +13,15 @@ export class AuthService {
   constructor(private http: HttpClient) {}
 
   login(usuario: string, senha: string, perfil: string): Observable<boolean> {
-    // Adicionado 'token?: string' no tipo de retorno esperado
     return this.http.post<{ success: boolean; message: string; perfil: string; token?: string }>(
       `${this.api}/login`,
       { usuario, senha, perfil }
     ).pipe(
       map(response => {
-        // Agora verificamos o success e salvamos o token
         if (response.success && response.token) {
           this.setUsuario(usuario);
           this.setPerfil(response.perfil);
-          this.setToken(response.token); // Salva o token
+          this.setToken(response.token);
           return true;
         }
         return false;
@@ -35,7 +33,7 @@ export class AuthService {
   logout(): void {
     sessionStorage.removeItem('usuario');
     sessionStorage.removeItem('perfil');
-    sessionStorage.removeItem('token'); // Remove o token ao sair
+    sessionStorage.removeItem('token');
   }
 
   getUsuario(): string | null {
@@ -54,7 +52,6 @@ export class AuthService {
     return sessionStorage.getItem('perfil');
   }
 
-  // --- NOVOS MÉTODOS PARA O TOKEN ---
   getToken(): string | null {
     return sessionStorage.getItem('token');
   }
@@ -67,8 +64,15 @@ export class AuthService {
     return this.getPerfil() === 'ADMIN';
   }
 
+  isJogador(): boolean {
+    return this.getPerfil() === 'JOGADOR';
+  }
+
+  isObservador(): boolean {
+    return this.getPerfil() === 'OBSERVADOR';
+  }
+
   isLogado(): boolean {
-    // Agora verifica também se possui o token
     return !!this.getUsuario() && !!this.getToken();
   }
 }

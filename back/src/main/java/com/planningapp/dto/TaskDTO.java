@@ -1,9 +1,19 @@
 package com.planningapp.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public class TaskDTO {
+
+    @NotNull(message = "Número é obrigatório")
     private Long numero;
+
+    @NotBlank(message = "Título é obrigatório")
     private String titulo;
+
+    @NotBlank(message = "Descrição é obrigatória")
     private String descricao;
+
     private Integer prioridade;
     private String status;
 

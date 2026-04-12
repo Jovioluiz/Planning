@@ -4,14 +4,16 @@ import com.planningapp.dto.TaskDTO;
 import com.planningapp.entity.Task;
 import com.planningapp.service.TaskService;
 
+import jakarta.validation.Valid;
+
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-// CORRIGIDO: removido @CrossOrigin — CORS centralizado em WebConfig.
 @RestController
 @RequestMapping("/api/tasks")
 public class TaskController {
@@ -31,9 +33,9 @@ public class TaskController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // CORRIGIDO: recebe TaskDTO em vez de expor a entidade JPA diretamente ao cliente.
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/importar")
-    public ResponseEntity<?> importarTarefas(@RequestBody List<TaskDTO> dtos) {
+    public ResponseEntity<?> importarTarefas(@Valid @RequestBody List<TaskDTO> dtos) {
         taskService.importarDTOs(dtos);
         return ResponseEntity.ok(Map.of("success", true, "message", "Tarefas importadas com sucesso"));
     }
@@ -53,6 +55,7 @@ public class TaskController {
         return taskService.findNaoEstimadasENaoLiberadas();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/liberar")
     public ResponseEntity<?> liberarTarefa(@PathVariable("id") Long taskId) {
         boolean liberada = taskService.liberarTarefa(taskId);
@@ -63,16 +66,9 @@ public class TaskController {
         }
     }
 
-    // CORRIGIDO: rota alinhada com o que o frontend chama (DELETE /api/tasks/excluirTarefa/{id})
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/excluirTarefa/{id}")
     public ResponseEntity<?> excluirTarefa(@PathVariable Long id) {
-        taskService.delete(id);
-        return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa removida"));
-    }
-
-    // Mantida a rota original também para compatibilidade
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id) {
         taskService.delete(id);
         return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa removida"));
     }

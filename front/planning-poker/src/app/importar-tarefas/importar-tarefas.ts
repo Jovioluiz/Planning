@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../services/auth.service';
-import { TaskService } from '../services/task.service';
+import { TaskService, ITask } from '../services/task.service';
 import { EstimationService } from '../services/estimation.service';
 
 @Component({
@@ -15,17 +15,20 @@ import { EstimationService } from '../services/estimation.service';
   templateUrl: './importar-tarefas.html',
   styleUrls: ['./importar-tarefas.scss']
 })
-
 export class ImportarTarefas implements OnInit {
   usuario: string | null = '';
-  tarefas: any[] = [];
-  tarefaEmVotacao: any = null;
-  tarefasFila: any[] = [];
-  tarefasEstimadas: any[] = [];
+  tarefas: ITask[] = [];
+  tarefaEmVotacao: ITask | null = null;
+  tarefasFila: ITask[] = [];
+  tarefasEstimadas: ITask[] = [];
   estimativas: any[] = [];
   podeRevelarPontos = false;
   podeRevelarHoras = false;
   importando = false;
+
+  // Mensagens de feedback inline (substituem alert())
+  mensagem = '';
+  mensagemTipo: 'sucesso' | 'erro' | '' = '';
 
   constructor(
     private taskService: TaskService,
@@ -36,9 +39,14 @@ export class ImportarTarefas implements OnInit {
 
   ngOnInit(): void {
     this.usuario = this.auth.getUsuario();
-    //this.carregarFilaTarefas();
     this.carregarListas();
     this.carregarTarefaEmVotacao();
+  }
+
+  private exibirMensagem(texto: string, tipo: 'sucesso' | 'erro'): void {
+    this.mensagem = texto;
+    this.mensagemTipo = tipo;
+    setTimeout(() => { this.mensagem = ''; this.mensagemTipo = ''; }, 5000);
   }
 
   onFileSelected(event: Event): void {
@@ -46,7 +54,7 @@ export class ImportarTarefas implements OnInit {
     const file = input.files?.[0];
 
     if (!file) {
-      alert('Nenhum arquivo selecionado.');
+      this.exibirMensagem('Nenhum arquivo selecionado.', 'erro');
       return;
     }
 
@@ -55,13 +63,13 @@ export class ImportarTarefas implements OnInit {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: async (result: { data: any[]; }) => {
-        const dados = (result.data as any[]).filter(
+      complete: async (result: { data: any[] }) => {
+        const dados = result.data.filter(
           (t: any) => t.numero && t.titulo && t.descricao
         );
 
         if (dados.length === 0) {
-          alert('Nenhuma tarefa válida encontrada no CSV.');
+          this.exibirMensagem('Nenhuma tarefa válida encontrada no CSV. Verifique as colunas: numero, titulo, descricao.', 'erro');
           this.importando = false;
           return;
         }
@@ -70,32 +78,36 @@ export class ImportarTarefas implements OnInit {
 
         try {
           await firstValueFrom(this.taskService.importarCSV(dados));
-          alert('Tarefas importadas com sucesso!');
+          this.exibirMensagem(`${dados.length} tarefa(s) importada(s) com sucesso!`, 'sucesso');
           this.carregarFilaTarefas();
           this.carregarListas();
-        } catch (err) {
-          console.error('Erro ao importar tarefas:', err);
-          alert('Erro ao importar tarefas.');
+        } catch {
+          this.exibirMensagem('Erro ao importar tarefas. Verifique o servidor e tente novamente.', 'erro');
         } finally {
           this.importando = false;
         }
       },
-      error: (err: any) => {
-        console.error('Erro ao ler o CSV:', err);
-        alert('Falha ao processar o arquivo CSV.');
+      error: () => {
+        this.exibirMensagem('Falha ao processar o arquivo CSV.', 'erro');
         this.importando = false;
       }
     });
   }
 
   carregarListas(): void {
-    this.taskService.getTarefasFila().subscribe((res: any[]) => this.tarefasFila = res);
-    this.taskService.getTarefasVotadas().subscribe((res: any[]) => this.tarefasEstimadas = res);
+    this.taskService.getTarefasFila().subscribe({
+      next: (res) => this.tarefasFila = res,
+      error: () => this.exibirMensagem('Erro ao carregar fila de tarefas.', 'erro')
+    });
+    this.taskService.getTarefasVotadas().subscribe({
+      next: (res) => this.tarefasEstimadas = res,
+      error: () => {}
+    });
   }
 
   carregarTarefaEmVotacao(): void {
     this.taskService.getTarefasLiberadas().subscribe({
-      next: (tarefas: any[]) => {
+      next: (tarefas) => {
         if (tarefas.length > 0) {
           this.tarefaEmVotacao = tarefas[0];
           this.carregarResumoVotos(this.tarefaEmVotacao.id);
@@ -105,77 +117,80 @@ export class ImportarTarefas implements OnInit {
           this.tarefaEmVotacao = null;
         }
       },
-      error: (err: any) => {
-        console.error('Erro ao carregar tarefas liberadas:', err);
+      error: () => {
         this.tarefaEmVotacao = null;
+        this.exibirMensagem('Erro ao carregar tarefa em votação.', 'erro');
       }
     });
   }
 
-  iniciarEstimativa(id: string): void {
-    this.taskService.liberarTarefa(id).subscribe({
+  iniciarEstimativa(id: number): void {
+    this.taskService.liberarTarefa(id.toString()).subscribe({
       next: () => {
         this.carregarListas();
         this.carregarTarefaEmVotacao();
-        // Admin permanece na tela de controle
       },
-      error: (err: any) => console.error('Erro ao liberar tarefa', err)
+      error: () => this.exibirMensagem('Erro ao liberar tarefa.', 'erro')
     });
   }
 
-  removerTarefaEstimativa(id: string): void {
-    // CORREÇÃO: adicionado .subscribe() — sem ele a requisição HTTP nunca era enviada
-    this.taskService.removerTarefa(id).subscribe({
+  removerTarefaEstimativa(id: number): void {
+    this.taskService.removerTarefa(id.toString()).subscribe({
       next: () => {
         this.carregarFilaTarefas();
         this.carregarListas();
       },
-      error: (err: any) => console.error('Erro ao remover tarefa:', err)
+      error: () => this.exibirMensagem('Erro ao remover tarefa.', 'erro')
     });
   }
 
   carregarFilaTarefas(): void {
     this.taskService.getTarefasFila().subscribe({
-      next: (dados: any[]) => this.tarefasFila = dados,
-      error: (err: any) => console.error('Erro ao buscar tarefas na fila', err)
+      next: (dados) => this.tarefasFila = dados,
+      error: () => {}
     });
   }
 
-  carregarResumoVotos(taskId: string): void {
-    this.estimationService.getResumoVotos(taskId).subscribe({
+  carregarResumoVotos(taskId: number): void {
+    this.estimationService.getResumoVotos(taskId.toString()).subscribe({
       next: (res: any[]) => { this.estimativas = res; },
-      error: (err: any) => console.error('Erro ao buscar resumo de votos:', err)
+      error: () => {}
     });
   }
 
-  verificarLiberacoes(taskId: string): void {
-    this.estimationService.todosVotaramPontos(taskId).subscribe(res => {
+  verificarLiberacoes(taskId: number): void {
+    this.estimationService.todosVotaramPontos(taskId.toString()).subscribe(res => {
       this.podeRevelarPontos = res;
     });
 
-    this.estimationService.todosVotaramHoras(taskId).subscribe(res => {
-      this.podeRevelarHoras = res && this.tarefaEmVotacao?.pontosRevelados;
+    this.estimationService.todosVotaramHoras(taskId.toString()).subscribe(res => {
+      this.podeRevelarHoras = res && !!this.tarefaEmVotacao?.pontosRevelados;
     });
   }
 
   revelarHoras(): void {
-    this.estimationService.revelarHoras(this.tarefaEmVotacao.id).subscribe({
+    this.estimationService.revelarHoras(this.tarefaEmVotacao!.id.toString()).subscribe({
       next: () => {
-        this.carregarResumoVotos(this.tarefaEmVotacao.id);
-        this.verificarLiberacoes(this.tarefaEmVotacao.id);
+        this.carregarResumoVotos(this.tarefaEmVotacao!.id);
+        this.verificarLiberacoes(this.tarefaEmVotacao!.id);
       },
-      error: (err: any) => console.error('Erro ao revelar horas:', err)
+      error: () => this.exibirMensagem('Erro ao revelar horas.', 'erro')
     });
   }
 
   revelarPontos(): void {
-    this.estimationService.revelarPontos(this.tarefaEmVotacao.id).subscribe({
+    this.estimationService.revelarPontos(this.tarefaEmVotacao!.id.toString()).subscribe({
       next: () => {
         this.carregarListas();
-        this.carregarResumoVotos(this.tarefaEmVotacao.id);
-        this.verificarLiberacoes(this.tarefaEmVotacao.id);
+        this.carregarResumoVotos(this.tarefaEmVotacao!.id);
+        this.verificarLiberacoes(this.tarefaEmVotacao!.id);
       },
-      error: (err: any) => console.error('Erro ao revelar pontos:', err)
+      error: () => this.exibirMensagem('Erro ao revelar pontos.', 'erro')
     });
+  }
+
+  logout(): void {
+    this.auth.logout();
+    this.router.navigate(['/login']);
   }
 }

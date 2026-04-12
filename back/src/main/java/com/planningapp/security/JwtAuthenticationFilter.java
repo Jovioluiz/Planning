@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -18,28 +20,32 @@ import java.util.Collections;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
     @Autowired
     private JwtTokenProvider tokenProvider;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        
+
         try {
             String jwt = getJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 String username = tokenProvider.getUsernameFromJWT(jwt);
+                String role = tokenProvider.getRoleFromJWT(jwt);
 
-                // Como não estamos carregando roles complexas do banco neste exemplo simples, 
-                // apenas setamos o usuário como autenticado.
+                // Mapeia o role do token (ADMIN, JOGADOR, OBSERVADOR) para a authority do Spring Security
+                String authority = "ROLE_" + (role != null ? role : "JOGADOR");
+
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        username, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+                        username, null, Collections.singletonList(new SimpleGrantedAuthority(authority)));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception ex) {
-            System.err.println("Não foi possível definir a autenticação do usuário: " + ex.getMessage());
+            log.error("Não foi possível definir a autenticação do usuário: {}", ex.getMessage());
         }
 
         filterChain.doFilter(request, response);
