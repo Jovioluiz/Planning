@@ -1,5 +1,43 @@
 # Changelog
 
+## 2026-04-12 (commit 2) — Tela de espera animada e detecção de finalização por polling
+
+### Frontend
+
+#### Tela de espera (`/aguardando`) — redesign com animação CSS
+- **`front/.../pages/aguardando/aguardando.html`** *(novo arquivo externo)*
+  - Template migrado de inline (`template: \`...\``) para arquivo externo
+  - Cena do café: xícara com aro, alça, pires, café com reflexo e três wisps de vapor animados
+  - Três pontinhos de carregamento pulsantes
+  - Subtítulo e botão "Sair"
+
+- **`front/.../pages/aguardando/aguardando.scss`** *(novo)*
+  - Xícara em CSS puro com `clip-path: polygon` para forma trapezoidal
+  - Vapor: 3 `.wisp` com `filter: blur`, `border-radius` e animação `@keyframes vapor` (sobe, oscila, desvanece) com delays defasados (0s, 0.7s, 1.4s)
+  - Conjunto xícara + pires com animação `@keyframes float` (oscilação vertical de 10px a cada 3.2s)
+  - Reflexo da superfície do café com `@keyframes glare-pulse`
+  - Pontinhos com `@keyframes dot-pulse`
+  - Tema dark (`#141b2d`) alinhado com o restante do app
+
+- **`front/.../pages/aguardando/aguardando.ts`**
+  - Substituído `template: \`...\`` por `templateUrl` e `styleUrls` apontando para os novos arquivos
+
+#### Tela de estimativas — correção do fluxo pós-finalização
+- **`front/.../pages/estimation-board/estimation-board.ts`**
+  - `wasLiberated: boolean` adicionado para rastrear se a tarefa já esteve liberada na sessão atual
+  - Polling expandido: agora sempre chama `carregarTarefa()` enquanto `sessionEnded` for nulo (antes parava quando `estadoVotacao === 'finalizado'`, perdendo eventos de finalização)
+  - `sincronizarEstado` reescrito com detecção de encerramento de sessão por polling:
+    - `tarefa.estimada === true` → `sessionEnded = 'finalizada'` (fallback caso o evento WebSocket seja perdido)
+    - `tarefa.liberada` transitando de `true` para `false` sem `estimada` → `sessionEnded = 'pulada'`
+    - Intervalo cancelado imediatamente ao detectar encerramento
+  - Método `irParaAguardando()` adicionado: navega para `/aguardando` sem fazer logout
+  - Opções de horas ampliadas: `[1,2,3,4,5,6,7,8,10,12,14,16,20,24]` (antes `[1,2,4,6,8,10,12,16,20,24]`)
+
+- **`front/.../pages/estimation-board/estimation-board.html`**
+  - Botão do overlay "Sessão Encerrada" alterado de `logout()` (que deslogava o usuário) para `irParaAguardando()` — o jogador é direcionado à tela de espera animada ao invés de ser forçado ao login
+
+---
+
 ## 2026-04-12 — Sistema de participantes por tarefa, fluxo de revelação corrigido, redesign completo das telas
 
 ### Backend
