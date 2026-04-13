@@ -6,13 +6,8 @@ import { TaskService } from '../../services/task.service';
 @Component({
   selector: 'app-aguardando',
   standalone: true,
-  template: `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;font-family:sans-serif;">
-      <h2>Aguardando tarefa ser liberada...</h2>
-      <p>O administrador ainda não liberou nenhuma tarefa para votação. Esta página atualiza automaticamente.</p>
-      <button (click)="logout()" style="padding:8px 16px;cursor:pointer;">Sair</button>
-    </div>
-  `
+  templateUrl: './aguardando.html',
+  styleUrls: ['./aguardando.scss']
 })
 export class Aguardando implements OnInit, OnDestroy {
   private intervalo: ReturnType<typeof setInterval> | null = null;

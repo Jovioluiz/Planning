@@ -23,7 +23,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   erro = '';
   estimativas: any[] = [];
   cartas = [1, 2, 3, 5, 8, 13, 21, CARTA_CAFE];
-  horas = [1, 2, 4, 6, 8, 10, 12, 16, 20, 24];
+  horas = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24];
   tarefa: any = null;
   estadoVotacao: 'pontos' | 'horas' | 'finalizado' = 'pontos';
   pontoSelecionado: number | null = null;
@@ -33,6 +33,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   sessionEnded: 'finalizada' | 'pulada' | null = null;
   readonly CARTA_CAFE = CARTA_CAFE;
   private pollInterval: any = null;
+  private wasLiberated = false;
 
   constructor(
     private taskService: TaskService,
@@ -71,9 +72,12 @@ export class EstimationBoard implements OnInit, OnDestroy {
       }
     });
 
-    // Polling a cada 5s para atualizar lista de participantes e todosVotaram em tempo real
+    // Polling a cada 5s: verifica estado da tarefa (finalização/pulo) e atualiza votos
     this.pollInterval = setInterval(() => {
-      if (this.estadoVotacao !== 'finalizado') this.atualizarEstimativas();
+      if (!this.sessionEnded) {
+        this.carregarTarefa();
+        if (this.estadoVotacao !== 'finalizado') this.atualizarEstimativas();
+      }
     }, 5000);
   }
 
@@ -85,6 +89,10 @@ export class EstimationBoard implements OnInit, OnDestroy {
   logout(): void {
     this.auth.logout();
     this.router.navigate(['/login']);
+  }
+
+  irParaAguardando(): void {
+    this.router.navigate(['/aguardando']);
   }
 
   carregarTarefa(): void {
@@ -103,6 +111,27 @@ export class EstimationBoard implements OnInit, OnDestroy {
   }
 
   private sincronizarEstado(tarefa: any): void {
+    if (this.sessionEnded) return;
+
+    // Tarefa marcada como estimada → admin finalizou
+    if (tarefa.estimada) {
+      this.sessionEnded = 'finalizada';
+      if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Rastreia se a tarefa já esteve liberada nesta sessão
+    if (tarefa.liberada) {
+      this.wasLiberated = true;
+    } else if (this.wasLiberated && !tarefa.estimada) {
+      // Estava liberada, agora não está mais e não foi estimada → admin pulou
+      this.sessionEnded = 'pulada';
+      if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
+      this.cdr.detectChanges();
+      return;
+    }
+
     if (tarefa.pontosRevelados && tarefa.horasReveladas) {
       this.estadoVotacao = 'finalizado';
     } else if (tarefa.pontosRevelados) {

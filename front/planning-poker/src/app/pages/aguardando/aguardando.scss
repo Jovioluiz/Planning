@@ -1,0 +1,247 @@
+/* ── Reset ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Página ─────────────────────────────────────────────── */
+.aguardando-page {
+  min-height: 100vh;
+  background: #141b2d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  overflow: hidden;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px 24px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   CENA DO CAFÉ
+══════════════════════════════════════════════════════════ */
+.coffee-scene {
+  position: relative;
+  width: 160px;
+  height: 210px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ── Vapor ───────────────────────────────────────────────── */
+.steam-group {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  height: 90px;
+  pointer-events: none;
+}
+
+/* Cada "wisp" é uma coluna estreita, borrada e animada */
+.wisp {
+  border-radius: 50px;
+  filter: blur(3px);
+  opacity: 0;
+  transform-origin: bottom center;
+}
+
+.w1 {
+  width: 8px;
+  height: 55px;
+  background: linear-gradient(to top, rgba(148,163,184,.75), transparent);
+  animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite 0s;
+}
+.w2 {
+  width: 10px;
+  height: 72px;
+  background: linear-gradient(to top, rgba(148,163,184,.65), transparent);
+  animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite .7s;
+}
+.w3 {
+  width: 8px;
+  height: 50px;
+  background: linear-gradient(to top, rgba(148,163,184,.75), transparent);
+  animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite 1.4s;
+}
+
+@keyframes vapor {
+  0%   { opacity: 0;   transform: translateY(0)     scaleX(1);   }
+  12%  { opacity: .85; }
+  40%  { opacity: .5;  transform: translateY(-22px) scaleX(1.5); }
+  75%  { opacity: .2;  transform: translateY(-48px) scaleX(.9);  }
+  100% { opacity: 0;   transform: translateY(-68px) scaleX(1.2); }
+}
+
+/* ── Conjunto flutuante ──────────────────────────────────── */
+.cup-float {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: float 3.2s ease-in-out infinite;
+  position: relative;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
+}
+
+/* ── Xícara ──────────────────────────────────────────────── */
+.cup {
+  position: relative;
+  width: 96px;
+  height: 76px;
+  /* Forma levemente trapezoidal: larga em cima, estreita em baixo */
+  clip-path: polygon(0% 0%, 100% 0%, 91% 100%, 9% 100%);
+  background: linear-gradient(160deg, #2d4060 0%, #1e293b 55%, #131e2e 100%);
+  border-radius: 0 0 10px 10px;
+  overflow: visible;
+}
+
+/* Borda superior (aro da xícara) */
+.rim {
+  position: absolute;
+  top: 0;
+  left: -4px;
+  right: -4px;
+  height: 8px;
+  background: linear-gradient(135deg, #3b5070, #253448);
+  border-radius: 4px 4px 0 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+}
+
+/* Café (líquido escuro) */
+.coffee {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56%;
+  background: linear-gradient(to bottom, #5c3010, #2d1500);
+  overflow: hidden;
+}
+
+/* Reflexo na superfície do café */
+.coffee-glare {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 52%;
+  height: 5px;
+  background: rgba(140, 80, 30, .55);
+  border-radius: 50%;
+  animation: glare-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes glare-pulse {
+  0%, 100% { opacity: .55; transform: translateX(-50%) scaleX(1);   }
+  50%       { opacity: .9;  transform: translateX(-50%) scaleX(1.15); }
+}
+
+/* Alça */
+.handle {
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-40%);
+  width: 26px;
+  height: 40px;
+  border: 6px solid #253448;
+  border-left: none;
+  border-radius: 0 22px 22px 0;
+  background: transparent;
+  /* Sombra leve para dar volume */
+  box-shadow: 3px 0 8px rgba(0,0,0,.25);
+}
+
+/* ── Pires ───────────────────────────────────────────────── */
+.saucer {
+  width: 128px;
+  height: 14px;
+  background: linear-gradient(160deg, #2d4060 0%, #1e293b 100%);
+  border-radius: 50%;
+  margin-top: 3px;
+  box-shadow:
+    0 6px 20px rgba(0,0,0,.5),
+    inset 0 2px 4px rgba(255,255,255,.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.saucer-inner {
+  width: 60px;
+  height: 5px;
+  background: rgba(255,255,255,.05);
+  border-radius: 50%;
+}
+
+/* ══════════════════════════════════════════════════════════
+   TEXTOS
+══════════════════════════════════════════════════════════ */
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f1f5f9;
+  text-align: center;
+  letter-spacing: .3px;
+}
+
+/* Três pontinhos pulsantes */
+.dots {
+  display: flex;
+  gap: 8px;
+
+  span {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #3b82f6;
+    animation: dot-pulse 1.3s ease-in-out infinite;
+
+    &:nth-child(2) { animation-delay: .22s; }
+    &:nth-child(3) { animation-delay: .44s; }
+  }
+}
+
+@keyframes dot-pulse {
+  0%, 80%, 100% { transform: scale(.7); opacity: .35; }
+  40%           { transform: scale(1.2); opacity: 1;   }
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  max-width: 260px;
+  line-height: 1.6;
+}
+
+/* ── Botão Sair ──────────────────────────────────────────── */
+.btn-sair {
+  background: transparent;
+  border: 1px solid #334155;
+  color: #64748b;
+  border-radius: 8px;
+  padding: 8px 28px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: border-color .2s, color .2s;
+
+  &:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+  }
+}
