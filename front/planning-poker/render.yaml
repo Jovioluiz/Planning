@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: planning-poker-front
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/planning-poker/server/server.mjs
+    envVars:
+      - key: NODE_VERSION
+        value: 20
