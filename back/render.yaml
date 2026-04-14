@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: planning-poker-api
+    runtime: docker
+    envVars:
+      - key: DB_URL
+        fromDatabase:
+          name: planning-poker-db
+          property: connectionString
+      - key: DB_USER
+        fromDatabase:
+          name: planning-poker-db
+          property: user
+      - key: DB_PASS
+        fromDatabase:
+          name: planning-poker-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://planning-poker-front.onrender.com
+
+databases:
+  - name: planning-poker-db
+    databaseName: planningdb
+    user: postgres
+    plan: free
