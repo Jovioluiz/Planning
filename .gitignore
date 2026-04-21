@@ -1,0 +1,17 @@
+*.class
+*.class
+back/target/classes/com/planningapp/service/EstimationService.class
+back/target/classes/com/planningapp/repository/UserRepository.class
+back/target/classes/com/planningapp/repository/TaskRepository.class
+back/target/classes/com/planningapp/repository/EstimationRepository.class
+back/target/classes/com/planningapp/PlanningApp.class
+back/target/classes/com/planningapp/entity/User.class
+back/target/classes/com/planningapp/entity/Task.class
+back/target/classes/com/planningapp/entity/Estimation.class
+back/target/classes/com/planningapp/entity/enums/TipoPerfil.class
+back/target/classes/com/planningapp/dto/LoginDTO.class
+back/target/classes/com/planningapp/dto/EstimativaDTO.class
+back/target/classes/com/planningapp/controller/TaskController.class
+back/target/classes/com/planningapp/controller/EstimationController.class
+back/target/classes/com/planningapp/config/WebConfig.class
+back/target/classes/com/planningapp/auth/AuthController.class
