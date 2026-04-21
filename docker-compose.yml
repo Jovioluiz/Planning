@@ -31,7 +31,7 @@ services:
       DB_USER: postgres
       DB_PASS: postgres
       JWT_SECRET: planning-poker-local-secret-change-in-prod
-      ALLOWED_ORIGINS: http://localhost:4200
+      ALLOWED_ORIGINS: http://localhost:4200,http://192.168.0.103:4200,http://100.99.136.57:4200
     ports:
       - "8081:8081"
 
@@ -41,7 +41,7 @@ services:
       dockerfile: Dockerfile
       args:
         # O browser acessa o backend pelo host, não pela rede interna do Docker
-        API_URL: http://localhost:8081
+        API_URL: http://100.99.136.57:8081
     container_name: planning-frontend
     depends_on:
       - backend
