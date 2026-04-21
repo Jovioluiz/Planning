@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -34,10 +34,24 @@ export class AuthService {
     );
   }
 
+  selecionarSprint(sprint: string): Observable<any> {
+    const token = this.getToken() ?? '';
+    return this.http.post(`${this.api}/selecionar-sprint`, { sprint }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).pipe(
+      tap(() => sessionStorage.setItem('sprint', sprint))
+    );
+  }
+
+  getSprint(): string | null {
+    return sessionStorage.getItem('sprint');
+  }
+
   logout(): void {
     sessionStorage.removeItem('usuario');
     sessionStorage.removeItem('perfil');
     sessionStorage.removeItem('token');
+    sessionStorage.removeItem('sprint');
   }
 
   getUsuario(): string | null {

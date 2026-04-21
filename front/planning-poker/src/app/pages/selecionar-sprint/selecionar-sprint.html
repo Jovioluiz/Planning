@@ -1,0 +1,39 @@
+<div class="sprint-page">
+  <header class="sprint-header">
+    <div class="header-brand">
+      <span class="brand-icon">🃏</span>
+      <span class="brand-name">Planning Poker</span>
+    </div>
+    <div class="header-user">
+      <span class="user-name">{{ usuario }}</span>
+      <button class="btn-logout" (click)="logout()">Sair</button>
+    </div>
+  </header>
+
+  <main class="sprint-main">
+    <h1 class="sprint-titulo">Selecione sua Sprint</h1>
+    <p class="sprint-subtitulo">Escolha a sprint que você vai estimar</p>
+
+    <div *ngIf="carregando" class="estado-info">
+      <span class="spinner"></span> Carregando sprints...
+    </div>
+
+    <div *ngIf="erro" class="estado-erro">{{ erro }}</div>
+
+    <div *ngIf="!carregando && sprints.length === 0 && !erro" class="estado-info">
+      Nenhuma sprint disponível no momento. Aguarde o administrador importar as tarefas.
+    </div>
+
+    <div *ngIf="!carregando && sprints.length > 0" class="sprint-lista">
+      <button
+        *ngFor="let s of sprints"
+        class="sprint-card"
+        [disabled]="selecionando"
+        (click)="selecionar(s)">
+        <span class="sprint-label">Sprint</span>
+        <span class="sprint-valor">{{ s }}</span>
+        <span *ngIf="selecionando" class="spinner-sm"></span>
+      </button>
+    </div>
+  </main>
+</div>

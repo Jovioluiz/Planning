@@ -22,6 +22,8 @@ public class Task {
     // mas que não existiam na entidade — causava NullPointerException silencioso.
     private boolean pontosRevelados = false;
     private boolean horasReveladas = false;
+    private boolean horasLiberadas = false;
+    private String sprint;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -52,4 +54,10 @@ public class Task {
 
     public boolean isHorasReveladas() { return horasReveladas; }
     public void setHorasReveladas(boolean horasReveladas) { this.horasReveladas = horasReveladas; }
+
+    public boolean isHorasLiberadas() { return horasLiberadas; }
+    public void setHorasLiberadas(boolean horasLiberadas) { this.horasLiberadas = horasLiberadas; }
+
+    public String getSprint() { return sprint; }
+    public void setSprint(String sprint) { this.sprint = sprint; }
 }

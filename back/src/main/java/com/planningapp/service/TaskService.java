@@ -4,12 +4,13 @@ import com.planningapp.dto.TaskDTO;
 import com.planningapp.entity.Estimation;
 import com.planningapp.entity.Task;
 import com.planningapp.entity.TaskParticipant;
-import com.planningapp.entity.User;
+import com.planningapp.entity.UserSprint;
 import com.planningapp.entity.enums.TipoPerfil;
 import com.planningapp.repository.EstimationRepository;
 import com.planningapp.repository.TaskParticipantRepository;
 import com.planningapp.repository.TaskRepository;
 import com.planningapp.repository.UserRepository;
+import com.planningapp.repository.UserSprintRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,9 @@ public class TaskService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private UserSprintRepository userSprintRepository;
 
     public List<Task> findAll() {
         return taskRepository.findAll();
@@ -64,17 +68,23 @@ public class TaskService {
                     task.setDescricao(dto.getDescricao());
                     task.setPrioridade(dto.getPrioridade());
                     task.setStatus(dto.getStatus());
+                    task.setSprint(dto.getSprint());
                     return task;
                 })
                 .toList();
         if (!novas.isEmpty()) {
             List<Task> salvas = taskRepository.saveAll(novas);
-            // Vincula todos os JOGADORs já cadastrados às novas tarefas
-            List<String> jogadores = userRepository.findByTipoPerfil(TipoPerfil.JOGADOR)
-                    .stream().map(User::getUsuario).toList();
             for (Task t : salvas) {
-                for (String j : jogadores) {
-                    adicionarParticipante(t.getId(), j);
+                String sprint = t.getSprint();
+                if (sprint != null && !sprint.isBlank()) {
+                    // Vincula apenas quem já selecionou essa sprint
+                    userSprintRepository.findBySprint(sprint)
+                            .stream().map(UserSprint::getUsername)
+                            .forEach(j -> adicionarParticipante(t.getId(), j));
+                } else {
+                    // Sem sprint: vincula todos os JOGADORs (compatibilidade)
+                    userRepository.findByTipoPerfil(TipoPerfil.JOGADOR)
+                            .forEach(u -> adicionarParticipante(t.getId(), u.getUsuario()));
                 }
             }
         }
@@ -89,17 +99,20 @@ public class TaskService {
         return taskRepository.findByEstimadaFalseAndLiberadaTrueOrderByIdAsc();
     }
 
-    /**
-     * Libera a tarefa para votação e vincula todos os JOGADOR ativos como participantes esperados.
-     */
     @Transactional
     public boolean liberarTarefa(Long id) {
         return taskRepository.findById(id).map(task -> {
             task.setLiberada(true);
             taskRepository.save(task);
-            // Vincula todos os JOGADORs registrados como participantes esperados desta tarefa
-            List<User> jogadores = userRepository.findByTipoPerfil(TipoPerfil.JOGADOR);
-            jogadores.forEach(u -> adicionarParticipante(id, u.getUsuario()));
+            String sprint = task.getSprint();
+            if (sprint != null && !sprint.isBlank()) {
+                userSprintRepository.findBySprint(sprint)
+                        .stream().map(UserSprint::getUsername)
+                        .forEach(u -> adicionarParticipante(id, u));
+            } else {
+                userRepository.findByTipoPerfil(TipoPerfil.JOGADOR)
+                        .forEach(u -> adicionarParticipante(id, u.getUsuario()));
+            }
             return true;
         }).orElse(false);
     }
@@ -112,9 +125,6 @@ public class TaskService {
         return taskRepository.findByEstimadaTrue();
     }
 
-    /**
-     * Marca a tarefa como estimada (finaliza a votação com resultado gravado).
-     */
     @Transactional
     public boolean finalizarTarefa(Long id) {
         return taskRepository.findById(id).map(task -> {
@@ -125,18 +135,23 @@ public class TaskService {
         }).orElse(false);
     }
 
-    /**
-     * Passa a tarefa para frente sem estimar: remove da votação, limpa votos e flags,
-     * devolvendo-a para a fila para ser votada futuramente.
-     */
+    @Transactional
+    public boolean liberarHorasVotacao(Long id) {
+        return taskRepository.findById(id).map(task -> {
+            task.setHorasLiberadas(true);
+            taskRepository.save(task);
+            return true;
+        }).orElse(false);
+    }
+
     @Transactional
     public boolean pularTarefa(Long id) {
         return taskRepository.findById(id).map(task -> {
             task.setLiberada(false);
             task.setPontosRevelados(false);
             task.setHorasReveladas(false);
+            task.setHorasLiberadas(false);
             taskRepository.save(task);
-            // Limpa os votos para que a tarefa possa ser votada novamente
             List<Estimation> votos = estimationRepository.findByTaskId(id);
             estimationRepository.deleteAll(votos);
             return true;
@@ -145,10 +160,6 @@ public class TaskService {
 
     // ─── Participantes esperados ─────────────────────────────
 
-    /**
-     * Vincula um usuário como participante esperado de uma tarefa.
-     * Ignora silenciosamente se o vínculo já existir.
-     */
     @Transactional
     public void adicionarParticipante(Long taskId, String participante) {
         if (!participantRepository.existsByTaskIdAndParticipante(taskId, participante)) {
@@ -156,10 +167,6 @@ public class TaskService {
         }
     }
 
-    /**
-     * Vincula um JOGADOR a todas as tarefas ainda não estimadas (fila + liberadas).
-     * Chamado no login para que quem entra em qualquer momento da sessão seja incluído.
-     */
     @Transactional
     public void vincularJogadorATarefasAtivas(String participante) {
         taskRepository.findAll().stream()
@@ -167,9 +174,19 @@ public class TaskService {
                 .forEach(t -> adicionarParticipante(t.getId(), participante));
     }
 
-    /**
-     * Retorna os nomes dos participantes esperados de uma tarefa.
-     */
+    @Transactional
+    public void vincularJogadorASprint(String participante, String sprint) {
+        if (!userSprintRepository.existsByUsernameAndSprint(participante, sprint)) {
+            userSprintRepository.save(new UserSprint(participante, sprint));
+        }
+        taskRepository.findByEstimadaFalseAndSprint(sprint)
+                .forEach(t -> adicionarParticipante(t.getId(), participante));
+    }
+
+    public List<String> listarSprints() {
+        return taskRepository.findDistinctSprints();
+    }
+
     public List<String> getParticipantes(Long taskId) {
         return participantRepository.findByTaskId(taskId)
                 .stream()

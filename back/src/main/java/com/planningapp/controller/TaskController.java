@@ -62,9 +62,25 @@ public class TaskController {
         return taskService.findNaoEstimadasENaoLiberadas();
     }
 
+    @GetMapping("/sprints")
+    public List<String> listarSprints() {
+        return taskService.listarSprints();
+    }
+
     @GetMapping("/{id}/participantes")
     public List<String> getParticipantes(@PathVariable Long id) {
         return taskService.getParticipantes(id);
+    }
+
+    @PostMapping("/{id}/liberar-horas")
+    public ResponseEntity<?> liberarHorasVotacao(@PathVariable Long id, Authentication auth) {
+        if (!isAdmin(auth)) return forbidden();
+        boolean ok = taskService.liberarHorasVotacao(id);
+        if (ok) {
+            notificationService.notificarTodos("HORAS_LIBERADAS", id);
+            return ResponseEntity.ok(Map.of("success", true, "message", "Votação de horas liberada"));
+        }
+        return ResponseEntity.status(404).body(Map.of("success", false, "message", "Tarefa não encontrada"));
     }
 
     @PostMapping("/{id}/liberar")

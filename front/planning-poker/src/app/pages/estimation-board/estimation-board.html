@@ -95,6 +95,12 @@
     </div>
   </section>
 
+  <!-- ─── Aguardando Admin liberar horas ──────────────────────── -->
+  <section *ngIf="!isObservador && estadoVotacao === 'aguardando_horas'" class="voting-section done-section">
+    <div class="done-msg">✓ Pontos registrados!</div>
+    <p class="done-hint">Discussão em andamento...<br>Aguarde o administrador liberar a votação de horas.</p>
+  </section>
+
   <!-- ─── Fase Finalizada (jogador) ────────────────────────────── -->
   <section *ngIf="!isObservador && estadoVotacao === 'finalizado'" class="voting-section done-section">
     <div class="done-msg">✓ Seu voto foi registrado com sucesso!</div>
@@ -159,7 +165,7 @@
             <span class="p-value vote-revealed">{{ est.horas !== null ? est.horas : '—' }}</span>
           </div>
 
-          <div class="p-vote-row" *ngIf="tarefa?.pontosRevelados && !tarefa?.horasReveladas && (estadoVotacao === 'horas' || estadoVotacao === 'finalizado')">
+          <div class="p-vote-row" *ngIf="tarefa?.pontosRevelados && !tarefa?.horasReveladas && (estadoVotacao === 'horas' || estadoVotacao === 'aguardando_horas' || estadoVotacao === 'finalizado')">
             <span class="p-label">Horas</span>
             <span class="p-value vote-empty">Aguardando...</span>
           </div>
@@ -174,15 +180,32 @@
 
   <!-- ─── Controles Admin ──────────────────────────────────────── -->
   <section *ngIf="isAdmin" class="admin-bar">
-    <button *ngIf="estadoVotacao !== 'finalizado'"
+    <button *ngIf="estadoVotacao === 'pontos'"
       class="btn-reveal"
       [disabled]="!todosVotaram"
       (click)="revelar()">
-      {{ estadoVotacao === 'pontos' ? '👁 Revelar Pontos' : '⏱ Revelar Horas' }}
+      👁 Revelar Pontos
+    </button>
+    <button *ngIf="estadoVotacao === 'aguardando_horas'"
+      class="btn-liberar-horas"
+      (click)="liberarHorasVotacao()">
+      🕐 Liberar Votação de Horas
+    </button>
+    <button *ngIf="estadoVotacao === 'horas'"
+      class="btn-reveal"
+      [disabled]="!todosVotaram"
+      (click)="revelar()">
+      ⏱ Revelar Horas
     </button>
     <button class="btn-reset" (click)="resetar()">↺ Resetar Votação</button>
-    <span *ngIf="estadoVotacao !== 'finalizado' && !todosVotaram" class="waiting-hint">
-      Aguardando todos votarem {{ estadoVotacao === 'pontos' ? 'pontos' : 'horas' }}...
+    <span *ngIf="estadoVotacao === 'pontos' && !todosVotaram" class="waiting-hint">
+      Aguardando todos votarem pontos...
+    </span>
+    <span *ngIf="estadoVotacao === 'horas' && !todosVotaram" class="waiting-hint">
+      Aguardando todos votarem horas...
+    </span>
+    <span *ngIf="estadoVotacao === 'aguardando_horas'" class="waiting-hint">
+      Discuta os pontos e libere a votação de horas quando pronto.
     </span>
   </section>
 

@@ -48,6 +48,16 @@
           <h2 class="card-title">Importar Tarefas</h2>
         </div>
         <div class="card-body import-area">
+          <div class="sprint-input-row">
+            <label class="sprint-input-label" for="sprintImport">Sprint <span class="obrigatorio">*</span></label>
+            <input
+              id="sprintImport"
+              type="text"
+              class="sprint-input"
+              [(ngModel)]="sprintImport"
+              placeholder="Ex: 42"
+              [disabled]="importando" />
+          </div>
           <label class="file-label" [class.loading]="importando">
             <span *ngIf="!importando">📂 Selecionar arquivo CSV</span>
             <span *ngIf="importando" class="importing-row">
@@ -84,6 +94,7 @@
                 <tr>
                   <th class="col-check"></th>
                   <th>Número</th>
+                  <th class="col-sprint">Sprint</th>
                   <th>Título</th>
                   <th>Descrição</th>
                 </tr>
@@ -99,6 +110,7 @@
                       (click)="$event.stopPropagation()" />
                   </td>
                   <td><span class="badge-num">#{{ t.numero }}</span></td>
+                  <td class="col-sprint"><span class="badge-sprint">{{ t.sprint || '—' }}</span></td>
                   <td class="td-title">{{ t.titulo }}</td>
                   <td class="td-desc">{{ t.descricao }}</td>
                 </tr>
@@ -168,8 +180,13 @@
                 (click)="revelarPontos()">
                 {{ tarefaEmVotacao.pontosRevelados ? '✓ Pontos Revelados' : '👁 Revelar Pontos' }}
               </button>
+              <button *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas"
+                class="btn btn-warning btn-full"
+                (click)="liberarHorasVotacao()">
+                🕐 Liberar Votação de Horas
+              </button>
               <button class="btn btn-secondary btn-full"
-                [disabled]="!podeRevelarHoras || tarefaEmVotacao.horasReveladas"
+                [disabled]="!podeRevelarHoras || tarefaEmVotacao.horasReveladas || !tarefaEmVotacao.horasLiberadas"
                 (click)="revelarHoras()">
                 {{ tarefaEmVotacao.horasReveladas ? '✓ Horas Reveladas' : '⏱ Revelar Horas' }}
               </button>
@@ -184,7 +201,10 @@
             <div *ngIf="!podeRevelarPontos && !tarefaEmVotacao.pontosRevelados" class="waiting-hint">
               Aguardando todos votarem pontos...
             </div>
-            <div *ngIf="tarefaEmVotacao.pontosRevelados && !podeRevelarHoras && !tarefaEmVotacao.horasReveladas" class="waiting-hint">
+            <div *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas && !tarefaEmVotacao.horasReveladas" class="waiting-hint">
+              Pontos revelados — discuta e clique em "Liberar Votação de Horas" quando pronto.
+            </div>
+            <div *ngIf="tarefaEmVotacao.horasLiberadas && !podeRevelarHoras && !tarefaEmVotacao.horasReveladas" class="waiting-hint">
               Aguardando todos votarem horas...
             </div>
 

@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { Login } from './pages/login/login';
 import { ImportarTarefas } from './importar-tarefas/importar-tarefas';
 import { Aguardando } from './pages/aguardando/aguardando';
+import { SelecionarSprint } from './pages/selecionar-sprint/selecionar-sprint';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -9,6 +10,11 @@ export const routes: Routes = [
   {
     path: 'importar',
     component: ImportarTarefas,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'selecionar-sprint',
+    component: SelecionarSprint,
     canActivate: [authGuard]
   },
   {

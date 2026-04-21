@@ -334,6 +334,7 @@
 }
 
 .col-check { width: 40px; text-align: center !important; }
+.col-sprint { width: 90px; white-space: nowrap; }
 
 .row-selected { background: #eff6ff !important; }
 
@@ -577,6 +578,45 @@
   border-radius: 50%;
   background: #f59e0b;
   flex-shrink: 0;
+}
+
+/* ─── Sprint input ───────────────────────────────────────── */
+.sprint-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.sprint-input-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.obrigatorio { color: #f87171; }
+
+.sprint-input {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #f1f5f9;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  width: 120px;
+  &:focus { outline: none; border-color: #6366f1; }
+  &::placeholder { color: #475569; }
+}
+
+.badge-sprint {
+  background: #1e1b4b;
+  color: #818cf8;
+  border: 1px solid #3730a3;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 /* ─── Responsive ─────────────────────────────────────────── */

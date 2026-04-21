@@ -16,6 +16,7 @@ public class TaskDTO {
 
     private Integer prioridade;
     private String status;
+    private String sprint;
 
     public Long getNumero() { return numero; }
     public void setNumero(Long numero) { this.numero = numero; }
@@ -31,4 +32,7 @@ public class TaskDTO {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getSprint() { return sprint; }
+    public void setSprint(String sprint) { this.sprint = sprint; }
 }

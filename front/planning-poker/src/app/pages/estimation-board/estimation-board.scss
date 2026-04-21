@@ -432,6 +432,21 @@
   &[disabled] { opacity: .4; cursor: not-allowed; }
 }
 
+.btn-liberar-horas {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s;
+  box-shadow: 0 4px 12px rgba(245,158,11,.3);
+
+  &:hover { opacity: .85; }
+}
+
 .btn-reset {
   background: transparent;
   border: 1px solid #475569;

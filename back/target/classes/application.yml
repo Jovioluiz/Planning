@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: ${PORT:8081}
 
 spring:
   datasource:
@@ -7,6 +7,9 @@ spring:
     username: ${DB_USER:postgres}
     password: ${DB_PASS:postgres}
   jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: false
@@ -14,6 +17,9 @@ spring:
 jwt:
   # Em produção, defina a variável de ambiente JWT_SECRET com uma string aleatória de pelo menos 32 caracteres.
   secret: ${JWT_SECRET:planning-poker-dev-insecure-secret-key-change-in-prod-abc123!}
+
+cors:
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:4200,http://100.99.136.57:4200}
 
 logging:
   level:

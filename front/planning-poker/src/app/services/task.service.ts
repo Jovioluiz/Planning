@@ -14,6 +14,8 @@ export interface ITask {
   liberada: boolean;
   pontosRevelados?: boolean;
   horasReveladas?: boolean;
+  horasLiberadas?: boolean;
+  sprint?: string;
 }
 
 @Injectable({
@@ -78,5 +80,13 @@ export class TaskService {
 
   pularTarefa(id: string): Observable<any> {
     return this.http.post(`${this.url}/${id}/pular`, {}, this.authOptions);
+  }
+
+  liberarHorasVotacao(id: string): Observable<any> {
+    return this.http.post(`${this.url}/${id}/liberar-horas`, {}, this.authOptions);
+  }
+
+  getSprints(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.url}/sprints`, this.authOptions);
   }
 }

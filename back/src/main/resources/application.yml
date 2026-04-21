@@ -19,7 +19,7 @@ jwt:
   secret: ${JWT_SECRET:planning-poker-dev-insecure-secret-key-change-in-prod-abc123!}
 
 cors:
-  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:4200}
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:4200,http://100.99.136.57:4200}
 
 logging:
   level:

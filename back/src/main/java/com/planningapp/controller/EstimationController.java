@@ -137,6 +137,7 @@ public class EstimationController {
         taskService.findById(taskId).ifPresent(task -> {
             task.setPontosRevelados(false);
             task.setHorasReveladas(false);
+            task.setHorasLiberadas(false);
             taskService.save(task);
         });
 

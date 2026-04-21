@@ -25,7 +25,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   cartas = [1, 2, 3, 5, 8, 13, 21, CARTA_CAFE];
   horas = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24];
   tarefa: any = null;
-  estadoVotacao: 'pontos' | 'horas' | 'finalizado' = 'pontos';
+  estadoVotacao: 'pontos' | 'aguardando_horas' | 'horas' | 'finalizado' = 'pontos';
   pontoSelecionado: number | null = null;
   horaSelecionada: number = 0;
   todosVotaram = false;
@@ -57,7 +57,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
     this.wsService.subscribe('/topic/estimativas', (msg) => {
       const data = JSON.parse(msg.body);
       if (String(data.taskId) === String(this.taskId)) {
-        if (data.acao === 'REVELAR_PONTOS' || data.acao === 'REVELAR_HORAS') {
+        if (data.acao === 'REVELAR_PONTOS' || data.acao === 'REVELAR_HORAS' || data.acao === 'HORAS_LIBERADAS') {
           this.atualizarEstimativas();
           this.carregarTarefa();
         } else if (data.acao === 'TAREFA_FINALIZADA') {
@@ -134,13 +134,17 @@ export class EstimationBoard implements OnInit, OnDestroy {
 
     if (tarefa.pontosRevelados && tarefa.horasReveladas) {
       this.estadoVotacao = 'finalizado';
-    } else if (tarefa.pontosRevelados) {
-      // Avança para horas apenas se ainda estiver em pontos; não regride estado de jogadores
-      if (this.estadoVotacao === 'pontos') {
+    } else if (tarefa.pontosRevelados && tarefa.horasLiberadas) {
+      // Admin liberou horas: move para votação de horas (nunca regride de 'finalizado')
+      if (this.estadoVotacao === 'pontos' || this.estadoVotacao === 'aguardando_horas') {
         this.estadoVotacao = 'horas';
       }
+    } else if (tarefa.pontosRevelados && !tarefa.horasLiberadas) {
+      // Pontos revelados mas horas ainda não liberadas: entra em espera
+      if (this.estadoVotacao === 'pontos') {
+        this.estadoVotacao = 'aguardando_horas';
+      }
     }
-    // Se pontosRevelados = false: não altera — jogador pode já ter votado pontos localmente
   }
 
   votarHoras(): void {
@@ -200,7 +204,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
 
     this.estimationService.votar(this.taskId!, this.participante, pontos).subscribe({
       next: () => {
-        this.estadoVotacao = 'horas';
+        this.estadoVotacao = 'aguardando_horas';
         this.erro = '';
         this.atualizarEstimativas();
         this.cdr.detectChanges();
@@ -208,7 +212,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
       error: (err: any) => {
         if (err.status === 409) {
           this.erro = err.error?.message || 'Você já votou nesta tarefa.';
-          this.estadoVotacao = 'horas';
+          this.estadoVotacao = 'aguardando_horas';
           this.atualizarEstimativas();
         } else {
           this.erro = 'Erro ao registrar voto. Tente novamente.';
@@ -234,7 +238,11 @@ export class EstimationBoard implements OnInit, OnDestroy {
             // horas === null → não votou horas; "🔒" ou valor → votou
             const votouHoras = self.horas !== null && self.horas !== undefined;
             if (!votouHoras) {
-              this.estadoVotacao = 'horas';
+              if (this.tarefa?.horasLiberadas) {
+                this.estadoVotacao = 'horas';
+              } else if (this.tarefa?.pontosRevelados) {
+                this.estadoVotacao = 'aguardando_horas';
+              }
             } else {
               this.estadoVotacao = 'finalizado';
             }
@@ -267,6 +275,13 @@ export class EstimationBoard implements OnInit, OnDestroy {
     }
   }
 
+  liberarHorasVotacao(): void {
+    this.taskService.liberarHorasVotacao(this.taskId!).subscribe({
+      next: () => { this.carregarTarefa(); },
+      error: () => {}
+    });
+  }
+
   revelar(): void {
     if (this.estadoVotacao === 'pontos') {
       this.estimationService.revelarPontos(this.taskId!).subscribe({
@@ -288,6 +303,8 @@ export class EstimationBoard implements OnInit, OnDestroy {
         this.horaSelecionada = 0;
         this.estadoVotacao = 'pontos';
         this.todosVotaram = false;
+        this.pontoSelecionado = null;
+        this.horaSelecionada = 0;
         this.atualizarEstimativas();
         this.cdr.detectChanges();
       },

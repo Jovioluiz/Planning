@@ -50,7 +50,13 @@ export class Login {
           return;
         }
 
-        // Busca tarefa liberada sem async/await para manter a NgZone
+        if (this.auth.isJogador()) {
+          this.carregando = false;
+          this.router.navigate(['/selecionar-sprint']);
+          return;
+        }
+
+        // OBSERVADOR: busca tarefa liberada diretamente
         this.taskService.getTarefasLiberadas().subscribe({
           next: (tarefas) => {
             this.carregando = false;

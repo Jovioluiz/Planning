@@ -26,6 +26,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   podeRevelarHoras = false;
   importando = false;
   tarefaSelecionadaId: number | null = null;
+  sprintImport = '';
 
   mensagem = '';
   mensagemTipo: 'sucesso' | 'erro' | '' = '';
@@ -106,6 +107,15 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
     if (!file) return;
 
+    if (!this.sprintImport.trim()) {
+      this.mensagem = 'Informe a Sprint antes de importar.';
+      this.mensagemTipo = 'erro';
+      this.cdr.detectChanges();
+      setTimeout(() => { this.mensagem = ''; this.mensagemTipo = ''; this.cdr.detectChanges(); }, 5000);
+      input.value = '';
+      return;
+    }
+
     this.importando = true;
     this.cdr.detectChanges(); // força o "Importando..." aparecer imediatamente
 
@@ -119,7 +129,8 @@ export class ImportarTarefas implements OnInit, OnDestroy {
           .map((t: any) => ({
             numero: Number(t.numero),  // CSV retorna strings; backend espera Long
             titulo: String(t.titulo).trim(),
-            descricao: String(t.descricao).trim()
+            descricao: String(t.descricao).trim(),
+            sprint: this.sprintImport.trim() || null
           }))
           .filter((t: any) => !isNaN(t.numero) && t.numero > 0);
 
@@ -256,6 +267,14 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     this.estimationService.todosVotaramHoras(taskId.toString()).subscribe(res => {
       this.podeRevelarHoras = res && !!this.tarefaEmVotacao?.pontosRevelados;
       this.cdr.detectChanges();
+    });
+  }
+
+  liberarHorasVotacao(): void {
+    if (!this.tarefaEmVotacao) return;
+    this.taskService.liberarHorasVotacao(this.tarefaEmVotacao.id.toString()).subscribe({
+      next: () => this.carregarTarefaEmVotacao(),
+      error: () => this.exibirMensagem('Erro ao liberar votação de horas.', 'erro')
     });
   }
 
