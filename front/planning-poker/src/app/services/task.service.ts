@@ -16,6 +16,7 @@ export interface ITask {
   horasReveladas?: boolean;
   horasLiberadas?: boolean;
   sprint?: string;
+  liberadaEm?: string;
 }
 
 @Injectable({
@@ -88,5 +89,12 @@ export class TaskService {
 
   getSprints(): Observable<string[]> {
     return this.http.get<string[]>(`${this.url}/sprints`, this.authOptions);
+  }
+
+  removerParticipante(taskId: string, participante: string): Observable<any> {
+    return this.http.delete(
+      `${this.url}/${taskId}/participantes/${encodeURIComponent(participante)}`,
+      this.authOptions
+    );
   }
 }

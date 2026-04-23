@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -103,6 +104,7 @@ public class TaskService {
     public boolean liberarTarefa(Long id) {
         return taskRepository.findById(id).map(task -> {
             task.setLiberada(true);
+            task.setLiberadaEm(Instant.now());
             taskRepository.save(task);
             String sprint = task.getSprint();
             if (sprint != null && !sprint.isBlank()) {
@@ -151,6 +153,7 @@ public class TaskService {
             task.setPontosRevelados(false);
             task.setHorasReveladas(false);
             task.setHorasLiberadas(false);
+            task.setLiberadaEm(null);
             taskRepository.save(task);
             List<Estimation> votos = estimationRepository.findByTaskId(id);
             estimationRepository.deleteAll(votos);
@@ -159,6 +162,13 @@ public class TaskService {
     }
 
     // ─── Participantes esperados ─────────────────────────────
+
+    @Transactional
+    public void removerParticipanteDaTarefa(Long taskId, String participante) {
+        participantRepository.deleteByTaskIdAndParticipante(taskId, participante);
+        estimationRepository.findByTaskIdAndParticipante(taskId, participante)
+                .ifPresent(estimationRepository::delete);
+    }
 
     @Transactional
     public void adicionarParticipante(Long taskId, String participante) {

@@ -13,4 +13,7 @@ public interface TaskParticipantRepository extends JpaRepository<TaskParticipant
 
     @Transactional
     void deleteByTaskId(Long taskId);
+
+    @Transactional
+    void deleteByTaskIdAndParticipante(Long taskId, String participante);
 }

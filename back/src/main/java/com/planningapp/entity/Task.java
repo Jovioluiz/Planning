@@ -1,5 +1,6 @@
 package com.planningapp.entity;
 
+import java.time.Instant;
 import jakarta.persistence.*;
 
 @Entity
@@ -18,12 +19,11 @@ public class Task {
     private boolean estimada = false;
     private boolean liberada = false;
 
-    // CORRIGIDO: campos que o frontend usa para controlar estado da votação
-    // mas que não existiam na entidade — causava NullPointerException silencioso.
     private boolean pontosRevelados = false;
     private boolean horasReveladas = false;
     private boolean horasLiberadas = false;
     private String sprint;
+    private Instant liberadaEm;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -60,4 +60,7 @@ public class Task {
 
     public String getSprint() { return sprint; }
     public void setSprint(String sprint) { this.sprint = sprint; }
+
+    public Instant getLiberadaEm() { return liberadaEm; }
+    public void setLiberadaEm(Instant liberadaEm) { this.liberadaEm = liberadaEm; }
 }

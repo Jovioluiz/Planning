@@ -3,8 +3,8 @@
   <!-- ─── Header ──────────────────────────────────────────────── -->
   <header class="board-header">
     <div class="board-brand">
-      <span class="brand-icon">🃏</span>
-      <span class="brand-title">Planning Poker</span>
+      <span class="brand-icon">🦶</span>
+      <span class="brand-title">Chutômetro</span>
     </div>
     <div *ngIf="tarefa" class="board-task-meta">
       <span class="task-num">#{{ tarefa.numero }}</span>
@@ -39,6 +39,10 @@
       </div>
       <h1 class="task-title">{{ tarefa.titulo }}</h1>
       <p class="task-desc">{{ tarefa.descricao }}</p>
+      <div *ngIf="tarefa.liberadaEm" class="task-timer">
+        <span class="timer-icon">⏱</span>
+        <span class="timer-value">{{ tempoDecorrido }}</span>
+      </div>
     </div>
   </section>
 
@@ -56,7 +60,7 @@
         class="poker-card"
         [class.selected]="valor === pontoSelecionado"
         [disabled]="votando"
-        (click)="votarPontosDireto(valor)">
+        (click)="selecionarPonto(valor)">
         <span class="card-top-num">
           <ng-container *ngIf="valor !== CARTA_CAFE; else cafeTopTpl">{{ valor }}</ng-container>
           <ng-template #cafeTopTpl>☕</ng-template>
@@ -68,7 +72,13 @@
         <span class="card-suit">♠</span>
       </button>
     </div>
-    <p *ngIf="votando" class="status-hint loading">Registrando voto...</p>
+    <div class="confirm-row">
+      <button class="btn-confirm"
+        [disabled]="pontoSelecionado === null || votando"
+        (click)="votarPontos()">
+        {{ votando ? 'Registrando...' : 'Confirmar Pontos' }}
+      </button>
+    </div>
   </section>
 
   <!-- ─── Votação de Horas ─────────────────────────────────────── -->
@@ -111,12 +121,26 @@
   <section class="participants-section">
     <h2 class="section-title">Participantes</h2>
 
+    <!-- Banner de consenso/divergência (após revelar pontos, admin e observador) -->
+    <div *ngIf="(isAdmin || isObservador) && nivelDivergencia" class="divergencia-banner"
+         [class.banner-consenso]="nivelDivergencia === 'consenso'"
+         [class.banner-proximo]="nivelDivergencia === 'proximo'"
+         [class.banner-divergente]="nivelDivergencia === 'divergente'">
+      <span *ngIf="nivelDivergencia === 'consenso'">✅ Consenso total — todos votaram igual!</span>
+      <span *ngIf="nivelDivergencia === 'proximo'">🟡 Consenso próximo — pequena diferença entre os votos.</span>
+      <span *ngIf="nivelDivergencia === 'divergente'">🔴 Alta divergência!</span>
+    </div>
+
     <!-- Admin e Observador: veem o grid sempre (com 🔒 antes de revelar) -->
     <ng-container *ngIf="isAdmin || isObservador; else playerView">
       <div *ngIf="estimativas.length > 0; else semVotos" class="participants-grid">
-        <div *ngFor="let est of estimativas" class="p-card">
+        <div *ngFor="let est of estimativas" class="p-card"
+             [class.card-otimista]="classificarVoto(est.pontos) === 'otimista'"
+             [class.card-pessimista]="classificarVoto(est.pontos) === 'pessimista'">
           <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
           <div class="p-name">{{ est.participante }}</div>
+          <div *ngIf="classificarVoto(est.pontos) === 'otimista'" class="voto-label voto-otimista">⬇ Otimista</div>
+          <div *ngIf="classificarVoto(est.pontos) === 'pessimista'" class="voto-label voto-pessimista">⬆ Pessimista</div>
 
           <div class="p-vote-row">
             <span class="p-label">Pontos</span>
@@ -136,6 +160,11 @@
               {{ est.horas !== null ? est.horas : '—' }}
             </span>
           </div>
+
+          <button *ngIf="isAdmin && !tarefa?.pontosRevelados"
+            class="btn-skip-card"
+            title="Remover da votação"
+            (click)="skipParticipante(est.participante)">✕</button>
         </div>
       </div>
     </ng-container>
@@ -205,7 +234,7 @@
       Aguardando todos votarem horas...
     </span>
     <span *ngIf="estadoVotacao === 'aguardando_horas'" class="waiting-hint">
-      Discuta os pontos e libere a votação de horas quando pronto.
+      Libere a votação de horas quando pronto.
     </span>
   </section>
 

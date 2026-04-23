@@ -30,8 +30,10 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   mensagem = '';
   mensagemTipo: 'sucesso' | 'erro' | '' = '';
+  tempoDecorrido = '00:00';
 
   private pollInterval: any = null;
+  private timerInterval: any = null;
 
   constructor(
     private taskService: TaskService,
@@ -42,19 +44,100 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     private injector: EnvironmentInjector
   ) {}
 
+  get sprintAtual(): string | null {
+    return this.tarefaEmVotacao?.sprint
+      ?? this.tarefasFila[0]?.sprint
+      ?? null;
+  }
+
+  get tarefasEstimadasDaSprintAtual(): any[] {
+    if (!this.sprintAtual) return this.tarefasEstimadas;
+    return this.tarefasEstimadas.filter(t => t.sprint === this.sprintAtual);
+  }
+
+  private readonly FIBONACCI = [1, 2, 3, 5, 8, 13, 21];
+
+  private closestFibIndex(value: number): number {
+    let closest = 0;
+    let minDist = Math.abs(this.FIBONACCI[0] - value);
+    for (let i = 1; i < this.FIBONACCI.length; i++) {
+      const dist = Math.abs(this.FIBONACCI[i] - value);
+      if (dist < minDist) { minDist = dist; closest = i; }
+    }
+    return closest;
+  }
+
+  private calcMedianaPontos(): number | null {
+    const valores: number[] = this.estimativas
+      .map((e: any) => e.pontos)
+      .filter((p: any) => p !== null && p !== undefined && p > 0)
+      .sort((a: number, b: number) => a - b);
+    if (valores.length === 0) return null;
+    const mid = Math.floor(valores.length / 2);
+    return valores.length % 2 !== 0 ? valores[mid] : (valores[mid - 1] + valores[mid]) / 2;
+  }
+
+  get nivelDivergencia(): 'consenso' | 'proximo' | 'divergente' | null {
+    if (!this.tarefaEmVotacao?.pontosRevelados) return null;
+    const valores: number[] = this.estimativas
+      .map((e: any) => e.pontos)
+      .filter((p: any) => p !== null && p !== undefined && p > 0);
+    if (valores.length === 0) return null;
+    if (valores.every(v => v === valores[0])) return 'consenso';
+    const idxMin = this.closestFibIndex(Math.min(...valores));
+    const idxMax = this.closestFibIndex(Math.max(...valores));
+    const diff = idxMax - idxMin;
+    if (diff <= 1) return 'proximo';
+    return 'divergente';
+  }
+
+  classificarVoto(pontos: number | null): 'otimista' | 'pessimista' | null {
+    if (!this.tarefaEmVotacao?.pontosRevelados || pontos === null || pontos === undefined || pontos === 0) return null;
+    const mediana = this.calcMedianaPontos();
+    if (mediana === null) return null;
+    const diff = this.closestFibIndex(pontos) - this.closestFibIndex(mediana);
+    if (diff <= -2) return 'otimista';
+    if (diff >= 2) return 'pessimista';
+    return null;
+  }
+
   get quemNaoVotou(): string[] {
     const votaram = new Set(this.estimativas.map((e: any) => e.participante));
     return this.participantesTarefa.filter(p => !votaram.has(p));
   }
 
-  get mediaHoras(): number | null {
+  get estatisticasPontos(): { media: number; mediana: number; min: number; max: number; spread: number; cafe: number; total: number } | null {
+    if (!this.tarefaEmVotacao?.pontosRevelados) return null;
+    const cafe = this.estimativas.filter((e: any) => e.pontos === 0 || e.pontos === null || e.pontos === undefined).length;
+    const valores: number[] = this.estimativas
+      .map((e: any) => e.pontos)
+      .filter((p: any) => p !== null && p !== undefined && p > 0)
+      .sort((a: number, b: number) => a - b);
+    const total = this.estimativas.length;
+    if (valores.length === 0) return { media: 0, mediana: 0, min: 0, max: 0, spread: 0, cafe, total };
+    const soma = valores.reduce((a, b) => a + b, 0);
+    const media = Math.round((soma / valores.length) * 10) / 10;
+    const mid = Math.floor(valores.length / 2);
+    const mediana = valores.length % 2 !== 0
+      ? valores[mid]
+      : Math.round(((valores[mid - 1] + valores[mid]) / 2) * 10) / 10;
+    return { media, mediana, min: valores[0], max: valores[valores.length - 1], spread: valores[valores.length - 1] - valores[0], cafe, total };
+  }
+
+  get estatisticasHoras(): { media: number; mediana: number; min: number; max: number } | null {
     if (!this.tarefaEmVotacao?.horasReveladas) return null;
-    const horas = this.estimativas
+    const valores: number[] = this.estimativas
       .map((e: any) => e.horas)
-      .filter((h: any) => h !== null && h !== undefined && typeof h === 'number' && h > 0);
-    if (horas.length === 0) return null;
-    const soma = horas.reduce((a: number, b: number) => a + b, 0);
-    return Math.round((soma / horas.length) * 10) / 10;
+      .filter((h: any) => h !== null && h !== undefined && typeof h === 'number' && h > 0)
+      .sort((a: number, b: number) => a - b);
+    if (valores.length === 0) return null;
+    const soma = valores.reduce((a, b) => a + b, 0);
+    const media = Math.round((soma / valores.length) * 10) / 10;
+    const mid = Math.floor(valores.length / 2);
+    const mediana = valores.length % 2 !== 0
+      ? valores[mid]
+      : Math.round(((valores[mid - 1] + valores[mid]) / 2) * 10) / 10;
+    return { media, mediana, min: valores[0], max: valores[valores.length - 1] };
   }
 
   ngOnInit(): void {
@@ -67,6 +150,24 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.pollInterval) clearInterval(this.pollInterval);
+    if (this.timerInterval) clearInterval(this.timerInterval);
+  }
+
+  private iniciarTimer(): void {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.tarefaEmVotacao?.horasReveladas) return;
+    this.timerInterval = setInterval(() => {
+      const inicio = this.tarefaEmVotacao?.liberadaEm
+        ? new Date(this.tarefaEmVotacao.liberadaEm).getTime()
+        : null;
+      if (inicio) {
+        const diff = Math.floor((Date.now() - inicio) / 1000);
+        const mins = Math.floor(diff / 60).toString().padStart(2, '0');
+        const secs = (diff % 60).toString().padStart(2, '0');
+        this.tempoDecorrido = `${mins}:${secs}`;
+        this.cdr.detectChanges();
+      }
+    }, 1000);
   }
 
   private atualizarStatusVotacao(): void {
@@ -212,9 +313,12 @@ export class ImportarTarefas implements OnInit, OnDestroy {
           this.verificarLiberacoes(this.tarefaEmVotacao.id);
           this.carregarParticipantesTarefa(this.tarefaEmVotacao.id);
           this.carregarFilaTarefas();
+          this.iniciarTimer();
         } else {
           this.tarefaEmVotacao = null;
           this.participantesTarefa = [];
+          this.tempoDecorrido = '00:00';
+          if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
         }
         this.cdr.detectChanges();
       },
@@ -222,6 +326,18 @@ export class ImportarTarefas implements OnInit, OnDestroy {
         this.tarefaEmVotacao = null;
         this.cdr.detectChanges();
       }
+    });
+  }
+
+  removerParticipante(participante: string): void {
+    if (!this.tarefaEmVotacao) return;
+    this.taskService.removerParticipante(this.tarefaEmVotacao.id.toString(), participante).subscribe({
+      next: () => {
+        this.carregarParticipantesTarefa(this.tarefaEmVotacao!.id);
+        this.carregarResumoVotos(this.tarefaEmVotacao!.id);
+        this.verificarLiberacoes(this.tarefaEmVotacao!.id);
+      },
+      error: () => this.exibirMensagem('Erro ao remover participante.', 'erro')
     });
   }
 
@@ -281,6 +397,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   revelarHoras(): void {
     this.estimationService.revelarHoras(this.tarefaEmVotacao!.id.toString()).subscribe({
       next: () => {
+        if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
         this.carregarResumoVotos(this.tarefaEmVotacao!.id);
         this.verificarLiberacoes(this.tarefaEmVotacao!.id);
         this.carregarTarefaEmVotacao();
@@ -310,6 +427,8 @@ export class ImportarTarefas implements OnInit, OnDestroy {
         this.participantesTarefa = [];
         this.podeRevelarPontos = false;
         this.podeRevelarHoras = false;
+        this.tempoDecorrido = '00:00';
+        if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
         this.carregarListas();
         this.cdr.detectChanges();
       },
@@ -326,6 +445,8 @@ export class ImportarTarefas implements OnInit, OnDestroy {
         this.participantesTarefa = [];
         this.podeRevelarPontos = false;
         this.podeRevelarHoras = false;
+        this.tempoDecorrido = '00:00';
+        if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
         this.carregarListas();
         this.cdr.detectChanges();
       },

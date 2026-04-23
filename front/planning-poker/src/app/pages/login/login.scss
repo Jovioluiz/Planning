@@ -70,23 +70,67 @@
   margin-bottom: 32px;
 }
 
-.logo-icon {
-  font-size: 48px;
-  margin-bottom: 8px;
-  line-height: 1;
+.logo-chutometro {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 12px;
 }
 
-.login-header h1 {
-  font-size: 26px;
+.logo-foot {
+  font-size: 56px;
+  line-height: 1;
+  display: block;
+  animation: kick 2.4s ease-in-out infinite;
+  transform-origin: bottom right;
+}
+
+.logo-sparks {
+  position: absolute;
+  top: 4px;
+  right: -10px;
+  pointer-events: none;
+}
+
+.spark {
+  position: absolute;
+  font-size: 11px;
+  color: #f59e0b;
   font-weight: 700;
+  animation: spark-pop 2.4s ease-in-out infinite;
+  opacity: 0;
+}
+
+.s1 { top: -4px;  right: 0;    animation-delay: 0.15s; }
+.s2 { top: -12px; right: 10px; animation-delay: 0.25s; }
+.s3 { top: 2px;   right: 18px; animation-delay: 0.35s; }
+
+@keyframes kick {
+  0%, 100% { transform: rotate(0deg); }
+  10%       { transform: rotate(-20deg); }
+  22%       { transform: rotate(12deg); }
+  30%       { transform: rotate(0deg); }
+}
+
+@keyframes spark-pop {
+  0%, 8%    { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  20%       { opacity: 1; transform: translate(6px, -8px) scale(1.2); }
+  38%       { opacity: 0; transform: translate(12px, -16px) scale(0.8); }
+  100%      { opacity: 0; }
+}
+
+.logo-title {
+  font-size: 28px;
+  font-weight: 800;
   color: #1a1a2e;
   margin: 0 0 6px;
+  letter-spacing: -0.5px;
 }
 
 .subtitle {
   font-size: 13px;
   color: #7a8599;
   margin: 0;
+  font-style: italic;
 }
 
 /* ─── Campos ─────────────────────────────────────────────── */

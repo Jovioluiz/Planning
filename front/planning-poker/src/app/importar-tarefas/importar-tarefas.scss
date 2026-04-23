@@ -487,30 +487,81 @@
   }
 }
 
-/* ─── Média de horas ─────────────────────────────────────── */
-.media-horas {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* ─── Bloco de estatísticas ──────────────────────────────── */
+.stats-block {
+  margin-top: 14px;
   background: linear-gradient(135deg, #eff6ff, #dbeafe);
   border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 12px 14px;
+  animation: fadeIn .3s ease;
+
+  &.stats-block-horas {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border-color: #bbf7d0;
+  }
+}
+
+.stats-block-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.stats-block-icon { font-size: 14px; }
+
+.stats-block-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1d4ed8;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+
+  .stats-block-horas & { color: #059669; }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.stats-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,.65);
   border-radius: 8px;
-  padding: 10px 14px;
-  margin-top: 14px;
+  padding: 7px 4px;
+}
 
-  .media-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: #1d4ed8;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-  }
+.stats-cell-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 3px;
+}
 
-  .media-value {
-    font-size: 22px;
-    font-weight: 800;
-    color: #1d4ed8;
-  }
+.stats-cell-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1d4ed8;
+  line-height: 1;
+
+  .stats-block-horas & { color: #059669; }
+}
+
+.stats-min { color: #10b981 !important; }
+.stats-max { color: #f59e0b !important; }
+.stats-cafe { color: #92400e !important; }
+.stats-spread-high { color: #ef4444 !important; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ─── Ações finais ────────────────────────────────────────── */
@@ -618,6 +669,98 @@
   font-size: 0.8rem;
   font-weight: 600;
 }
+
+/* ─── Timer ──────────────────────────────────────────────── */
+.timer-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 6px 12px;
+  width: fit-content;
+}
+
+.timer-icon { font-size: 14px; }
+
+.timer-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f1f5f9;
+  letter-spacing: 2px;
+}
+
+/* ─── Botão remover participante ─────────────────────────── */
+.btn-remove-participant {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #fca5a5;
+  color: #ef4444;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .15s;
+
+  &:hover { background: #fef2f2; }
+}
+
+.btn-skip-participant {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #fca5a5;
+  color: #ef4444;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .15s;
+
+  &:hover { background: #fef2f2; }
+}
+
+/* ─── Banner divergência (sidebar) ──────────────────────────── */
+.divergencia-banner-side {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 12px;
+  margin-bottom: 4px;
+  text-align: center;
+  animation: fadeInSide .3s ease;
+
+  &.side-consenso  { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
+  &.side-proximo   { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+  &.side-divergente{ background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+}
+
+@keyframes fadeInSide {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Rows com divergência ───────────────────────────────────── */
+.row-otimista  { border-left: 3px solid #ef4444 !important; padding-left: 9px; }
+.row-pessimista{ border-left: 3px solid #f59e0b !important; padding-left: 9px; }
+
+.tag-voto {
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 3px;
+}
+
+.tag-otimista  { color: #ef4444; }
+.tag-pessimista{ color: #f59e0b; }
 
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 900px) {

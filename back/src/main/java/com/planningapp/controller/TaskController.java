@@ -116,6 +116,17 @@ public class TaskController {
         return ResponseEntity.status(404).body(Map.of("success", false, "message", "Tarefa não encontrada"));
     }
 
+    @DeleteMapping("/{id}/participantes/{participante}")
+    public ResponseEntity<?> removerParticipante(
+            @PathVariable Long id,
+            @PathVariable String participante,
+            Authentication auth) {
+        if (!isAdmin(auth)) return forbidden();
+        taskService.removerParticipanteDaTarefa(id, participante);
+        notificationService.notificarTodos("PARTICIPANTE_REMOVIDO", id);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Participante removido da votação"));
+    }
+
     @DeleteMapping("/excluirTarefa/{id}")
     public ResponseEntity<?> excluirTarefa(@PathVariable Long id, Authentication auth) {
         if (!isAdmin(auth)) return forbidden();

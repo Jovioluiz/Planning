@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;
   font-family: 'Segoe UI', Arial, sans-serif;
-  overflow: hidden;
+  overflow: hidden; // mantém sem scroll, mas a cena usa overflow:visible internamente
 }
 
 .content {
@@ -21,19 +21,61 @@
 }
 
 /* ══════════════════════════════════════════════════════════
-   CENA DO CAFÉ
+   CENA DO CHUTE
+   Ciclo total: 5s
+   0–55%  → xícara flutuando, vapor subindo
+   55–63% → pé entra pela esquerda
+   63–68% → IMPACTO: xícara voa, splash aparece
+   68–78% → xícara some, pé recua
+   78–84% → xícara reseta (invisível)
+   84–100% → xícara volta, vapor recomeça
 ══════════════════════════════════════════════════════════ */
+
+$T: 5s; // duração do ciclo
+
 .coffee-scene {
   position: relative;
-  width: 160px;
+  width: 240px;
   height: 210px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
+  overflow: visible;
 }
 
-/* ── Vapor ───────────────────────────────────────────────── */
+/* ── Pé chutador (vem da esquerda, bate na base da xícara) ─ */
+.foot-kick {
+  position: absolute;
+  bottom: 10px;  // altura do pires
+  left: 0;
+  opacity: 0;
+  z-index: 10;
+  animation: foot-kick $T ease-in-out infinite;
+}
+
+.foot-inner {
+  display: block;
+  font-size: 52px;
+  // scaleX(-1): espelha o emoji para o calcanhar ficar à esquerda e dedos à direita
+  transform: scaleX(-1);
+}
+
+@keyframes foot-kick {
+  // ── idle: fora da cena à esquerda ────────
+  0%,  53% { opacity: 0; transform: translateX(-90px) rotate(-20deg); }
+  // ── aparece e começa o swing ─────────────
+  55%       { opacity: 1; transform: translateX(-90px) rotate(-20deg); }
+  // ── impacto na base ───────────────────────
+  64%       { opacity: 1; transform: translateX(60px)  rotate(5deg);  }
+  // ── follow-through ────────────────────────
+  69%       { opacity: 1; transform: translateX(85px)  rotate(20deg); }
+  // ── recua e some ─────────────────────────
+  78%       { opacity: 0; transform: translateX(-90px) rotate(-20deg); }
+  100%      { opacity: 0; transform: translateX(-90px) rotate(-20deg); }
+}
+
+/* ── Vapor (para durante o chute) ───────────────────────── */
 .steam-group {
   position: absolute;
   top: 0;
@@ -44,9 +86,17 @@
   gap: 16px;
   height: 90px;
   pointer-events: none;
+  animation: steam-stop $T ease-in-out infinite;
 }
 
-/* Cada "wisp" é uma coluna estreita, borrada e animada */
+@keyframes steam-stop {
+  0%,  54% { opacity: 1; }
+  60%       { opacity: 0; }
+  85%       { opacity: 0; }
+  92%       { opacity: 1; }
+  100%      { opacity: 1; }
+}
+
 .wisp {
   border-radius: 50px;
   filter: blur(3px);
@@ -55,20 +105,17 @@
 }
 
 .w1 {
-  width: 8px;
-  height: 55px;
+  width: 8px; height: 55px;
   background: linear-gradient(to top, rgba(148,163,184,.75), transparent);
   animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite 0s;
 }
 .w2 {
-  width: 10px;
-  height: 72px;
+  width: 10px; height: 72px;
   background: linear-gradient(to top, rgba(148,163,184,.65), transparent);
   animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite .7s;
 }
 .w3 {
-  width: 8px;
-  height: 50px;
+  width: 8px; height: 50px;
   background: linear-gradient(to top, rgba(148,163,184,.75), transparent);
   animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite 1.4s;
 }
@@ -81,18 +128,79 @@
   100% { opacity: 0;   transform: translateY(-68px) scaleX(1.2); }
 }
 
-/* ── Conjunto flutuante ──────────────────────────────────── */
+/* ── Gotículas de café ───────────────────────────────────── */
+.splash-group {
+  position: absolute;
+  bottom: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.drop {
+  position: absolute;
+  opacity: 0;
+  font-size: 16px;
+  animation: $T ease-in-out infinite;
+}
+
+.dp1 { animation-name: drop1; font-size: 20px; }
+.dp2 { animation-name: drop2; font-size: 10px; color: #92400e; }
+.dp3 { animation-name: drop3; font-size: 8px;  color: #92400e; }
+.dp4 { animation-name: drop4; font-size: 9px;  color: #92400e; }
+
+@keyframes drop1 {
+  0%,  63% { opacity: 0; transform: translate(0, 0) rotate(0deg);           }
+  65%       { opacity: 1; transform: translate(0, 0) rotate(0deg);           }
+  76%       { opacity: 0; transform: translate(70px, -80px) rotate(130deg);  }
+  100%      { opacity: 0; }
+}
+@keyframes drop2 {
+  0%,  63% { opacity: 0; transform: translate(0, 0); }
+  65%       { opacity: 1; transform: translate(0, 0); }
+  75%       { opacity: 0; transform: translate(40px, -95px); }
+  100%      { opacity: 0; }
+}
+@keyframes drop3 {
+  0%,  64% { opacity: 0; transform: translate(0, 0); }
+  66%       { opacity: 1; transform: translate(0, 0); }
+  76%       { opacity: 0; transform: translate(-20px, -85px); }
+  100%      { opacity: 0; }
+}
+@keyframes drop4 {
+  0%,  64% { opacity: 0; transform: translate(0, 0); }
+  67%       { opacity: 1; transform: translate(0, 0); }
+  77%       { opacity: 0; transform: translate(55px, -55px); }
+  100%      { opacity: 0; }
+}
+
+/* ── Xícara + pires (voa ao ser chutada) ────────────────── */
 .cup-float {
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: float 3.2s ease-in-out infinite;
   position: relative;
+  animation: cup-cycle $T ease-in-out infinite;
+  transform-origin: center bottom;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-10px); }
+@keyframes cup-cycle {
+  // flutuação normal
+  0%   { transform: translateY(0)      translateX(0)    rotate(0deg);   opacity: 1; }
+  25%  { transform: translateY(-10px)  translateX(0)    rotate(0deg);   opacity: 1; }
+  50%  { transform: translateY(0)      translateX(0)    rotate(0deg);   opacity: 1; }
+  // aguarda impacto
+  62%  { transform: translateY(0)      translateX(0)    rotate(0deg);   opacity: 1; }
+  // chute na base → xícara tomba para a direita e sobe
+  71%  { transform: translateY(-110px) translateX(80px) rotate(160deg); opacity: 1; }
+  // some
+  77%  { transform: translateY(-160px) translateX(110px) rotate(220deg); opacity: 0; }
+  // reset invisível
+  78%  { transform: translateY(0)      translateX(0)    rotate(0deg);   opacity: 0; }
+  // reaparece
+  87%  { opacity: 1; transform: translateY(0) translateX(0) rotate(0deg); }
+  // flutuação retoma
+  100% { transform: translateY(0)      translateX(0)    rotate(0deg);   opacity: 1; }
 }
 
 /* ── Xícara ──────────────────────────────────────────────── */
@@ -100,88 +208,70 @@
   position: relative;
   width: 96px;
   height: 76px;
-  /* Forma levemente trapezoidal: larga em cima, estreita em baixo */
   clip-path: polygon(0% 0%, 100% 0%, 91% 100%, 9% 100%);
   background: linear-gradient(160deg, #2d4060 0%, #1e293b 55%, #131e2e 100%);
   border-radius: 0 0 10px 10px;
   overflow: visible;
 }
 
-/* Borda superior (aro da xícara) */
 .rim {
   position: absolute;
-  top: 0;
-  left: -4px;
-  right: -4px;
+  top: 0; left: -4px; right: -4px;
   height: 8px;
   background: linear-gradient(135deg, #3b5070, #253448);
   border-radius: 4px 4px 0 0;
   box-shadow: 0 2px 6px rgba(0,0,0,.4);
 }
 
-/* Café (líquido escuro) */
 .coffee {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 0; left: 0; right: 0;
   height: 56%;
   background: linear-gradient(to bottom, #5c3010, #2d1500);
   overflow: hidden;
 }
 
-/* Reflexo na superfície do café */
 .coffee-glare {
   position: absolute;
-  top: 3px;
-  left: 50%;
+  top: 3px; left: 50%;
   transform: translateX(-50%);
-  width: 52%;
-  height: 5px;
-  background: rgba(140, 80, 30, .55);
+  width: 52%; height: 5px;
+  background: rgba(140,80,30,.55);
   border-radius: 50%;
   animation: glare-pulse 2.6s ease-in-out infinite;
 }
 
 @keyframes glare-pulse {
-  0%, 100% { opacity: .55; transform: translateX(-50%) scaleX(1);   }
+  0%, 100% { opacity: .55; transform: translateX(-50%) scaleX(1);    }
   50%       { opacity: .9;  transform: translateX(-50%) scaleX(1.15); }
 }
 
-/* Alça */
 .handle {
   position: absolute;
-  right: -4px;
-  top: 50%;
+  right: -4px; top: 50%;
   transform: translateY(-40%);
-  width: 26px;
-  height: 40px;
+  width: 26px; height: 40px;
   border: 6px solid #253448;
   border-left: none;
   border-radius: 0 22px 22px 0;
   background: transparent;
-  /* Sombra leve para dar volume */
   box-shadow: 3px 0 8px rgba(0,0,0,.25);
 }
 
 /* ── Pires ───────────────────────────────────────────────── */
 .saucer {
-  width: 128px;
-  height: 14px;
+  width: 128px; height: 14px;
   background: linear-gradient(160deg, #2d4060 0%, #1e293b 100%);
   border-radius: 50%;
   margin-top: 3px;
-  box-shadow:
-    0 6px 20px rgba(0,0,0,.5),
-    inset 0 2px 4px rgba(255,255,255,.06);
+  box-shadow: 0 6px 20px rgba(0,0,0,.5), inset 0 2px 4px rgba(255,255,255,.06);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .saucer-inner {
-  width: 60px;
-  height: 5px;
+  width: 60px; height: 5px;
   background: rgba(255,255,255,.05);
   border-radius: 50%;
 }

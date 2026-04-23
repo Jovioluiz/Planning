@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { EstimationService } from '../../services/estimation.service';
-import { TaskService } from '../../services/task.service';
+import { TaskService, ITask } from '../../services/task.service';
 import { WebSocketService } from '../../websocket/websocket.service';
 
 // Sentinela local para a carta "café" (0 é enviado ao backend)
@@ -31,8 +31,10 @@ export class EstimationBoard implements OnInit, OnDestroy {
   todosVotaram = false;
   votando = false;
   sessionEnded: 'finalizada' | 'pulada' | null = null;
+  tempoDecorrido = '00:00';
   readonly CARTA_CAFE = CARTA_CAFE;
   private pollInterval: any = null;
+  private timerInterval: any = null;
   private wasLiberated = false;
 
   constructor(
@@ -57,9 +59,16 @@ export class EstimationBoard implements OnInit, OnDestroy {
     this.wsService.subscribe('/topic/estimativas', (msg) => {
       const data = JSON.parse(msg.body);
       if (String(data.taskId) === String(this.taskId)) {
-        if (data.acao === 'REVELAR_PONTOS' || data.acao === 'REVELAR_HORAS' || data.acao === 'HORAS_LIBERADAS') {
+        if (data.acao === 'REVELAR_HORAS') {
+          if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
           this.atualizarEstimativas();
           this.carregarTarefa();
+        } else if (data.acao === 'REVELAR_PONTOS' || data.acao === 'HORAS_LIBERADAS') {
+          this.atualizarEstimativas();
+          this.carregarTarefa();
+        } else if (data.acao === 'PARTICIPANTE_REMOVIDO') {
+          this.atualizarEstimativas();
+          if (this.isAdmin) this.checkTodosVotaram();
         } else if (data.acao === 'TAREFA_FINALIZADA') {
           this.sessionEnded = 'finalizada';
           if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
@@ -84,6 +93,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.wsService.unsubscribe('/topic/estimativas');
     if (this.pollInterval) clearInterval(this.pollInterval);
+    if (this.timerInterval) clearInterval(this.timerInterval);
   }
 
   logout(): void {
@@ -95,10 +105,24 @@ export class EstimationBoard implements OnInit, OnDestroy {
     this.router.navigate(['/aguardando']);
   }
 
+  private iniciarTimer(liberadaEm: string): void {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    this.timerInterval = setInterval(() => {
+      const diff = Math.floor((Date.now() - new Date(liberadaEm).getTime()) / 1000);
+      const mins = Math.floor(diff / 60).toString().padStart(2, '0');
+      const secs = (diff % 60).toString().padStart(2, '0');
+      this.tempoDecorrido = `${mins}:${secs}`;
+      this.cdr.detectChanges();
+    }, 1000);
+  }
+
   carregarTarefa(): void {
     this.taskService.getTaskById(this.taskId!).subscribe({
       next: (tarefa) => {
         this.tarefa = tarefa;
+        if (tarefa.liberadaEm && !tarefa.horasReveladas && !this.timerInterval) {
+          this.iniciarTimer(tarefa.liberadaEm);
+        }
         this.sincronizarEstado(tarefa);
         if (this.isAdmin) this.checkTodosVotaram();
         this.cdr.detectChanges();
@@ -176,11 +200,10 @@ export class EstimationBoard implements OnInit, OnDestroy {
     });
   }
 
-  votarPontosDireto(valor: number): void {
+  selecionarPonto(valor: number): void {
     if (this.votando) return;
     this.pontoSelecionado = valor;
     this.cdr.detectChanges();
-    this.votarPontos();
   }
 
   votarPontos(): void {
@@ -259,6 +282,52 @@ export class EstimationBoard implements OnInit, OnDestroy {
     });
   }
 
+  private readonly FIBONACCI = [1, 2, 3, 5, 8, 13, 21];
+
+  private closestFibIndex(value: number): number {
+    let closest = 0;
+    let minDist = Math.abs(this.FIBONACCI[0] - value);
+    for (let i = 1; i < this.FIBONACCI.length; i++) {
+      const dist = Math.abs(this.FIBONACCI[i] - value);
+      if (dist < minDist) { minDist = dist; closest = i; }
+    }
+    return closest;
+  }
+
+  private calcMedianaPontos(): number | null {
+    const valores: number[] = this.estimativas
+      .map((e: any) => e.pontos)
+      .filter((p: any) => p !== null && p !== undefined && p > 0)
+      .sort((a: number, b: number) => a - b);
+    if (valores.length === 0) return null;
+    const mid = Math.floor(valores.length / 2);
+    return valores.length % 2 !== 0 ? valores[mid] : (valores[mid - 1] + valores[mid]) / 2;
+  }
+
+  get nivelDivergencia(): 'consenso' | 'proximo' | 'divergente' | null {
+    if (!this.tarefa?.pontosRevelados) return null;
+    const valores: number[] = this.estimativas
+      .map((e: any) => e.pontos)
+      .filter((p: any) => p !== null && p !== undefined && p > 0);
+    if (valores.length === 0) return null;
+    if (valores.every(v => v === valores[0])) return 'consenso';
+    const idxMin = this.closestFibIndex(Math.min(...valores));
+    const idxMax = this.closestFibIndex(Math.max(...valores));
+    const diff = idxMax - idxMin;
+    if (diff <= 1) return 'proximo';
+    return 'divergente';
+  }
+
+  classificarVoto(pontos: number | null): 'otimista' | 'pessimista' | null {
+    if (!this.tarefa?.pontosRevelados || pontos === null || pontos === undefined || pontos === 0) return null;
+    const mediana = this.calcMedianaPontos();
+    if (mediana === null) return null;
+    const diff = this.closestFibIndex(pontos) - this.closestFibIndex(mediana);
+    if (diff <= -2) return 'otimista';
+    if (diff >= 2) return 'pessimista';
+    return null;
+  }
+
   checkTodosVotaram(): void {
     if (this.estadoVotacao === 'pontos') {
       this.estimationService.todosVotaramPontos(this.taskId!).subscribe({
@@ -294,6 +363,16 @@ export class EstimationBoard implements OnInit, OnDestroy {
         error: () => {}
       });
     }
+  }
+
+  skipParticipante(participante: string): void {
+    this.taskService.removerParticipante(this.taskId!, participante).subscribe({
+      next: () => {
+        this.atualizarEstimativas();
+        this.checkTodosVotaram();
+      },
+      error: () => {}
+    });
   }
 
   resetar(): void {
