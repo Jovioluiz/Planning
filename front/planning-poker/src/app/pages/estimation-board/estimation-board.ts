@@ -32,6 +32,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   votando = false;
   sessionEnded: 'finalizada' | 'pulada' | null = null;
   tempoDecorrido = '00:00';
+  usuariosOnline: string[] = [];
   readonly CARTA_CAFE = CARTA_CAFE;
   private pollInterval: any = null;
   private timerInterval: any = null;
@@ -50,11 +51,38 @@ export class EstimationBoard implements OnInit, OnDestroy {
   get isAdmin(): boolean { return this.auth.isAdmin(); }
   get isObservador(): boolean { return this.auth.isObservador(); }
 
+  get rodadaAtualNum(): number {
+    if (this.tarefa?.rodadaAtual) return this.tarefa.rodadaAtual;
+    if (this.estimativas.length === 0) return 1;
+    return Math.max(...this.estimativas.map((e: any) => e.rodada ?? 1));
+  }
+
+  get estimativasRodadaAtual(): any[] {
+    const rodada = this.rodadaAtualNum;
+    return this.estimativas.filter((e: any) => (e.rodada ?? 1) === rodada);
+  }
+
+  get estimativasRodadaAnterior(): any[] {
+    const rodada = this.rodadaAtualNum;
+    return this.estimativas.filter((e: any) => (e.rodada ?? 1) < rodada);
+  }
+
   ngOnInit(): void {
     this.participante = this.auth.getUsuario() || '';
     this.taskId = this.route.snapshot.paramMap.get('id')!;
     this.carregarTarefa();
     this.atualizarEstimativas();
+    this.carregarUsuariosOnline();
+
+    this.wsService.subscribe('/topic/sessoes', (msg) => {
+      const data = JSON.parse(msg.body);
+      if (data.acao === 'USUARIO_CONECTADO' && !this.usuariosOnline.includes(data.usuario)) {
+        this.usuariosOnline = [...this.usuariosOnline, data.usuario];
+      } else if (data.acao === 'USUARIO_DESCONECTADO') {
+        this.usuariosOnline = this.usuariosOnline.filter((u: string) => u !== data.usuario);
+      }
+      this.cdr.detectChanges();
+    });
 
     this.wsService.subscribe('/topic/estimativas', (msg) => {
       const data = JSON.parse(msg.body);
@@ -69,6 +97,22 @@ export class EstimationBoard implements OnInit, OnDestroy {
         } else if (data.acao === 'PARTICIPANTE_REMOVIDO') {
           this.atualizarEstimativas();
           if (this.isAdmin) this.checkTodosVotaram();
+        } else if (data.acao === 'NOVA_RODADA') {
+          this.pontoSelecionado = null;
+          this.horaSelecionada = 0;
+          this.estadoVotacao = 'pontos';
+          this.todosVotaram = false;
+          this.cdr.detectChanges();
+          // Carrega tarefa primeiro (rodadaAtual atualizado) e só então estimativas,
+          // evitando que atualizarEstimativas ache o voto da rodada anterior e reverta o estado
+          this.taskService.getTaskById(this.taskId!).subscribe({
+            next: (tarefa) => {
+              this.tarefa = tarefa;
+              this.atualizarEstimativas();
+              this.cdr.detectChanges();
+            },
+            error: () => this.atualizarEstimativas()
+          });
         } else if (data.acao === 'TAREFA_FINALIZADA') {
           this.sessionEnded = 'finalizada';
           if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
@@ -92,8 +136,16 @@ export class EstimationBoard implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.wsService.unsubscribe('/topic/estimativas');
+    this.wsService.unsubscribe('/topic/sessoes');
     if (this.pollInterval) clearInterval(this.pollInterval);
     if (this.timerInterval) clearInterval(this.timerInterval);
+  }
+
+  private carregarUsuariosOnline(): void {
+    this.taskService.getUsuariosOnline().subscribe({
+      next: (res) => { this.usuariosOnline = res; this.cdr.detectChanges(); },
+      error: () => {}
+    });
   }
 
   logout(): void {
@@ -256,7 +308,9 @@ export class EstimationBoard implements OnInit, OnDestroy {
         this.estimativas = res;
 
         if (!this.isAdmin && !this.isObservador) {
-          const self = res.find((e: any) => e.participante === this.participante);
+          const rodadaAtual = this.tarefa?.rodadaAtual
+            ?? (res.length > 0 ? Math.max(...res.map((e: any) => e.rodada ?? 1)) : 1);
+          const self = res.find((e: any) => e.participante === this.participante && (e.rodada ?? 1) === rodadaAtual);
           if (self) {
             // horas === null → não votou horas; "🔒" ou valor → votou
             const votouHoras = self.horas !== null && self.horas !== undefined;
@@ -295,7 +349,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   }
 
   private calcMedianaPontos(): number | null {
-    const valores: number[] = this.estimativas
+    const valores: number[] = this.estimativasRodadaAtual
       .map((e: any) => e.pontos)
       .filter((p: any) => p !== null && p !== undefined && p > 0)
       .sort((a: number, b: number) => a - b);
@@ -306,7 +360,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
 
   get nivelDivergencia(): 'consenso' | 'proximo' | 'divergente' | null {
     if (!this.tarefa?.pontosRevelados) return null;
-    const valores: number[] = this.estimativas
+    const valores: number[] = this.estimativasRodadaAtual
       .map((e: any) => e.pontos)
       .filter((p: any) => p !== null && p !== undefined && p > 0);
     if (valores.length === 0) return null;
@@ -363,6 +417,20 @@ export class EstimationBoard implements OnInit, OnDestroy {
         error: () => {}
       });
     }
+  }
+
+  novaRodada(): void {
+    this.estimationService.novaRodada(this.taskId!).subscribe({
+      next: () => {
+        this.pontoSelecionado = null;
+        this.horaSelecionada = 0;
+        this.estadoVotacao = 'pontos';
+        this.todosVotaram = false;
+        this.atualizarEstimativas();
+        this.carregarTarefa();
+      },
+      error: () => {}
+    });
   }
 
   skipParticipante(participante: string): void {

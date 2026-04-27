@@ -17,6 +17,7 @@ export interface ITask {
   horasLiberadas?: boolean;
   sprint?: string;
   liberadaEm?: string;
+  rodadaAtual?: number;
 }
 
 @Injectable({
@@ -96,5 +97,9 @@ export class TaskService {
       `${this.url}/${taskId}/participantes/${encodeURIComponent(participante)}`,
       this.authOptions
     );
+  }
+
+  getUsuariosOnline(): Observable<string[]> {
+    return this.http.get<string[]>(`${environment.apiUrl}/api/sessoes/online`, this.authOptions);
   }
 }

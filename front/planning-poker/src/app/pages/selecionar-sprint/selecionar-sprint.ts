@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { TaskService } from '../../services/task.service';
+import { WebSocketService } from '../../websocket/websocket.service';
 
 @Component({
   selector: 'app-selecionar-sprint',
@@ -11,17 +12,20 @@ import { TaskService } from '../../services/task.service';
   templateUrl: './selecionar-sprint.html',
   styleUrls: ['./selecionar-sprint.scss']
 })
-export class SelecionarSprint implements OnInit {
+export class SelecionarSprint implements OnInit, OnDestroy {
   sprints: string[] = [];
   carregando = true;
   selecionando = false;
   erro = '';
   usuario: string | null = '';
 
+  private pollInterval: ReturnType<typeof setInterval> | null = null;
+
   constructor(
     private auth: AuthService,
     private taskService: TaskService,
-    private router: Router
+    private router: Router,
+    _ws: WebSocketService
   ) {}
 
   ngOnInit(): void {
@@ -30,10 +34,48 @@ export class SelecionarSprint implements OnInit {
       return;
     }
     this.usuario = this.auth.getUsuario();
+    this.carregarSprints();
+  }
+
+  ngOnDestroy(): void {
+    this.pararPolling();
+  }
+
+  private carregarSprints(): void {
     this.taskService.getSprints().subscribe({
-      next: (res) => { this.sprints = res; this.carregando = false; },
+      next: (res) => {
+        this.sprints = res;
+        this.carregando = false;
+        if (res.length === 0) {
+          this.iniciarPolling();
+        } else {
+          this.pararPolling();
+        }
+      },
       error: () => { this.erro = 'Erro ao carregar sprints.'; this.carregando = false; }
     });
+  }
+
+  private iniciarPolling(): void {
+    if (this.pollInterval) return;
+    this.pollInterval = setInterval(() => {
+      this.taskService.getSprints().subscribe({
+        next: (res) => {
+          if (res.length > 0) {
+            this.sprints = res;
+            this.pararPolling();
+          }
+        },
+        error: () => {}
+      });
+    }, 5000);
+  }
+
+  private pararPolling(): void {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
   }
 
   selecionar(sprint: string): void {

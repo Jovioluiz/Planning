@@ -1,30 +1,28 @@
 <div class="aguardando-page">
+
+  <!-- ── Header ──────────────────────────────────────── -->
+  <header class="aguardando-header">
+    <div class="header-brand">
+      <span class="brand-icon">🦶</span>
+      <span class="brand-name">Chutômetro</span>
+    </div>
+    <div class="header-user">
+      <span class="user-avatar">{{ (usuario || 'U')[0].toUpperCase() }}</span>
+      <span class="user-name">{{ usuario }}</span>
+      <button class="btn-logout" (click)="logout()">Sair</button>
+    </div>
+  </header>
+
+  <!-- ── Conteúdo central ─────────────────────────────── -->
   <div class="content">
 
-    <!-- ── Cena do chute ────────────────────────── -->
+    <!-- Xícara flutuando com vapor (sem animação de chute) -->
     <div class="coffee-scene">
-
-      <!-- Pé chutador (wrapper anima posição, inner faz o flip) -->
-      <div class="foot-kick">
-        <span class="foot-inner">🦶</span>
-      </div>
-
-      <!-- Vapor (para durante o chute) -->
       <div class="steam-group">
         <div class="wisp w1"></div>
         <div class="wisp w2"></div>
         <div class="wisp w3"></div>
       </div>
-
-      <!-- Gotículas de café que voam no impacto -->
-      <div class="splash-group">
-        <span class="drop dp1">☕</span>
-        <span class="drop dp2">·</span>
-        <span class="drop dp3">·</span>
-        <span class="drop dp4">·</span>
-      </div>
-
-      <!-- Conjunto xícara + pires -->
       <div class="cup-float">
         <div class="cup">
           <div class="rim"></div>
@@ -37,10 +35,8 @@
           <div class="saucer-inner"></div>
         </div>
       </div>
-
     </div>
 
-    <!-- ── Texto ─────────────────────────────────── -->
     <h2 class="title">Aguardando próxima tarefa</h2>
 
     <div class="dots">
@@ -49,9 +45,7 @@
       <span></span>
     </div>
 
-    <p class="subtitle">O administrador liberará a votação em breve</p>
-
-    <button class="btn-sair" (click)="logout()">Sair</button>
+    <p class="subtitle">O moderador liberará a votação em breve</p>
 
   </div>
 </div>

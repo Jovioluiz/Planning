@@ -1,80 +1,111 @@
 <div class="login-page">
 
-  <!-- Cartas decorativas ao fundo -->
-  <div class="cards-bg" aria-hidden="true">
-    <div class="card-deco card-1">1</div>
-    <div class="card-deco card-2">2</div>
-    <div class="card-deco card-3">3</div>
-    <div class="card-deco card-4">5</div>
-    <div class="card-deco card-5">8</div>
-    <div class="card-deco card-6">13</div>
-    <div class="card-deco card-7">21</div>
-    <div class="card-deco card-8">☕</div>
-  </div>
+  <!-- ── Painel esquerdo: branding ──────────────────────── -->
+  <div class="brand-panel">
 
-  <!-- Formulário de login -->
-  <div class="login-card">
-    <div class="login-header">
-      <div class="logo-chutometro">
-        <div class="logo-foot">🦶</div>
-        <div class="logo-sparks">
-          <span class="spark s1">✦</span>
-          <span class="spark s2">✦</span>
-          <span class="spark s3">✦</span>
-        </div>
-      </div>
-      <h1 class="logo-title">Chutômetro</h1>
-      <p class="subtitle">Porque alguém tem que chutar primeiro.</p>
+    <!-- Cartas flutuantes decorativas -->
+    <div class="cards-bg" aria-hidden="true">
+      <div class="card-deco card-1">1</div>
+      <div class="card-deco card-2">2</div>
+      <div class="card-deco card-3">5</div>
+      <div class="card-deco card-4">8</div>
+      <div class="card-deco card-5">13</div>
+      <div class="card-deco card-6">☕</div>
     </div>
 
-    <form (ngSubmit)="login($event)" novalidate>
-      <div class="field">
-        <label for="usuario">Usuário</label>
-        <input
-          id="usuario"
-          type="text"
-          [(ngModel)]="usuario"
-          name="usuario"
-          placeholder="Seu nome de usuário"
-          autocomplete="username"
-          [disabled]="carregando"
-        />
+    <div class="brand-content">
+      <div class="brand-logo">🦶</div>
+      <h1 class="brand-title">Chutômetro</h1>
+      <p class="brand-tagline">Planning Poker para times ágeis</p>
+
+      <ul class="brand-features">
+        <li>
+          <span class="feat-icon">🃏</span>
+          <span>Estimativas em tempo real</span>
+        </li>
+        <li>
+          <span class="feat-icon">👥</span>
+          <span>Toda a equipe na mesma página</span>
+        </li>
+        <li>
+          <span class="feat-icon">📊</span>
+          <span>Resultados e estatísticas automáticos</span>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- ── Painel direito: formulário ─────────────────────── -->
+  <div class="form-panel">
+    <div class="form-inner">
+
+      <div class="form-header">
+        <p class="form-welcome">Bem-vindo de volta 👋</p>
+        <h2 class="form-title">Entrar na sessão</h2>
       </div>
 
-      <div class="field">
-        <label for="senha">Senha</label>
-        <input
-          id="senha"
-          type="password"
-          [(ngModel)]="senha"
-          name="senha"
-          placeholder="Sua senha"
-          autocomplete="current-password"
-          [disabled]="carregando"
-        />
-      </div>
+      <form (ngSubmit)="login($event)" novalidate>
 
-      <div class="field">
-        <label for="perfil">Perfil</label>
-        <select id="perfil" [(ngModel)]="perfil" name="perfil" [disabled]="carregando">
-          <option value="" disabled selected>Selecione um perfil</option>
-          <option value="ADMIN">Administrador</option>
-          <option value="JOGADOR">Desenvolvedor</option>
-          <option value="OBSERVADOR">Observador</option>
-        </select>
-      </div>
+        <div class="field">
+          <label for="usuario">Usuário</label>
+          <div class="input-wrap">
+            <span class="input-icon">👤</span>
+            <input
+              id="usuario"
+              type="text"
+              [(ngModel)]="usuario"
+              name="usuario"
+              placeholder="Seu nome de usuário"
+              autocomplete="username"
+              [disabled]="carregando"
+            />
+          </div>
+        </div>
 
-      <button type="submit" class="btn-entrar" [disabled]="carregando">
-        <span *ngIf="!carregando">Entrar</span>
-        <span *ngIf="carregando" class="spinner-row">
-          <span class="spinner"></span> Entrando...
-        </span>
-      </button>
-    </form>
+        <div class="field">
+          <label for="senha">Senha</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input
+              id="senha"
+              type="password"
+              [(ngModel)]="senha"
+              name="senha"
+              placeholder="Sua senha"
+              autocomplete="current-password"
+              [disabled]="carregando"
+            />
+          </div>
+        </div>
 
-    <p *ngIf="erro" class="erro">{{ erro }}</p>
+        <div class="field">
+          <label for="perfil">Perfil</label>
+          <div class="input-wrap select-wrap">
+            <span class="input-icon">🎭</span>
+            <select id="perfil" [(ngModel)]="perfil" name="perfil" [disabled]="carregando">
+              <option value="" disabled selected>Selecione um perfil</option>
+              <option value="ADMIN">Moderador</option>
+              <option value="JOGADOR">Player</option>
+              <option value="OBSERVADOR">Observador</option>
+            </select>
+          </div>
+        </div>
 
-    <p class="hint">Novo usuário? Basta entrar que sua conta será criada automaticamente.</p>
+        <button type="submit" class="btn-entrar" [disabled]="carregando">
+          <span *ngIf="!carregando">Entrar</span>
+          <span *ngIf="carregando" class="spinner-row">
+            <span class="spinner"></span> Entrando...
+          </span>
+        </button>
+
+      </form>
+
+      <p *ngIf="erro" class="erro">{{ erro }}</p>
+
+      <p class="hint">Novo usuário? Basta entrar que sua conta será criada automaticamente.</p>
+
+    </div>
   </div>
 
 </div>

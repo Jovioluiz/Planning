@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { TaskService } from '../../services/task.service';
+import { WebSocketService } from '../../websocket/websocket.service';
 
 @Component({
   selector: 'app-aguardando',
@@ -10,15 +11,18 @@ import { TaskService } from '../../services/task.service';
   styleUrls: ['./aguardando.scss']
 })
 export class Aguardando implements OnInit, OnDestroy {
+  usuario: string | null = '';
   private intervalo: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private router: Router,
     private auth: AuthService,
-    private taskService: TaskService
+    private taskService: TaskService,
+    _ws: WebSocketService
   ) {}
 
   ngOnInit(): void {
+    this.usuario = this.auth.getUsuario();
     this.verificar();
     this.intervalo = setInterval(() => this.verificar(), 5000);
   }

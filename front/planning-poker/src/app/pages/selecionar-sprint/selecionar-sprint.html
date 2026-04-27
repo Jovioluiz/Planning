@@ -20,8 +20,11 @@
 
     <div *ngIf="erro" class="estado-erro">{{ erro }}</div>
 
-    <div *ngIf="!carregando && sprints.length === 0 && !erro" class="estado-info">
-      Nenhuma sprint disponível no momento. Aguarde o administrador importar as tarefas.
+    <div *ngIf="!carregando && sprints.length === 0 && !erro" class="estado-aguardando">
+      <p class="aguardando-texto">Aguardando o moderador importar as tarefas</p>
+      <div class="dots">
+        <span></span><span></span><span></span>
+      </div>
     </div>
 
     <div *ngIf="!carregando && sprints.length > 0" class="sprint-lista">

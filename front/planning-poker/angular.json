@@ -21,6 +21,10 @@
             "tsConfig": "tsconfig.app.json",
             "sourceMap": true,
             "inlineStyleLanguage": "scss",
+            "polyfills": ["src/polyfills.ts"],
+            "define": {
+              "global": "globalThis"
+            },
             "assets": [
                 "src/assets",
                "src/favicon.ico",

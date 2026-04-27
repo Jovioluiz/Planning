@@ -1,5 +1,65 @@
-/* ── Reset ──────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Header ─────────────────────────────────────────────── */
+.aguardando-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  background: rgba(20, 27, 45, 0.96);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 100;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .brand-icon { font-size: 20px; }
+  .brand-name { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.user-name {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.btn-logout {
+  background: transparent;
+  border: 1px solid #334155;
+  color: #64748b;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+
+  &:hover { border-color: #ef4444; color: #ef4444; }
+}
 
 /* ── Página ─────────────────────────────────────────────── */
 .aguardando-page {
@@ -9,7 +69,8 @@
   align-items: center;
   justify-content: center;
   font-family: 'Segoe UI', Arial, sans-serif;
-  overflow: hidden; // mantém sem scroll, mas a cena usa overflow:visible internamente
+  overflow: hidden;
+  padding-top: 56px;
 }
 
 .content {
@@ -20,23 +81,11 @@
   padding: 40px 24px;
 }
 
-/* ══════════════════════════════════════════════════════════
-   CENA DO CHUTE
-   Ciclo total: 5s
-   0–55%  → xícara flutuando, vapor subindo
-   55–63% → pé entra pela esquerda
-   63–68% → IMPACTO: xícara voa, splash aparece
-   68–78% → xícara some, pé recua
-   78–84% → xícara reseta (invisível)
-   84–100% → xícara volta, vapor recomeça
-══════════════════════════════════════════════════════════ */
-
-$T: 5s; // duração do ciclo
-
+/* ── Cena da xícara (flutuação suave, sem chute) ─────────── */
 .coffee-scene {
   position: relative;
-  width: 240px;
-  height: 210px;
+  width: 160px;
+  height: 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -44,38 +93,7 @@ $T: 5s; // duração do ciclo
   overflow: visible;
 }
 
-/* ── Pé chutador (vem da esquerda, bate na base da xícara) ─ */
-.foot-kick {
-  position: absolute;
-  bottom: 10px;  // altura do pires
-  left: 0;
-  opacity: 0;
-  z-index: 10;
-  animation: foot-kick $T ease-in-out infinite;
-}
-
-.foot-inner {
-  display: block;
-  font-size: 52px;
-  // scaleX(-1): espelha o emoji para o calcanhar ficar à esquerda e dedos à direita
-  transform: scaleX(-1);
-}
-
-@keyframes foot-kick {
-  // ── idle: fora da cena à esquerda ────────
-  0%,  53% { opacity: 0; transform: translateX(-90px) rotate(-20deg); }
-  // ── aparece e começa o swing ─────────────
-  55%       { opacity: 1; transform: translateX(-90px) rotate(-20deg); }
-  // ── impacto na base ───────────────────────
-  64%       { opacity: 1; transform: translateX(60px)  rotate(5deg);  }
-  // ── follow-through ────────────────────────
-  69%       { opacity: 1; transform: translateX(85px)  rotate(20deg); }
-  // ── recua e some ─────────────────────────
-  78%       { opacity: 0; transform: translateX(-90px) rotate(-20deg); }
-  100%      { opacity: 0; transform: translateX(-90px) rotate(-20deg); }
-}
-
-/* ── Vapor (para durante o chute) ───────────────────────── */
+/* ── Vapor ───────────────────────────────────────────────── */
 .steam-group {
   position: absolute;
   top: 0;
@@ -86,15 +104,6 @@ $T: 5s; // duração do ciclo
   gap: 16px;
   height: 90px;
   pointer-events: none;
-  animation: steam-stop $T ease-in-out infinite;
-}
-
-@keyframes steam-stop {
-  0%,  54% { opacity: 1; }
-  60%       { opacity: 0; }
-  85%       { opacity: 0; }
-  92%       { opacity: 1; }
-  100%      { opacity: 1; }
 }
 
 .wisp {
@@ -128,82 +137,20 @@ $T: 5s; // duração do ciclo
   100% { opacity: 0;   transform: translateY(-68px) scaleX(1.2); }
 }
 
-/* ── Gotículas de café ───────────────────────────────────── */
-.splash-group {
-  position: absolute;
-  bottom: 44px;
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.drop {
-  position: absolute;
-  opacity: 0;
-  font-size: 16px;
-  animation: $T ease-in-out infinite;
-}
-
-.dp1 { animation-name: drop1; font-size: 20px; }
-.dp2 { animation-name: drop2; font-size: 10px; color: #92400e; }
-.dp3 { animation-name: drop3; font-size: 8px;  color: #92400e; }
-.dp4 { animation-name: drop4; font-size: 9px;  color: #92400e; }
-
-@keyframes drop1 {
-  0%,  63% { opacity: 0; transform: translate(0, 0) rotate(0deg);           }
-  65%       { opacity: 1; transform: translate(0, 0) rotate(0deg);           }
-  76%       { opacity: 0; transform: translate(70px, -80px) rotate(130deg);  }
-  100%      { opacity: 0; }
-}
-@keyframes drop2 {
-  0%,  63% { opacity: 0; transform: translate(0, 0); }
-  65%       { opacity: 1; transform: translate(0, 0); }
-  75%       { opacity: 0; transform: translate(40px, -95px); }
-  100%      { opacity: 0; }
-}
-@keyframes drop3 {
-  0%,  64% { opacity: 0; transform: translate(0, 0); }
-  66%       { opacity: 1; transform: translate(0, 0); }
-  76%       { opacity: 0; transform: translate(-20px, -85px); }
-  100%      { opacity: 0; }
-}
-@keyframes drop4 {
-  0%,  64% { opacity: 0; transform: translate(0, 0); }
-  67%       { opacity: 1; transform: translate(0, 0); }
-  77%       { opacity: 0; transform: translate(55px, -55px); }
-  100%      { opacity: 0; }
-}
-
-/* ── Xícara + pires (voa ao ser chutada) ────────────────── */
+/* ── Xícara flutuando suavemente ─────────────────────────── */
 .cup-float {
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
-  animation: cup-cycle $T ease-in-out infinite;
-  transform-origin: center bottom;
+  animation: cup-bob 3s ease-in-out infinite;
 }
 
-@keyframes cup-cycle {
-  // flutuação normal
-  0%   { transform: translateY(0)      translateX(0)    rotate(0deg);   opacity: 1; }
-  25%  { transform: translateY(-10px)  translateX(0)    rotate(0deg);   opacity: 1; }
-  50%  { transform: translateY(0)      translateX(0)    rotate(0deg);   opacity: 1; }
-  // aguarda impacto
-  62%  { transform: translateY(0)      translateX(0)    rotate(0deg);   opacity: 1; }
-  // chute na base → xícara tomba para a direita e sobe
-  71%  { transform: translateY(-110px) translateX(80px) rotate(160deg); opacity: 1; }
-  // some
-  77%  { transform: translateY(-160px) translateX(110px) rotate(220deg); opacity: 0; }
-  // reset invisível
-  78%  { transform: translateY(0)      translateX(0)    rotate(0deg);   opacity: 0; }
-  // reaparece
-  87%  { opacity: 1; transform: translateY(0) translateX(0) rotate(0deg); }
-  // flutuação retoma
-  100% { transform: translateY(0)      translateX(0)    rotate(0deg);   opacity: 1; }
+@keyframes cup-bob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
 }
 
-/* ── Xícara ──────────────────────────────────────────────── */
 .cup {
   position: relative;
   width: 96px;
@@ -258,7 +205,6 @@ $T: 5s; // duração do ciclo
   box-shadow: 3px 0 8px rgba(0,0,0,.25);
 }
 
-/* ── Pires ───────────────────────────────────────────────── */
 .saucer {
   width: 128px; height: 14px;
   background: linear-gradient(160deg, #2d4060 0%, #1e293b 100%);
@@ -276,9 +222,7 @@ $T: 5s; // duração do ciclo
   border-radius: 50%;
 }
 
-/* ══════════════════════════════════════════════════════════
-   TEXTOS
-══════════════════════════════════════════════════════════ */
+/* ── Textos ──────────────────────────────────────────────── */
 .title {
   font-size: 20px;
   font-weight: 700;
@@ -287,7 +231,6 @@ $T: 5s; // duração do ciclo
   letter-spacing: .3px;
 }
 
-/* Três pontinhos pulsantes */
 .dots {
   display: flex;
   gap: 8px;
@@ -316,22 +259,4 @@ $T: 5s; // duração do ciclo
   text-align: center;
   max-width: 260px;
   line-height: 1.6;
-}
-
-/* ── Botão Sair ──────────────────────────────────────────── */
-.btn-sair {
-  background: transparent;
-  border: 1px solid #334155;
-  color: #64748b;
-  border-radius: 8px;
-  padding: 8px 28px;
-  font-size: 13px;
-  cursor: pointer;
-  margin-top: 12px;
-  transition: border-color .2s, color .2s;
-
-  &:hover {
-    border-color: #ef4444;
-    color: #ef4444;
-  }
 }

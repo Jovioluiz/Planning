@@ -52,4 +52,8 @@ export class EstimationService {
   resetar(taskId: string): Observable<any> {
     return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/resetar`, {}, this.authOptions);
   }
+
+  novaRodada(taskId: string): Observable<any> {
+    return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/nova-rodada`, {}, this.authOptions);
+  }
 }

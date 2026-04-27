@@ -13,7 +13,10 @@ public class Estimation {
     @Column(name = "id_tarefas", insertable = false, updatable = false)
     private Long taskId;
 
-    private String participante;
+    @ManyToOne
+    @JoinColumn(name = "id_usuario", nullable = false)
+    private User usuario;
+
     private Integer pontos;
 
     @Column(name = "revelada")
@@ -23,6 +26,9 @@ public class Estimation {
 
     @Column(name = "horas_reveladas")
     private Boolean horasReveladas = false;
+
+    @Column(name = "rodada")
+    private Integer rodada = 1;
 
     @ManyToOne
     @JoinColumn(name = "id_tarefas", nullable = false)
@@ -34,8 +40,8 @@ public class Estimation {
     public Long getTaskId() { return taskId; }
     public void setTaskId(Long taskId) { this.taskId = taskId; }
 
-    public String getParticipante() { return participante; }
-    public void setParticipante(String participante) { this.participante = participante; }
+    public User getUsuario() { return usuario; }
+    public void setUsuario(User usuario) { this.usuario = usuario; }
 
     public Integer getPontos() { return pontos; }
     public void setPontos(Integer pontos) { this.pontos = pontos; }
@@ -43,8 +49,6 @@ public class Estimation {
     public boolean isRevealed() { return revealed; }
     public void setRevealed(boolean revealed) { this.revealed = revealed; }
 
-    // CORRIGIDO: retorna null em vez de 0.0 quando não votou —
-    // assim todosVotaramHoras() consegue distinguir "não votou" de "votou 0 horas".
     public Double getHoras() { return horas; }
     public void setHoras(Double horas) { this.horas = horas; }
 
@@ -52,4 +56,7 @@ public class Estimation {
 
     public Boolean isHorasReveladas() { return horasReveladas; }
     public void setHorasReveladas(boolean horasReveladas) { this.horasReveladas = horasReveladas; }
+
+    public Integer getRodada() { return rodada != null ? rodada : 1; }
+    public void setRodada(Integer rodada) { this.rodada = rodada; }
 }

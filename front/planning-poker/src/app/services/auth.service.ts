@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { WebSocketService } from '../websocket/websocket.service';
 
 @Injectable({
   providedIn: 'root'
@@ -10,7 +11,7 @@ import { environment } from '../../environments/environment';
 export class AuthService {
   private api = `${environment.apiUrl}/api/auth`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private ws: WebSocketService) {}
 
   login(usuario: string, senha: string, perfil: string): Observable<boolean> {
     return this.http.post<{ success: boolean; message: string; perfil: string; token?: string }>(
@@ -22,11 +23,11 @@ export class AuthService {
           this.setUsuario(usuario);
           this.setPerfil(response.perfil);
           this.setToken(response.token);
+          this.ws.connect();
           return true;
         }
         return false;
       }),
-      // Propaga o erro com a mensagem do backend para que o componente possa exibi-la
       catchError((err) => {
         const message = err?.error?.message || 'Erro ao conectar com o servidor';
         return throwError(() => new Error(message));
@@ -48,6 +49,7 @@ export class AuthService {
   }
 
   logout(): void {
+    this.ws.disconnect();
     sessionStorage.removeItem('usuario');
     sessionStorage.removeItem('perfil');
     sessionStorage.removeItem('token');

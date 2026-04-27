@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "task_participants",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"task_id", "participante"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"task_id", "id_usuario"}))
 public class TaskParticipant {
 
     @Id
@@ -14,17 +14,18 @@ public class TaskParticipant {
     @Column(name = "task_id", nullable = false)
     private Long taskId;
 
-    @Column(nullable = false)
-    private String participante;
+    @ManyToOne
+    @JoinColumn(name = "id_usuario", nullable = false)
+    private User usuario;
 
     public TaskParticipant() {}
 
-    public TaskParticipant(Long taskId, String participante) {
+    public TaskParticipant(Long taskId, User usuario) {
         this.taskId = taskId;
-        this.participante = participante;
+        this.usuario = usuario;
     }
 
     public Long getId() { return id; }
     public Long getTaskId() { return taskId; }
-    public String getParticipante() { return participante; }
+    public User getUsuario() { return usuario; }
 }

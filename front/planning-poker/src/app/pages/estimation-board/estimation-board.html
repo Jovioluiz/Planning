@@ -23,8 +23,8 @@
       <div class="session-ended-icon">{{ sessionEnded === 'finalizada' ? '✅' : '⏭' }}</div>
       <h2>{{ sessionEnded === 'finalizada' ? 'Tarefa Finalizada!' : 'Tarefa Passada Adiante' }}</h2>
       <p>{{ sessionEnded === 'finalizada'
-        ? 'Esta tarefa foi estimada e concluída pelo administrador.'
-        : 'O administrador decidiu passar esta tarefa para frente sem estimar.' }}</p>
+        ? 'Esta tarefa foi estimada e concluída pelo moderador.'
+        : 'O moderador decidiu passar esta tarefa para frente sem estimar.' }}</p>
       <button class="btn-back" (click)="irParaAguardando()">Aguardar Próxima Tarefa</button>
     </div>
   </div>
@@ -45,6 +45,17 @@
       </div>
     </div>
   </section>
+
+  <!-- ─── Online bar ─────────────────────────────────────────── -->
+  <div *ngIf="usuariosOnline.length > 0" class="online-bar">
+    <span class="online-bar-label">Online:</span>
+    <div class="online-chips">
+      <span *ngFor="let u of usuariosOnline" class="online-chip" [title]="u">
+        <span class="dot-online-chip"></span>
+        <span class="online-chip-name">{{ u }}</span>
+      </span>
+    </div>
+  </div>
 
   <!-- ─── Observador ──────────────────────────────────────────── -->
   <div *ngIf="isObservador" class="observer-bar">
@@ -108,13 +119,13 @@
   <!-- ─── Aguardando Admin liberar horas ──────────────────────── -->
   <section *ngIf="!isObservador && estadoVotacao === 'aguardando_horas'" class="voting-section done-section">
     <div class="done-msg">✓ Pontos registrados!</div>
-    <p class="done-hint">Discussão em andamento...<br>Aguarde o administrador liberar a votação de horas.</p>
+    <p class="done-hint">Discussão em andamento...<br>Aguarde o moderador liberar a votação de horas.</p>
   </section>
 
   <!-- ─── Fase Finalizada (jogador) ────────────────────────────── -->
   <section *ngIf="!isObservador && estadoVotacao === 'finalizado'" class="voting-section done-section">
     <div class="done-msg">✓ Seu voto foi registrado com sucesso!</div>
-    <p class="done-hint">Aguarde o administrador revelar os resultados.</p>
+    <p class="done-hint">Aguarde o moderador revelar os resultados.</p>
   </section>
 
   <!-- ─── Grid de Participantes ────────────────────────────────── -->
@@ -131,10 +142,27 @@
       <span *ngIf="nivelDivergencia === 'divergente'">🔴 Alta divergência!</span>
     </div>
 
+    <!-- Rodada anterior como referência (admin/observador, após nova-rodada) -->
+    <ng-container *ngIf="(isAdmin || isObservador) && estimativasRodadaAnterior.length > 0">
+      <div class="previous-round-section">
+        <h3 class="previous-round-title">Rodada {{ rodadaAtualNum - 1 }} — Referência</h3>
+        <div class="participants-grid previous-round-grid">
+          <div *ngFor="let est of estimativasRodadaAnterior" class="p-card p-card-previous">
+            <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
+            <div class="p-name">{{ est.participante }}</div>
+            <div class="p-vote-row">
+              <span class="p-label">Pontos</span>
+              <span class="p-value vote-revealed">{{ est.pontos }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
     <!-- Admin e Observador: veem o grid sempre (com 🔒 antes de revelar) -->
     <ng-container *ngIf="isAdmin || isObservador; else playerView">
-      <div *ngIf="estimativas.length > 0; else semVotos" class="participants-grid">
-        <div *ngFor="let est of estimativas" class="p-card"
+      <div *ngIf="estimativasRodadaAtual.length > 0; else semVotos" class="participants-grid">
+        <div *ngFor="let est of estimativasRodadaAtual" class="p-card"
              [class.card-otimista]="classificarVoto(est.pontos) === 'otimista'"
              [class.card-pessimista]="classificarVoto(est.pontos) === 'pessimista'">
           <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
@@ -174,13 +202,13 @@
       <!-- Pontos ainda não revelados -->
       <div *ngIf="!tarefa?.pontosRevelados" class="waiting-reveal">
         <div class="waiting-icon">🃏</div>
-        <p>Aguardando o administrador revelar os votos.</p>
-        <span class="voted-count">{{ estimativas.length }} participante(s) votaram</span>
+        <p>Aguardando o moderador revelar os votos.</p>
+        <span class="voted-count">{{ estimativasRodadaAtual.length }} participante(s) votaram</span>
       </div>
 
       <!-- Pontos revelados (e possivelmente horas também) -->
-      <div *ngIf="tarefa?.pontosRevelados && estimativas.length > 0" class="participants-grid">
-        <div *ngFor="let est of estimativas" class="p-card">
+      <div *ngIf="tarefa?.pontosRevelados && estimativasRodadaAtual.length > 0" class="participants-grid">
+        <div *ngFor="let est of estimativasRodadaAtual" class="p-card">
           <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
           <div class="p-name">{{ est.participante }}</div>
 
@@ -215,10 +243,15 @@
       (click)="revelar()">
       👁 Revelar Pontos
     </button>
+    <button *ngIf="nivelDivergencia === 'divergente' && estadoVotacao === 'aguardando_horas'"
+      class="btn-nova-rodada"
+      (click)="novaRodada()">
+      🔄 Nova Rodada
+    </button>
     <button *ngIf="estadoVotacao === 'aguardando_horas'"
       class="btn-liberar-horas"
       (click)="liberarHorasVotacao()">
-      🕐 Liberar Votação de Horas
+      🕐 {{ nivelDivergencia === 'divergente' ? 'Liberar Horas mesmo assim' : 'Liberar Votação de Horas' }}
     </button>
     <button *ngIf="estadoVotacao === 'horas'"
       class="btn-reveal"

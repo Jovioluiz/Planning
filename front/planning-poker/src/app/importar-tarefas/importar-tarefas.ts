@@ -1,4 +1,5 @@
 import * as Papa from 'papaparse';
+import { forkJoin } from 'rxjs';
 import { ChangeDetectorRef, Component, EnvironmentInjector, OnDestroy, OnInit, runInInjectionContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +7,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { TaskService, ITask } from '../services/task.service';
 import { EstimationService } from '../services/estimation.service';
+import { WebSocketService } from '../websocket/websocket.service';
 
 @Component({
   selector: 'app-importar-tarefas',
@@ -31,6 +33,10 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   mensagem = '';
   mensagemTipo: 'sucesso' | 'erro' | '' = '';
   tempoDecorrido = '00:00';
+  formatoExport: 'csv' | 'json' = 'csv';
+  exportando = false;
+  usuariosOnline: string[] = [];
+  temaEscuro = localStorage.getItem('tema') === 'escuro';
 
   private pollInterval: any = null;
   private timerInterval: any = null;
@@ -41,7 +47,8 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     private auth: AuthService,
     private estimationService: EstimationService,
     private cdr: ChangeDetectorRef,
-    private injector: EnvironmentInjector
+    private injector: EnvironmentInjector,
+    private wsService: WebSocketService
   ) {}
 
   get sprintAtual(): string | null {
@@ -57,6 +64,21 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   private readonly FIBONACCI = [1, 2, 3, 5, 8, 13, 21];
 
+  get rodadaAtualNum(): number {
+    if (this.estimativas.length === 0) return 1;
+    return Math.max(...this.estimativas.map((e: any) => e.rodada ?? 1));
+  }
+
+  get estimativasRodadaAtual(): any[] {
+    const rodada = this.rodadaAtualNum;
+    return this.estimativas.filter((e: any) => (e.rodada ?? 1) === rodada);
+  }
+
+  get estimativasRodadaAnterior(): any[] {
+    const rodada = this.rodadaAtualNum;
+    return this.estimativas.filter((e: any) => (e.rodada ?? 1) < rodada);
+  }
+
   private closestFibIndex(value: number): number {
     let closest = 0;
     let minDist = Math.abs(this.FIBONACCI[0] - value);
@@ -68,7 +90,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   }
 
   private calcMedianaPontos(): number | null {
-    const valores: number[] = this.estimativas
+    const valores: number[] = this.estimativasRodadaAtual
       .map((e: any) => e.pontos)
       .filter((p: any) => p !== null && p !== undefined && p > 0)
       .sort((a: number, b: number) => a - b);
@@ -79,7 +101,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   get nivelDivergencia(): 'consenso' | 'proximo' | 'divergente' | null {
     if (!this.tarefaEmVotacao?.pontosRevelados) return null;
-    const valores: number[] = this.estimativas
+    const valores: number[] = this.estimativasRodadaAtual
       .map((e: any) => e.pontos)
       .filter((p: any) => p !== null && p !== undefined && p > 0);
     if (valores.length === 0) return null;
@@ -102,18 +124,20 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   }
 
   get quemNaoVotou(): string[] {
-    const votaram = new Set(this.estimativas.map((e: any) => e.participante));
-    return this.participantesTarefa.filter(p => !votaram.has(p));
+    const votaram = new Set(this.estimativasRodadaAtual.map((e: any) => e.participante));
+    return this.participantesTarefa
+      .filter(p => this.usuariosOnline.includes(p))
+      .filter(p => !votaram.has(p));
   }
 
   get estatisticasPontos(): { media: number; mediana: number; min: number; max: number; spread: number; cafe: number; total: number } | null {
     if (!this.tarefaEmVotacao?.pontosRevelados) return null;
-    const cafe = this.estimativas.filter((e: any) => e.pontos === 0 || e.pontos === null || e.pontos === undefined).length;
-    const valores: number[] = this.estimativas
+    const cafe = this.estimativasRodadaAtual.filter((e: any) => e.pontos === 0 || e.pontos === null || e.pontos === undefined).length;
+    const valores: number[] = this.estimativasRodadaAtual
       .map((e: any) => e.pontos)
       .filter((p: any) => p !== null && p !== undefined && p > 0)
       .sort((a: number, b: number) => a - b);
-    const total = this.estimativas.length;
+    const total = this.estimativasRodadaAtual.length;
     if (valores.length === 0) return { media: 0, mediana: 0, min: 0, max: 0, spread: 0, cafe, total };
     const soma = valores.reduce((a, b) => a + b, 0);
     const media = Math.round((soma / valores.length) * 10) / 10;
@@ -126,7 +150,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   get estatisticasHoras(): { media: number; mediana: number; min: number; max: number } | null {
     if (!this.tarefaEmVotacao?.horasReveladas) return null;
-    const valores: number[] = this.estimativas
+    const valores: number[] = this.estimativasRodadaAtual
       .map((e: any) => e.horas)
       .filter((h: any) => h !== null && h !== undefined && typeof h === 'number' && h > 0)
       .sort((a: number, b: number) => a - b);
@@ -144,13 +168,31 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     this.usuario = this.auth.getUsuario();
     this.carregarListas();
     this.carregarTarefaEmVotacao();
+    this.carregarUsuariosOnline();
+    this.wsService.subscribe('/topic/sessoes', (msg) => {
+      const data = JSON.parse(msg.body);
+      if (data.acao === 'USUARIO_CONECTADO' && !this.usuariosOnline.includes(data.usuario)) {
+        this.usuariosOnline = [...this.usuariosOnline, data.usuario];
+      } else if (data.acao === 'USUARIO_DESCONECTADO') {
+        this.usuariosOnline = this.usuariosOnline.filter(u => u !== data.usuario);
+      }
+      this.cdr.detectChanges();
+    });
     // Polling a cada 5s para atualizar status dos votos em tempo real
     this.pollInterval = setInterval(() => this.atualizarStatusVotacao(), 5000);
   }
 
   ngOnDestroy(): void {
+    this.wsService.unsubscribe('/topic/sessoes');
     if (this.pollInterval) clearInterval(this.pollInterval);
     if (this.timerInterval) clearInterval(this.timerInterval);
+  }
+
+  private carregarUsuariosOnline(): void {
+    this.taskService.getUsuariosOnline().subscribe({
+      next: (res) => { this.usuariosOnline = res; this.cdr.detectChanges(); },
+      error: () => {}
+    });
   }
 
   private iniciarTimer(): void {
@@ -173,10 +215,9 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   private atualizarStatusVotacao(): void {
     if (!this.tarefaEmVotacao) return;
     const id = this.tarefaEmVotacao.id;
-    this.carregarResumoVotos(id);
-    this.verificarLiberacoes(id);
+    // Carrega tudo em paralelo; verificarLiberacoes roda depois que estimativas atualizar
     this.carregarParticipantesTarefa(id);
-    // Atualiza pontosRevelados/horasReveladas da tarefa em votação
+    this.carregarResumoVotos(id, () => this.verificarLiberacoes(id));
     this.taskService.getTaskById(id.toString()).subscribe({
       next: (t) => { this.tarefaEmVotacao = t; this.cdr.detectChanges(); },
       error: () => {}
@@ -185,7 +226,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   carregarParticipantesTarefa(taskId: number): void {
     this.taskService.getParticipantesTarefa(taskId.toString()).subscribe({
-      next: (res) => { this.participantesTarefa = res; this.cdr.detectChanges(); },
+      next: (res) => { this.participantesTarefa = res; this.verificarLiberacoes(taskId); this.cdr.detectChanges(); },
       error: () => {}
     });
   }
@@ -309,8 +350,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
       next: (tarefas) => {
         if (tarefas.length > 0) {
           this.tarefaEmVotacao = tarefas[0];
-          this.carregarResumoVotos(this.tarefaEmVotacao.id);
-          this.verificarLiberacoes(this.tarefaEmVotacao.id);
+          this.carregarResumoVotos(this.tarefaEmVotacao.id, () => this.verificarLiberacoes(this.tarefaEmVotacao!.id));
           this.carregarParticipantesTarefa(this.tarefaEmVotacao.id);
           this.carregarFilaTarefas();
           this.iniciarTimer();
@@ -334,8 +374,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     this.taskService.removerParticipante(this.tarefaEmVotacao.id.toString(), participante).subscribe({
       next: () => {
         this.carregarParticipantesTarefa(this.tarefaEmVotacao!.id);
-        this.carregarResumoVotos(this.tarefaEmVotacao!.id);
-        this.verificarLiberacoes(this.tarefaEmVotacao!.id);
+        this.carregarResumoVotos(this.tarefaEmVotacao!.id, () => this.verificarLiberacoes(this.tarefaEmVotacao!.id));
       },
       error: () => this.exibirMensagem('Erro ao remover participante.', 'erro')
     });
@@ -368,22 +407,36 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     });
   }
 
-  carregarResumoVotos(taskId: number): void {
+  carregarResumoVotos(taskId: number, callback?: () => void): void {
     this.estimationService.getResumoVotos(taskId.toString()).subscribe({
-      next: (res: any[]) => { this.estimativas = res; this.cdr.detectChanges(); },
+      next: (res: any[]) => {
+        this.estimativas = res;
+        this.cdr.detectChanges();
+        callback?.();
+      },
       error: () => {}
     });
   }
 
-  verificarLiberacoes(taskId: number): void {
-    this.estimationService.todosVotaramPontos(taskId.toString()).subscribe(res => {
-      this.podeRevelarPontos = res;
-      this.cdr.detectChanges();
-    });
-    this.estimationService.todosVotaramHoras(taskId.toString()).subscribe(res => {
-      this.podeRevelarHoras = res && !!this.tarefaEmVotacao?.pontosRevelados;
-      this.cdr.detectChanges();
-    });
+  verificarLiberacoes(_taskId: number): void {
+    // quem deve votar = participantes da sprint que estão online agora
+    const deveVotar = this.participantesTarefa.filter(p => this.usuariosOnline.includes(p));
+
+    const votaramPontos = new Set(
+      this.estimativasRodadaAtual.map((e: any) => e.participante)
+    );
+    this.podeRevelarPontos = deveVotar.length > 0 && deveVotar.every(p => votaramPontos.has(p));
+
+    const votaramHoras = new Set(
+      this.estimativasRodadaAtual
+        .filter((e: any) => e.horas !== null && e.horas !== undefined)
+        .map((e: any) => e.participante)
+    );
+    this.podeRevelarHoras = !!this.tarefaEmVotacao?.pontosRevelados
+      && deveVotar.length > 0
+      && deveVotar.every(p => votaramHoras.has(p));
+
+    this.cdr.detectChanges();
   }
 
   liberarHorasVotacao(): void {
@@ -398,8 +451,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     this.estimationService.revelarHoras(this.tarefaEmVotacao!.id.toString()).subscribe({
       next: () => {
         if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
-        this.carregarResumoVotos(this.tarefaEmVotacao!.id);
-        this.verificarLiberacoes(this.tarefaEmVotacao!.id);
+        this.carregarResumoVotos(this.tarefaEmVotacao!.id, () => this.verificarLiberacoes(this.tarefaEmVotacao!.id));
         this.carregarTarefaEmVotacao();
       },
       error: () => this.exibirMensagem('Erro ao revelar horas.', 'erro')
@@ -410,8 +462,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     this.estimationService.revelarPontos(this.tarefaEmVotacao!.id.toString()).subscribe({
       next: () => {
         this.carregarListas();
-        this.carregarResumoVotos(this.tarefaEmVotacao!.id);
-        this.verificarLiberacoes(this.tarefaEmVotacao!.id);
+        this.carregarResumoVotos(this.tarefaEmVotacao!.id, () => this.verificarLiberacoes(this.tarefaEmVotacao!.id));
         this.carregarTarefaEmVotacao(); // atualiza pontosRevelados para habilitar revelar horas
       },
       error: () => this.exibirMensagem('Erro ao revelar pontos.', 'erro')
@@ -452,6 +503,108 @@ export class ImportarTarefas implements OnInit, OnDestroy {
       },
       error: () => this.exibirMensagem('Erro ao pular tarefa.', 'erro')
     });
+  }
+
+  private calcularEstatisticasTarefa(estimativas: any[]): {
+    pontoMediana: number | null; pontoMedia: number | null;
+    horasMedia: number | null; cafeCount: number;
+  } {
+    const maxRodada = estimativas.length > 0 ? Math.max(...estimativas.map(e => e.rodada ?? 1)) : 1;
+    const estFinal = estimativas.filter(e => (e.rodada ?? 1) === maxRodada);
+    const cafeCount = estFinal.filter(e => e.pontos === 0 || e.pontos === null || e.pontos === undefined).length;
+    const pontos = estFinal
+      .map(e => e.pontos)
+      .filter((p): p is number => p !== null && p !== undefined && p > 0)
+      .sort((a, b) => a - b);
+    const horas = estFinal
+      .map(e => e.horas)
+      .filter((h): h is number => h !== null && h !== undefined && typeof h === 'number' && h > 0);
+
+    const pontoMedia = pontos.length
+      ? Math.round(pontos.reduce((a, b) => a + b, 0) / pontos.length * 10) / 10
+      : null;
+    const mid = Math.floor(pontos.length / 2);
+    const pontoMediana = pontos.length
+      ? (pontos.length % 2 !== 0 ? pontos[mid] : Math.round((pontos[mid - 1] + pontos[mid]) / 2 * 10) / 10)
+      : null;
+    const horasMedia = horas.length
+      ? Math.round(horas.reduce((a, b) => a + b, 0) / horas.length * 10) / 10
+      : null;
+
+    return { pontoMediana, pontoMedia, horasMedia, cafeCount };
+  }
+
+  exportarEstimativas(): void {
+    const tarefas = this.tarefasEstimadasDaSprintAtual;
+    if (!tarefas.length) return;
+
+    this.exportando = true;
+    this.cdr.detectChanges();
+
+    forkJoin(tarefas.map(t => this.estimationService.getResumoVotos(t.id.toString()))).subscribe({
+      next: (resultados) => {
+        const linhas = tarefas.map((t, i) => {
+          const s = this.calcularEstatisticasTarefa(resultados[i]);
+          return {
+            numero: t.numero,
+            titulo: t.titulo,
+            descricao: t.descricao ?? '',
+            sprint: t.sprint ?? '',
+            pontos_mediana: s.pontoMediana ?? '',
+            pontos_media: s.pontoMedia ?? '',
+            horas_media: s.horasMedia ?? '',
+            carta_cafe_count: s.cafeCount
+          };
+        });
+
+        const sprint = this.sprintAtual ?? 'sprint';
+        let conteudo: string;
+        let tipo: string;
+        let ext: string;
+
+        if (this.formatoExport === 'json') {
+          conteudo = JSON.stringify(linhas, null, 2);
+          tipo = 'application/json';
+          ext = 'json';
+        } else {
+          conteudo = '﻿' + Papa.unparse(linhas, { delimiter: ';', header: true });
+          tipo = 'text/csv;charset=utf-8;';
+          ext = 'csv';
+        }
+
+        const blob = new Blob([conteudo], { type: tipo });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `estimativas_sprint_${sprint}.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        this.exportando = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.exportando = false;
+        this.exibirMensagem('Erro ao exportar estimativas.', 'erro');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  novaRodada(): void {
+    if (!this.tarefaEmVotacao) return;
+    this.estimationService.novaRodada(this.tarefaEmVotacao.id.toString()).subscribe({
+      next: () => {
+        this.carregarTarefaEmVotacao();
+        this.carregarResumoVotos(this.tarefaEmVotacao!.id, () => this.verificarLiberacoes(this.tarefaEmVotacao!.id));
+      },
+      error: () => this.exibirMensagem('Erro ao iniciar nova rodada.', 'erro')
+    });
+  }
+
+  toggleTema(): void {
+    this.temaEscuro = !this.temaEscuro;
+    localStorage.setItem('tema', this.temaEscuro ? 'escuro' : 'claro');
   }
 
   logout(): void {

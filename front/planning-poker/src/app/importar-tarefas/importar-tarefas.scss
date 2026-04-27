@@ -203,7 +203,20 @@
 
 .card-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.export-format-select {
+  padding: 5px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e293b;
+  background: #fff;
+  cursor: pointer;
+
+  &:disabled { opacity: .6; cursor: not-allowed; }
 }
 
 .card-body { padding: 20px; }
@@ -564,6 +577,40 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── Nova rodada ─────────────────────────────────────────── */
+.previous-round-ref {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+  opacity: .65;
+}
+
+.previous-round-label {
+  color: #94a3b8;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.participant-previous {
+  background: #f1f5f9;
+  opacity: .7;
+  pointer-events: none;
+}
+
+.round-badge {
+  display: inline-block;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 10px;
+  font-size: 11px;
+  padding: 2px 8px;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
 /* ─── Ações finais ────────────────────────────────────────── */
 .final-actions {
   display: flex;
@@ -728,6 +775,76 @@
   &:hover { background: #fef2f2; }
 }
 
+/* ─── Online card (sidebar) ─────────────────────────────────── */
+.online-card {
+  margin-bottom: 16px;
+}
+
+.online-count-badge {
+  background: #22c55e;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.online-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px !important;
+}
+
+.online-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.dot-online {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34,197,94,.25);
+  flex-shrink: 0;
+  animation: pulse-online 2s infinite;
+}
+
+.online-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #0f3460);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.online-name {
+  font-weight: 500;
+  color: #334155;
+}
+
+.online-empty {
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+  margin: 0;
+}
+
+@keyframes pulse-online {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(34,197,94,.25); }
+  50%       { box-shadow: 0 0 0 4px rgba(34,197,94,.1); }
+}
+
 /* ─── Banner divergência (sidebar) ──────────────────────────── */
 .divergencia-banner-side {
   padding: 8px 12px;
@@ -761,6 +878,101 @@
 
 .tag-otimista  { color: #ef4444; }
 .tag-pessimista{ color: #f59e0b; }
+
+/* ─── Botão de tema ──────────────────────────────────────── */
+.btn-tema {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  padding: 4px 10px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background .2s;
+
+  &:hover { background: rgba(255,255,255,.22); }
+}
+
+/* ─── Tema escuro ────────────────────────────────────────── */
+.admin-page.tema-escuro {
+  background: #0f172a;
+  color: #e2e8f0;
+
+  .stats-row .stat-card {
+    background: #1e293b;
+    box-shadow: 0 1px 6px rgba(0,0,0,.3);
+    .stat-value { color: #f1f5f9; }
+    .stat-label { color: #94a3b8; }
+  }
+
+  .card {
+    background: #1e293b;
+    box-shadow: 0 1px 8px rgba(0,0,0,.25);
+  }
+
+  .card-header {
+    border-bottom-color: #334155;
+  }
+
+  .card-title { color: #f1f5f9; }
+
+  .export-format-select {
+    background: #0f172a;
+    border-color: #475569;
+    color: #e2e8f0;
+  }
+
+  .file-label {
+    background: linear-gradient(135deg, #1e40af, #3730a3);
+  }
+
+  .sprint-input {
+    background: #0f172a;
+    border-color: #475569;
+    color: #e2e8f0;
+  }
+
+  .sprint-input-label { color: #94a3b8; }
+
+  .tarefa-row {
+    background: #1e293b;
+    border-color: #334155;
+    &:hover { background: #263548; }
+    .tarefa-num { color: #818cf8; }
+    .tarefa-titulo { color: #e2e8f0; }
+    .tarefa-desc { color: #94a3b8; }
+  }
+
+  .empty-state { color: #64748b; }
+
+  .stat-card.stat-active .stat-value { color: #fbbf24; }
+  .stat-card.stat-done  .stat-value { color: #34d399; }
+
+  .side-banner {
+    &.side-consenso  { background: #052e16; border-color: #166534; color: #86efac; }
+    &.side-proximo   { background: #422006; border-color: #b45309; color: #fde68a; }
+    &.side-divergente{ background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+  }
+
+  .toast {
+    &.toast-sucesso { background: #052e16; border-color: #166534; color: #86efac; }
+    &.toast-erro    { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
+  }
+
+  .estimativa-row {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .stat-box {
+    background: #0f172a;
+    border-color: #334155;
+    .stat-box-label { color: #64748b; }
+    .stat-box-val   { color: #f1f5f9; }
+  }
+}
 
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 900px) {

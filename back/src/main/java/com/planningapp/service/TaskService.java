@@ -80,7 +80,7 @@ public class TaskService {
                 if (sprint != null && !sprint.isBlank()) {
                     // Vincula apenas quem já selecionou essa sprint
                     userSprintRepository.findBySprint(sprint)
-                            .stream().map(UserSprint::getUsername)
+                            .stream().map(us -> us.getUsuario().getUsuario())
                             .forEach(j -> adicionarParticipante(t.getId(), j));
                 } else {
                     // Sem sprint: vincula todos os JOGADORs (compatibilidade)
@@ -109,7 +109,7 @@ public class TaskService {
             String sprint = task.getSprint();
             if (sprint != null && !sprint.isBlank()) {
                 userSprintRepository.findBySprint(sprint)
-                        .stream().map(UserSprint::getUsername)
+                        .stream().map(us -> us.getUsuario().getUsuario())
                         .forEach(u -> adicionarParticipante(id, u));
             } else {
                 userRepository.findByTipoPerfil(TipoPerfil.JOGADOR)
@@ -165,16 +165,20 @@ public class TaskService {
 
     @Transactional
     public void removerParticipanteDaTarefa(Long taskId, String participante) {
-        participantRepository.deleteByTaskIdAndParticipante(taskId, participante);
-        estimationRepository.findByTaskIdAndParticipante(taskId, participante)
-                .ifPresent(estimationRepository::delete);
+        userRepository.findByUsuario(participante).ifPresent(user -> {
+            participantRepository.deleteByTaskIdAndUsuario(taskId, user);
+            estimationRepository.findByTaskIdAndUsuario(taskId, user)
+                    .ifPresent(estimationRepository::delete);
+        });
     }
 
     @Transactional
     public void adicionarParticipante(Long taskId, String participante) {
-        if (!participantRepository.existsByTaskIdAndParticipante(taskId, participante)) {
-            participantRepository.save(new TaskParticipant(taskId, participante));
-        }
+        userRepository.findByUsuario(participante).ifPresent(user -> {
+            if (!participantRepository.existsByTaskIdAndUsuario(taskId, user)) {
+                participantRepository.save(new TaskParticipant(taskId, user));
+            }
+        });
     }
 
     @Transactional
@@ -186,9 +190,11 @@ public class TaskService {
 
     @Transactional
     public void vincularJogadorASprint(String participante, String sprint) {
-        if (!userSprintRepository.existsByUsernameAndSprint(participante, sprint)) {
-            userSprintRepository.save(new UserSprint(participante, sprint));
-        }
+        userRepository.findByUsuario(participante).ifPresent(user -> {
+            if (!userSprintRepository.existsByUsuarioAndSprint(user, sprint)) {
+                userSprintRepository.save(new UserSprint(user, sprint));
+            }
+        });
         taskRepository.findByEstimadaFalseAndSprint(sprint)
                 .forEach(t -> adicionarParticipante(t.getId(), participante));
     }
@@ -200,7 +206,7 @@ public class TaskService {
     public List<String> getParticipantes(Long taskId) {
         return participantRepository.findByTaskId(taskId)
                 .stream()
-                .map(TaskParticipant::getParticipante)
+                .map(tp -> tp.getUsuario().getUsuario())
                 .toList();
     }
 }

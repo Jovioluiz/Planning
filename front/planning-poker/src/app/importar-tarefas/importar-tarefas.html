@@ -1,16 +1,19 @@
-<div class="admin-page">
+<div class="admin-page" [class.tema-escuro]="temaEscuro">
 
   <!-- ─── Header ─────────────────────────────────────────── -->
   <header class="admin-header">
     <div class="header-brand">
       <span class="brand-icon">🦶</span>
       <span class="brand-name">Chutômetro</span>
-      <span class="brand-role">Admin</span>
+      <span class="brand-role">Moderador</span>
     </div>
     <div class="header-user">
+      <button class="btn-tema" (click)="toggleTema()" [title]="temaEscuro ? 'Mudar para claro' : 'Mudar para escuro'">
+        {{ temaEscuro ? '☀️' : '🌙' }}
+      </button>
       <span class="user-avatar">{{ (usuario || 'A')[0].toUpperCase() }}</span>
       <span class="user-name">{{ usuario }}</span>
-<button class="btn-logout" (click)="logout()">Sair</button>
+      <button class="btn-logout" (click)="logout()">Sair</button>
     </div>
   </header>
 
@@ -137,7 +140,17 @@
             Tarefas Estimadas
             <span *ngIf="sprintAtual" class="badge-sprint">Sprint {{ sprintAtual }}</span>
           </h2>
-          <span class="badge badge-done">{{ tarefasEstimadasDaSprintAtual.length }} concluídas</span>
+          <div class="card-actions">
+            <span class="badge badge-done">{{ tarefasEstimadasDaSprintAtual.length }} concluídas</span>
+            <select class="export-format-select" [(ngModel)]="formatoExport" [disabled]="exportando">
+              <option value="csv">CSV</option>
+              <option value="json">JSON</option>
+            </select>
+            <button class="btn btn-success" [disabled]="exportando" (click)="exportarEstimativas()">
+              <span *ngIf="!exportando">⬇ Exportar</span>
+              <span *ngIf="exportando" class="importing-row"><span class="spinner-sm"></span> Exportando...</span>
+            </button>
+          </div>
         </div>
         <div class="card-body">
           <table class="data-table">
@@ -163,6 +176,23 @@
 
     <!-- Painel lateral -->
     <aside class="side-col">
+
+      <!-- Online agora -->
+      <div class="card online-card">
+        <div class="card-header">
+          <h2 class="card-title">Online agora</h2>
+          <span class="badge online-count-badge">{{ usuariosOnline.length }}</span>
+        </div>
+        <div class="card-body online-list">
+          <div *ngFor="let u of usuariosOnline" class="online-item">
+            <span class="dot-online"></span>
+            <span class="online-avatar">{{ u[0].toUpperCase() }}</span>
+            <span class="online-name">{{ u }}</span>
+          </div>
+          <p *ngIf="usuariosOnline.length === 0" class="online-empty">Nenhum usuário conectado</p>
+        </div>
+      </div>
+
       <div class="card side-card">
         <div class="card-header">
           <h2 class="card-title">Votação Ativa</h2>
@@ -187,12 +217,22 @@
                 (click)="revelarPontos()">
                 {{ tarefaEmVotacao.pontosRevelados ? '✓ Pontos Revelados' : '👁 Revelar Pontos' }}
               </button>
-              <button *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas"
+              <button *ngIf="nivelDivergencia === 'divergente' && tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas"
+                class="btn btn-danger btn-full"
+                (click)="novaRodada()">
+                🔄 Nova Rodada
+              </button>
+              <button *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas && nivelDivergencia !== 'divergente'"
                 class="btn btn-warning btn-full"
                 (click)="liberarHorasVotacao()">
                 🕐 Liberar Votação de Horas
               </button>
-              <button class="btn btn-secondary btn-full"
+              <button *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas && nivelDivergencia === 'divergente'"
+                class="btn btn-warning btn-full"
+                (click)="liberarHorasVotacao()">
+                🕐 Liberar Horas mesmo assim
+              </button>
+              <button class="btn btn-primary btn-full"
                 [disabled]="!podeRevelarHoras || tarefaEmVotacao.horasReveladas || !tarefaEmVotacao.horasLiberadas"
                 (click)="revelarHoras()">
                 {{ tarefaEmVotacao.horasReveladas ? '✓ Horas Reveladas' : '⏱ Revelar Horas' }}
@@ -296,10 +336,25 @@
               <span *ngIf="nivelDivergencia === 'divergente'">🔴 Alta divergência!</span>
             </div>
 
-            <!-- Participantes que já votaram -->
-            <div class="participants" *ngIf="estimativas.length > 0">
-              <h4 class="participants-title">Votaram</h4>
-              <div class="participant-row" *ngFor="let est of estimativas"
+            <!-- Rodada anterior como referência (visível após nova-rodada) -->
+            <div class="participants previous-round-ref" *ngIf="estimativasRodadaAnterior.length > 0">
+              <h4 class="participants-title previous-round-label">
+                Rodada {{ rodadaAtualNum - 1 }} — Referência
+              </h4>
+              <div class="participant-row participant-previous" *ngFor="let est of estimativasRodadaAnterior">
+                <span class="participant-name">{{ est.participante }}</span>
+                <span class="participant-vote">{{ est.pontos }}</span>
+                <span class="participant-hours">—</span>
+              </div>
+            </div>
+
+            <!-- Participantes que já votaram (rodada atual) -->
+            <div class="participants" *ngIf="estimativasRodadaAtual.length > 0">
+              <h4 class="participants-title">
+                Votaram
+                <span *ngIf="rodadaAtualNum > 1" class="round-badge">Rodada {{ rodadaAtualNum }}</span>
+              </h4>
+              <div class="participant-row" *ngFor="let est of estimativasRodadaAtual"
                    [class.row-otimista]="classificarVoto(est.pontos) === 'otimista'"
                    [class.row-pessimista]="classificarVoto(est.pontos) === 'pessimista'">
                 <span class="participant-name">
