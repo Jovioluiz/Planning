@@ -346,8 +346,9 @@
   td { padding: 11px 12px; color: #334155; }
 }
 
-.col-check { width: 40px; text-align: center !important; }
-.col-sprint { width: 90px; white-space: nowrap; }
+.col-check     { width: 40px; text-align: center !important; }
+.col-sprint    { width: 90px; white-space: nowrap; }
+.col-horas-est { width: 100px; text-align: right !important; white-space: nowrap; }
 
 .row-selected { background: #eff6ff !important; }
 
@@ -368,6 +369,58 @@
   text-align: center;
 
   &.warn { color: #f59e0b; }
+}
+
+.td-horas-est {
+  text-align: right;
+  font-weight: 700;
+  color: #059669;
+  font-variant-numeric: tabular-nums;
+}
+
+.td-sem-horas {
+  color: #cbd5e1;
+  font-weight: 400;
+}
+
+/* ─── Totalizador de horas ──────────────────────────────── */
+.totalizador-horas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+}
+
+.totalizador-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.totalizador-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #065f46;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.totalizador-detalhe {
+  font-size: 11px;
+  color: #6ee7b7;
+  font-weight: 500;
+}
+
+.totalizador-valor {
+  font-size: 26px;
+  font-weight: 800;
+  color: #059669;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 /* ─── Badge ──────────────────────────────────────────────── */
@@ -480,9 +533,10 @@
   &:last-child { border-bottom: none; }
 }
 
-.participant-name { flex: 1; color: #334155; font-weight: 500; }
+.participant-name  { flex: 1; color: #334155; font-weight: 500; }
 .participant-vote  { width: 48px; text-align: center; color: #0f3460; font-weight: 700; }
 .participant-hours { width: 48px; text-align: center; color: #059669; font-weight: 700; }
+.participant-tempo { width: 52px; text-align: center; color: #94a3b8; font-size: 11px; font-variant-numeric: tabular-nums; }
 
 .participants-legend {
   display: flex;
@@ -899,78 +953,186 @@
   background: #0f172a;
   color: #e2e8f0;
 
+  /* Stats */
   .stats-row .stat-card {
     background: #1e293b;
     box-shadow: 0 1px 6px rgba(0,0,0,.3);
     .stat-value { color: #f1f5f9; }
     .stat-label { color: #94a3b8; }
   }
+  .stat-card.stat-active .stat-value { color: #fbbf24; }
+  .stat-card.stat-done  .stat-value { color: #34d399; }
 
+  /* Cards */
   .card {
     background: #1e293b;
     box-shadow: 0 1px 8px rgba(0,0,0,.25);
   }
+  .card-header { border-bottom-color: #334155; }
+  .card-title  { color: #f1f5f9; }
 
-  .card-header {
-    border-bottom-color: #334155;
-  }
-
-  .card-title { color: #f1f5f9; }
-
+  /* Controles de cabeçalho de card */
   .export-format-select {
     background: #0f172a;
     border-color: #475569;
     color: #e2e8f0;
   }
 
-  .file-label {
-    background: linear-gradient(135deg, #1e40af, #3730a3);
-  }
-
+  /* Import */
+  .file-label { background: linear-gradient(135deg, #1e40af, #3730a3); }
+  .file-hint  { color: #64748b; code { background: #0f172a; color: #94a3b8; border: 1px solid #334155; } }
+  .sprint-input-label { color: #94a3b8; }
   .sprint-input {
     background: #0f172a;
     border-color: #475569;
     color: #e2e8f0;
+    &::placeholder { color: #475569; }
   }
 
-  .sprint-input-label { color: #94a3b8; }
+  /* Tabela */
+  .data-table {
+    thead tr { background: #162032; border-bottom-color: #334155; }
+    th        { color: #64748b; }
+    tbody tr  {
+      border-bottom-color: #1e293b;
+      &:hover { background: #243044; }
+    }
+    td        { color: #cbd5e1; }
+  }
+  .td-title     { color: #e2e8f0 !important; }
+  .td-desc      { color: #64748b  !important; }
+  .td-horas-est { color: #34d399 !important; }
+  .td-sem-horas { color: #334155 !important; }
+  .row-selected { background: #1e3a5f !important; }
+  .select-hint  { color: #64748b; &.warn { color: #f59e0b; } }
+  .badge-num {
+    background: #1e3a5f;
+    color: #93c5fd;
+    border-color: #1e40af;
+  }
+  .badge-sprint {
+    background: #1e1b4b;
+    color: #a5b4fc;
+    border-color: #3730a3;
+  }
 
-  .tarefa-row {
-    background: #1e293b;
+  /* Totalizador */
+  .totalizador-horas {
+    background: linear-gradient(135deg, #052e16, #0c2218);
+    border-color: #166534;
+  }
+  .totalizador-label  { color: #6ee7b7; }
+  .totalizador-detalhe{ color: #4ade80; }
+  .totalizador-valor  { color: #34d399; }
+
+  /* Botões */
+  .btn-secondary { background: #334155; color: #e2e8f0; }
+  .btn-ghost     { background: transparent; color: #94a3b8; border-color: #334155; &:hover { background: #1e293b; color: #e2e8f0; } }
+  .btn-danger    { background: #450a0a; color: #fca5a5; border-color: #7f1d1d; }
+
+  /* Tarefa em votação */
+  .voting-task {
+    background: #162032;
     border-color: #334155;
-    &:hover { background: #263548; }
-    .tarefa-num { color: #818cf8; }
-    .tarefa-titulo { color: #e2e8f0; }
-    .tarefa-desc { color: #94a3b8; }
+  }
+  .voting-title { color: #f1f5f9; }
+  .voting-desc  { color: #94a3b8; }
+  .waiting-hint { color: #475569; }
+
+  /* Participantes */
+  .participants-title  { color: #64748b; }
+  .participant-row     { border-bottom-color: #334155; }
+  .participant-name    { color: #cbd5e1; }
+  .participant-vote    { color: #93c5fd; }
+  .participant-hours   { color: #6ee7b7; }
+  .participant-tempo   { color: #475569; }
+  .participants-legend span { color: #475569; }
+  .btn-remove-participant {
+    border-color: #7f1d1d;
+    color: #fca5a5;
+    &:hover { background: #450a0a; }
+  }
+  .btn-skip-participant {
+    border-color: #7f1d1d;
+    color: #fca5a5;
+    &:hover { background: #450a0a; }
   }
 
-  .empty-state { color: #64748b; }
+  /* Pending voters */
+  .pending-voters  { border-top-color: #334155; }
+  .pending-name    { color: #94a3b8; border-bottom-color: #1e293b; }
 
-  .stat-card.stat-active .stat-value { color: #fbbf24; }
-  .stat-card.stat-done  .stat-value { color: #34d399; }
+  /* Estatísticas */
+  .stats-block {
+    background: linear-gradient(135deg, #1e3a5f, #162032);
+    border-color: #1e40af;
+    &.stats-block-horas {
+      background: linear-gradient(135deg, #052e16, #0c2218);
+      border-color: #166534;
+    }
+  }
+  .stats-block-title { color: #93c5fd; .stats-block-horas & { color: #6ee7b7; } }
+  .stats-cell        { background: rgba(0,0,0,.25); }
+  .stats-cell-label  { color: #475569; }
+  .stats-cell-value  { color: #93c5fd; .stats-block-horas & { color: #6ee7b7; } }
 
-  .side-banner {
+  /* Rodada anterior */
+  .previous-round-ref   { border-top-color: #334155; }
+  .previous-round-label { color: #475569; }
+  .participant-previous { background: #162032; }
+  .round-badge          { background: #1e3a5f; color: #93c5fd; }
+
+  /* Ações finais */
+  .final-actions  { border-top-color: #334155; }
+  .skip-action    { border-top-color: #334155; }
+
+  /* Banners divergência */
+  .divergencia-banner-side {
     &.side-consenso  { background: #052e16; border-color: #166534; color: #86efac; }
     &.side-proximo   { background: #422006; border-color: #b45309; color: #fde68a; }
     &.side-divergente{ background: #450a0a; border-color: #991b1b; color: #fca5a5; }
   }
 
+  /* Toast */
   .toast {
     &.toast-sucesso { background: #052e16; border-color: #166534; color: #86efac; }
     &.toast-erro    { background: #450a0a; border-color: #991b1b; color: #fca5a5; }
   }
 
+  /* Online sidebar */
+  .online-item { color: #cbd5e1; }
+  .online-name { color: #e2e8f0; }
+  .online-empty { color: #475569; }
+
+  /* Empty state */
+  .empty-state { color: #475569; }
+
+  /* Linhas legadas */
+  .tarefa-row {
+    background: #1e293b;
+    border-color: #334155;
+    &:hover { background: #243044; }
+    .tarefa-num    { color: #818cf8; }
+    .tarefa-titulo { color: #e2e8f0; }
+    .tarefa-desc   { color: #94a3b8; }
+  }
   .estimativa-row {
     background: #0f172a;
     border-color: #334155;
     color: #e2e8f0;
   }
-
   .stat-box {
     background: #0f172a;
     border-color: #334155;
     .stat-box-label { color: #64748b; }
     .stat-box-val   { color: #f1f5f9; }
+  }
+
+  /* Side banners (alias alternativo) */
+  .side-banner {
+    &.side-consenso  { background: #052e16; border-color: #166534; color: #86efac; }
+    &.side-proximo   { background: #422006; border-color: #b45309; color: #fde68a; }
+    &.side-divergente{ background: #450a0a; border-color: #991b1b; color: #fca5a5; }
   }
 }
 

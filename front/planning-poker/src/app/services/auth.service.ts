@@ -92,6 +92,10 @@ export class AuthService {
     return this.getPerfil() === 'OBSERVADOR';
   }
 
+  isSuper(): boolean {
+    return this.getPerfil() === 'SUPER';
+  }
+
   isLogado(): boolean {
     return !!this.getUsuario() && !!this.getToken();
   }

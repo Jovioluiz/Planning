@@ -24,6 +24,8 @@ public class Task {
     private boolean horasLiberadas = false;
     private String sprint;
     private Instant liberadaEm;
+    private Instant horasLiberadasEm;
+    private Instant estimadaEm;
     private Integer rodadaAtual = 1;
 
     public Long getId() { return id; }
@@ -64,6 +66,12 @@ public class Task {
 
     public Instant getLiberadaEm() { return liberadaEm; }
     public void setLiberadaEm(Instant liberadaEm) { this.liberadaEm = liberadaEm; }
+
+    public Instant getHorasLiberadasEm() { return horasLiberadasEm; }
+    public void setHorasLiberadasEm(Instant horasLiberadasEm) { this.horasLiberadasEm = horasLiberadasEm; }
+
+    public Instant getEstimadaEm() { return estimadaEm; }
+    public void setEstimadaEm(Instant estimadaEm) { this.estimadaEm = estimadaEm; }
 
     public Integer getRodadaAtual() { return rodadaAtual != null ? rodadaAtual : 1; }
     public void setRodadaAtual(Integer rodadaAtual) { this.rodadaAtual = rodadaAtual; }

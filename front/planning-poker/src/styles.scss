@@ -1,1 +1,45 @@
 /* You can add global styles to this file, and also import other style files */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+.app-footer {
+  background: #0a0f1e;
+  border-top: 1px solid #1e293b;
+  padding: 12px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 12px;
+  color: #475569;
+}
+
+.footer-dev {
+  strong { color: #64748b; font-weight: 600; }
+}
+
+.footer-sep {
+  color: #334155;
+}
+
+.footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #64748b;
+  text-decoration: none;
+  transition: color .2s;
+
+  &:hover { color: #94a3b8; }
+}
+
+.footer-gh-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}

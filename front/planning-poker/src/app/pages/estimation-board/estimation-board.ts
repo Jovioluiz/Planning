@@ -30,6 +30,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   horaSelecionada: number = 0;
   todosVotaram = false;
   votando = false;
+  foiSkipado = false;
   sessionEnded: 'finalizada' | 'pulada' | null = null;
   tempoDecorrido = '00:00';
   usuariosOnline: string[] = [];
@@ -95,6 +96,11 @@ export class EstimationBoard implements OnInit, OnDestroy {
           this.atualizarEstimativas();
           this.carregarTarefa();
         } else if (data.acao === 'PARTICIPANTE_REMOVIDO') {
+          if (!this.isAdmin && !this.isObservador && data.participante === this.participante) {
+            this.foiSkipado = true;
+            this.votando = false;
+            this.cdr.detectChanges();
+          }
           this.atualizarEstimativas();
           if (this.isAdmin) this.checkTodosVotaram();
         } else if (data.acao === 'NOVA_RODADA') {
@@ -102,6 +108,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
           this.horaSelecionada = 0;
           this.estadoVotacao = 'pontos';
           this.todosVotaram = false;
+          this.foiSkipado = false;
           this.cdr.detectChanges();
           // Carrega tarefa primeiro (rodadaAtual atualizado) e só então estimativas,
           // evitando que atualizarEstimativas ache o voto da rodada anterior e reverta o estado

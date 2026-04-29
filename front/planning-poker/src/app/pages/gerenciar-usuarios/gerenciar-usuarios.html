@@ -1,0 +1,91 @@
+<div class="su-page">
+
+  <!-- Header -->
+  <header class="su-header">
+    <div class="su-brand">
+      <span class="su-brand-icon">🛡️</span>
+      <span class="su-brand-title">Gerenciar Usuários</span>
+    </div>
+    <div class="su-user">
+      <span class="su-badge">Super Usuário</span>
+      <span class="su-username">{{ superUsuario }}</span>
+      <button class="btn-logout" (click)="logout()">Sair</button>
+    </div>
+  </header>
+
+  <!-- Corpo -->
+  <main class="su-main">
+
+    <p *ngIf="erro" class="su-erro">{{ erro }}</p>
+
+    <div *ngIf="carregando" class="su-loading">Carregando usuários...</div>
+
+    <ng-container *ngIf="!carregando">
+
+      <!-- Grupo: Moderadores -->
+      <section class="su-group" *ngIf="porPerfil['ADMIN'].length > 0">
+        <h2 class="su-group-title">
+          <span class="su-group-dot dot-admin"></span> Moderadores
+        </h2>
+        <div class="su-list">
+          <div *ngFor="let u of porPerfil['ADMIN']" class="su-item">
+            <span class="su-item-avatar">{{ u.usuario[0].toUpperCase() }}</span>
+            <span class="su-item-name">{{ u.usuario }}</span>
+            <span class="su-item-role role-admin">Moderador</span>
+            <button class="btn-excluir" (click)="confirmarExclusao(u.usuario)">Excluir</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Grupo: Players -->
+      <section class="su-group" *ngIf="porPerfil['JOGADOR'].length > 0">
+        <h2 class="su-group-title">
+          <span class="su-group-dot dot-jogador"></span> Players
+        </h2>
+        <div class="su-list">
+          <div *ngFor="let u of porPerfil['JOGADOR']" class="su-item">
+            <span class="su-item-avatar avatar-jogador">{{ u.usuario[0].toUpperCase() }}</span>
+            <span class="su-item-name">{{ u.usuario }}</span>
+            <span class="su-item-role role-jogador">Player</span>
+            <button class="btn-excluir" (click)="confirmarExclusao(u.usuario)">Excluir</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Grupo: Observadores -->
+      <section class="su-group" *ngIf="porPerfil['OBSERVADOR'].length > 0">
+        <h2 class="su-group-title">
+          <span class="su-group-dot dot-obs"></span> Observadores
+        </h2>
+        <div class="su-list">
+          <div *ngFor="let u of porPerfil['OBSERVADOR']" class="su-item">
+            <span class="su-item-avatar avatar-obs">{{ u.usuario[0].toUpperCase() }}</span>
+            <span class="su-item-name">{{ u.usuario }}</span>
+            <span class="su-item-role role-obs">Observador</span>
+            <button class="btn-excluir" (click)="confirmarExclusao(u.usuario)">Excluir</button>
+          </div>
+        </div>
+      </section>
+
+      <p *ngIf="usuarios.length === 0" class="su-vazio">Nenhum usuário cadastrado.</p>
+
+    </ng-container>
+
+  </main>
+
+  <!-- Modal de confirmação -->
+  <div *ngIf="confirmando" class="su-overlay">
+    <div class="su-confirm-card">
+      <div class="su-confirm-icon">⚠️</div>
+      <h3>Excluir usuário?</h3>
+      <p>O usuário <strong>{{ confirmando }}</strong> será removido permanentemente.</p>
+      <div class="su-confirm-actions">
+        <button class="btn-cancelar" (click)="cancelar()" [disabled]="excluindo">Cancelar</button>
+        <button class="btn-confirmar" (click)="excluir(confirmando!)" [disabled]="excluindo">
+          {{ excluindo ? 'Excluindo...' : 'Confirmar exclusão' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

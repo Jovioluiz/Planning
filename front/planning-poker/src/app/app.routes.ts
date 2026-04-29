@@ -3,10 +3,16 @@ import { Login } from './pages/login/login';
 import { ImportarTarefas } from './importar-tarefas/importar-tarefas';
 import { Aguardando } from './pages/aguardando/aguardando';
 import { SelecionarSprint } from './pages/selecionar-sprint/selecionar-sprint';
+import { GerenciarUsuarios } from './pages/gerenciar-usuarios/gerenciar-usuarios';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
+  {
+    path: 'usuarios',
+    component: GerenciarUsuarios,
+    canActivate: [authGuard]
+  },
   {
     path: 'importar',
     component: ImportarTarefas,

@@ -132,6 +132,7 @@ public class TaskService {
         return taskRepository.findById(id).map(task -> {
             task.setEstimada(true);
             task.setLiberada(false);
+            task.setEstimadaEm(Instant.now());
             taskRepository.save(task);
             return true;
         }).orElse(false);
@@ -141,6 +142,7 @@ public class TaskService {
     public boolean liberarHorasVotacao(Long id) {
         return taskRepository.findById(id).map(task -> {
             task.setHorasLiberadas(true);
+            task.setHorasLiberadasEm(Instant.now());
             taskRepository.save(task);
             return true;
         }).orElse(false);

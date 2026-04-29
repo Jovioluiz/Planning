@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,9 +31,11 @@ public class EstimationController {
     @Autowired private TaskService taskService;
     @Autowired private EstimationNotificationService notificationService;
     @Autowired private UserRepository userRepository;
+    @Autowired private com.planningapp.repository.TaskParticipantRepository participantRepository;
 
     @GetMapping("/listar")
     public List<EstimativaResponseDTO> listarEstimativas(@PathVariable Long taskId) {
+        Task task = taskService.findById(taskId).orElse(null);
         return estimationService.findByTaskId(taskId).stream()
                 .map(est -> {
                     Object pontos = est.isRevealed()
@@ -41,9 +45,22 @@ public class EstimationController {
                     Object horas = horasRev
                             ? est.getHoras()
                             : (est.getHoras() != null ? "🔒" : null);
-                    return new EstimativaResponseDTO(est.getUsuario().getUsuario(), pontos, horas, est.isRevealed(), horasRev, est.getRodada());
+                    Long segundosPontos = segundosEntre(
+                            task != null ? task.getLiberadaEm() : null,
+                            est.getVotadoEmPontos());
+                    Long segundosHoras = segundosEntre(
+                            task != null ? task.getHorasLiberadasEm() : null,
+                            est.getVotadoEmHoras());
+                    return new EstimativaResponseDTO(est.getUsuario().getUsuario(), pontos, horas,
+                            est.isRevealed(), horasRev, est.getRodada(), segundosPontos, segundosHoras);
                 })
                 .collect(Collectors.toList());
+    }
+
+    private Long segundosEntre(Instant inicio, Instant fim) {
+        if (inicio == null || fim == null) return null;
+        long s = Duration.between(inicio, fim).getSeconds();
+        return s >= 0 ? s : null;
     }
 
     @GetMapping("/resumo-votos")
@@ -71,6 +88,11 @@ public class EstimationController {
                     .body(Map.of("success", false, "message", "Usuário não encontrado"));
         }
 
+        if (!participantRepository.existsByTaskIdAndUsuario(taskId, userOpt.get())) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("success", false, "message", "Você foi removido desta votação"));
+        }
+
         int rodadaAtual = task.getRodadaAtual();
 
         Optional<Estimation> existente =
@@ -87,6 +109,7 @@ public class EstimationController {
         estimativa.setPontos(dto.getPontos());
         estimativa.setRevealed(false);
         estimativa.setRodada(rodadaAtual);
+        estimativa.setVotadoEmPontos(Instant.now());
         estimationService.save(estimativa);
 
         return ResponseEntity.ok(Map.of("success", true, "message", "Voto registrado"));
@@ -100,18 +123,41 @@ public class EstimationController {
                     .body(Map.of("success", false, "message", "Tarefa não encontrada"));
         }
 
-        int rodadaAtual = tarefaOpt.get().getRodadaAtual();
+        Task task = tarefaOpt.get();
+        int rodadaAtual = task.getRodadaAtual();
 
         Optional<Estimation> estOpt =
                 estimationService.findByTaskIdAndParticipanteAndRodada(taskId, dto.getParticipante(), rodadaAtual);
 
+        Estimation est;
         if (estOpt.isEmpty()) {
-            return ResponseEntity.status(404)
-                    .body(Map.of("success", false, "message", "Estimativa de pontos não encontrada — vote nos pontos primeiro"));
+            // Player entrou durante a fase de horas: cria estimativa com pontos = 0 (xícara de café)
+            if (!task.isHorasLiberadas()) {
+                return ResponseEntity.status(400)
+                        .body(Map.of("success", false, "message", "Vote nos pontos antes de votar horas"));
+            }
+            var userOpt = userRepository.findByUsuario(dto.getParticipante());
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(404)
+                        .body(Map.of("success", false, "message", "Usuário não encontrado"));
+            }
+            if (!participantRepository.existsByTaskIdAndUsuario(taskId, userOpt.get())) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("success", false, "message", "Você foi removido desta votação"));
+            }
+            est = new Estimation();
+            est.setTarefa(task);
+            est.setUsuario(userOpt.get());
+            est.setPontos(0);      // xícara de café
+            est.setRevealed(true); // pontos já foram revelados para os demais
+            est.setRodada(rodadaAtual);
+            est.setVotadoEmPontos(Instant.now()); // registra também como tempo de pontos
+        } else {
+            est = estOpt.get();
         }
 
-        Estimation est = estOpt.get();
         est.setHoras(dto.getHoras());
+        est.setVotadoEmHoras(Instant.now());
         estimationService.save(est);
 
         return ResponseEntity.ok(Map.of("success", true, "message", "Horas registradas"));

@@ -26,9 +26,9 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        criarSeNaoExistir("admin",    "admin123",  TipoPerfil.ADMIN);
-        criarSeNaoExistir("jogador1", "jogador123", TipoPerfil.JOGADOR);
-        criarSeNaoExistir("obs1",     "obs123",     TipoPerfil.OBSERVADOR);
+        // criarSeNaoExistir("admin",    "admin123",  TipoPerfil.ADMIN);
+        // criarSeNaoExistir("jogador1", "jogador123", TipoPerfil.JOGADOR);
+        // criarSeNaoExistir("obs1",     "obs123",     TipoPerfil.OBSERVADOR);
     }
 
     private void criarSeNaoExistir(String usuario, String senha, TipoPerfil perfil) {

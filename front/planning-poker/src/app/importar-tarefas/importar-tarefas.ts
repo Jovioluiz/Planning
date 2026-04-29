@@ -37,6 +37,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   exportando = false;
   usuariosOnline: string[] = [];
   temaEscuro = localStorage.getItem('tema') === 'escuro';
+  horasFinaisPorTarefa = new Map<number, number>();
 
   private pollInterval: any = null;
   private timerInterval: any = null;
@@ -60,6 +61,17 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   get tarefasEstimadasDaSprintAtual(): any[] {
     if (!this.sprintAtual) return this.tarefasEstimadas;
     return this.tarefasEstimadas.filter(t => t.sprint === this.sprintAtual);
+  }
+
+  get totalHorasEstimadas(): number {
+    const total = this.tarefasEstimadasDaSprintAtual
+      .reduce((sum, t) => sum + (this.horasFinaisPorTarefa.get(t.id) ?? 0), 0);
+    return Math.round(total * 10) / 10;
+  }
+
+  get tarefasComHorasCount(): number {
+    return this.tarefasEstimadasDaSprintAtual
+      .filter(t => (this.horasFinaisPorTarefa.get(t.id) ?? 0) > 0).length;
   }
 
   private readonly FIBONACCI = [1, 2, 3, 5, 8, 13, 21];
@@ -337,10 +349,29 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   carregarListas(): void {
     this.taskService.getTarefasFila().subscribe({
       next: (res) => { this.tarefasFila = res; this.cdr.detectChanges(); },
-      error: () => {} // erros de fundo não exibem mensagem na abertura da tela
+      error: () => {}
     });
     this.taskService.getTarefasVotadas().subscribe({
-      next: (res) => { this.tarefasEstimadas = res; this.cdr.detectChanges(); },
+      next: (res) => {
+        this.tarefasEstimadas = res;
+        this.carregarHorasEstimadas();
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  private carregarHorasEstimadas(): void {
+    const semCache = this.tarefasEstimadas.filter(t => !this.horasFinaisPorTarefa.has(t.id));
+    if (!semCache.length) return;
+    forkJoin(semCache.map(t => this.estimationService.getResumoVotos(t.id.toString()))).subscribe({
+      next: (resultados) => {
+        semCache.forEach((t, i) => {
+          const s = this.calcularEstatisticasTarefa(resultados[i]);
+          this.horasFinaisPorTarefa.set(t.id, s.horasMedia ?? 0);
+        });
+        this.cdr.detectChanges();
+      },
       error: () => {}
     });
   }
@@ -471,6 +502,8 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   finalizarVotacao(): void {
     if (!this.tarefaEmVotacao) return;
+    const s = this.calcularEstatisticasTarefa(this.estimativas);
+    this.horasFinaisPorTarefa.set(this.tarefaEmVotacao.id, s.horasMedia ?? 0);
     this.taskService.finalizarTarefa(this.tarefaEmVotacao.id.toString()).subscribe({
       next: () => {
         this.tarefaEmVotacao = null;
@@ -545,6 +578,9 @@ export class ImportarTarefas implements OnInit, OnDestroy {
       next: (resultados) => {
         const linhas = tarefas.map((t, i) => {
           const s = this.calcularEstatisticasTarefa(resultados[i]);
+          const tempoTotalSeg = (t as any).estimadaEm && (t as any).liberadaEm
+            ? Math.floor((new Date((t as any).estimadaEm).getTime() - new Date((t as any).liberadaEm).getTime()) / 1000)
+            : null;
           return {
             numero: t.numero,
             titulo: t.titulo,
@@ -553,7 +589,8 @@ export class ImportarTarefas implements OnInit, OnDestroy {
             pontos_mediana: s.pontoMediana ?? '',
             pontos_media: s.pontoMedia ?? '',
             horas_media: s.horasMedia ?? '',
-            carta_cafe_count: s.cafeCount
+            carta_cafe_count: s.cafeCount,
+            tempo_total_estimacao: tempoTotalSeg != null ? this.formatarTempo(tempoTotalSeg) : ''
           };
         });
 
@@ -600,6 +637,13 @@ export class ImportarTarefas implements OnInit, OnDestroy {
       },
       error: () => this.exibirMensagem('Erro ao iniciar nova rodada.', 'erro')
     });
+  }
+
+  formatarTempo(segundos: number | null | undefined): string {
+    if (segundos == null || segundos < 0) return '—';
+    const m = Math.floor(segundos / 60).toString().padStart(2, '0');
+    const s = (segundos % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
   }
 
   toggleTema(): void {

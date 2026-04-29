@@ -159,6 +159,7 @@
                 <th>Número</th>
                 <th>Título</th>
                 <th>Descrição</th>
+                <th class="col-horas-est">Horas (média)</th>
               </tr>
             </thead>
             <tbody>
@@ -166,9 +167,24 @@
                 <td><span class="badge-num">#{{ tarefa.numero }}</span></td>
                 <td>{{ tarefa.titulo }}</td>
                 <td class="td-desc">{{ tarefa.descricao }}</td>
+                <td class="col-horas-est td-horas-est">
+                  <span *ngIf="(horasFinaisPorTarefa.get(tarefa.id) ?? 0) > 0">
+                    {{ horasFinaisPorTarefa.get(tarefa.id) }}h
+                  </span>
+                  <span *ngIf="(horasFinaisPorTarefa.get(tarefa.id) ?? 0) === 0" class="td-sem-horas">—</span>
+                </td>
               </tr>
             </tbody>
           </table>
+
+          <!-- Totalizador de horas -->
+          <div class="totalizador-horas">
+            <div class="totalizador-info">
+              <span class="totalizador-label">Total de horas estimadas</span>
+              <span class="totalizador-detalhe">{{ tarefasComHorasCount }}/{{ tarefasEstimadasDaSprintAtual.length }} tarefas com horas</span>
+            </div>
+            <span class="totalizador-valor">{{ totalHorasEstimadas }}h</span>
+          </div>
         </div>
       </div>
 
@@ -364,12 +380,16 @@
                 </span>
                 <span class="participant-vote">{{ est.pontos }}</span>
                 <span class="participant-hours">{{ est.horas !== null ? est.horas : '—' }}</span>
+                <span class="participant-tempo" [title]="'Pontos: ' + formatarTempo(est.segundosPontos) + ' | Horas: ' + formatarTempo(est.segundosHoras)">
+                  ⏱ {{ formatarTempo(est.segundosPontos) }}
+                </span>
                 <button class="btn-remove-participant" title="Remover da votação"
                   (click)="removerParticipante(est.participante)">✕</button>
               </div>
               <div class="participants-legend">
                 <span>Pontos</span>
                 <span>Horas</span>
+                <span>Tempo</span>
               </div>
             </div>
 

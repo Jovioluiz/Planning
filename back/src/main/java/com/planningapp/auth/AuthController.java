@@ -78,10 +78,16 @@ public class AuthController {
                     .body(Map.of("success", false, "message", "Perfil inválido."));
         }
 
-        if (perfil == TipoPerfil.ADMIN) {
+        if (perfil == TipoPerfil.ADMIN && !userRepository.findByTipoPerfil(TipoPerfil.ADMIN).isEmpty()) {
             return ResponseEntity.status(403)
                     .body(Map.of("success", false,
-                            "message", "Administradores não podem ser criados automaticamente. Contate o responsável."));
+                            "message", "Já existe um moderador cadastrado. Entre com uma conta de moderador existente."));
+        }
+
+        if (perfil == TipoPerfil.SUPER && !userRepository.findByTipoPerfil(TipoPerfil.SUPER).isEmpty()) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("success", false,
+                            "message", "Já existe um super usuário cadastrado."));
         }
 
         User novoUser = new User();
@@ -99,6 +105,43 @@ public class AuthController {
                 "token", token,
                 "cadastrado", true
         ));
+    }
+
+    @GetMapping("/usuarios")
+    public ResponseEntity<?> listarUsuarios(Authentication auth) {
+        if (!isSuper(auth)) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("success", false, "message", "Acesso restrito ao super usuário."));
+        }
+        List<Map<String, String>> lista = userRepository.findAll().stream()
+                .filter(u -> u.getTipoPerfil() != TipoPerfil.SUPER)
+                .map(u -> Map.of("usuario", u.getUsuario(), "perfil", u.getTipoPerfil().name()))
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(lista);
+    }
+
+    @DeleteMapping("/usuarios/{usuario}")
+    public ResponseEntity<?> excluirUsuario(@PathVariable String usuario, Authentication auth) {
+        if (!isSuper(auth)) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("success", false, "message", "Acesso restrito ao super usuário."));
+        }
+        Optional<User> userOpt = userRepository.findByUsuario(usuario);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404)
+                    .body(Map.of("success", false, "message", "Usuário não encontrado."));
+        }
+        if (userOpt.get().getTipoPerfil() == TipoPerfil.SUPER) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("success", false, "message", "Não é possível excluir o super usuário."));
+        }
+        userRepository.delete(userOpt.get());
+        return ResponseEntity.ok(Map.of("success", true, "message", "Usuário excluído com sucesso."));
+    }
+
+    private boolean isSuper(Authentication auth) {
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER"));
     }
 
     @PostMapping("/selecionar-sprint")

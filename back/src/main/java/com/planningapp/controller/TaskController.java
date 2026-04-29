@@ -123,7 +123,7 @@ public class TaskController {
             Authentication auth) {
         if (!isAdmin(auth)) return forbidden();
         taskService.removerParticipanteDaTarefa(id, participante);
-        notificationService.notificarTodos("PARTICIPANTE_REMOVIDO", id);
+        notificationService.notificarTodos("PARTICIPANTE_REMOVIDO", id, Map.of("participante", participante));
         return ResponseEntity.ok(Map.of("success", true, "message", "Participante removido da votação"));
     }
 

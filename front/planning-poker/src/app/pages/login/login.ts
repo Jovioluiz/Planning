@@ -44,6 +44,12 @@ export class Login {
           return;
         }
 
+        if (this.auth.isSuper()) {
+          this.carregando = false;
+          this.router.navigate(['/usuarios']);
+          return;
+        }
+
         if (this.auth.isAdmin()) {
           this.carregando = false;
           this.router.navigate(['/importar']);

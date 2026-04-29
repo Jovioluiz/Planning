@@ -1,6 +1,7 @@
 package com.planningapp.entity;
 
 import jakarta.persistence.*;
+import java.time.Instant;
 
 @Entity
 @Table(name = "estimativas")
@@ -29,6 +30,12 @@ public class Estimation {
 
     @Column(name = "rodada")
     private Integer rodada = 1;
+
+    @Column(name = "votado_em_pontos")
+    private Instant votadoEmPontos;
+
+    @Column(name = "votado_em_horas")
+    private Instant votadoEmHoras;
 
     @ManyToOne
     @JoinColumn(name = "id_tarefas", nullable = false)
@@ -59,4 +66,10 @@ public class Estimation {
 
     public Integer getRodada() { return rodada != null ? rodada : 1; }
     public void setRodada(Integer rodada) { this.rodada = rodada; }
+
+    public Instant getVotadoEmPontos() { return votadoEmPontos; }
+    public void setVotadoEmPontos(Instant votadoEmPontos) { this.votadoEmPontos = votadoEmPontos; }
+
+    public Instant getVotadoEmHoras() { return votadoEmHoras; }
+    public void setVotadoEmHoras(Instant votadoEmHoras) { this.votadoEmHoras = votadoEmHoras; }
 }
