@@ -102,4 +102,74 @@ export class TaskService {
   getUsuariosOnline(): Observable<string[]> {
     return this.http.get<string[]>(`${environment.apiUrl}/api/sessoes/online`, this.authOptions);
   }
+
+  // ─── Métodos sala-scoped ──────────────────────────────────────
+
+  private get salaPrefix(): string | null {
+    const salaId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('salaId') : null;
+    return salaId ? `${environment.apiUrl}/api/salas/${salaId}/tasks` : null;
+  }
+
+  getTarefasFilaSala(): Observable<ITask[]> {
+    const url = this.salaPrefix;
+    if (!url) return this.getTarefasFila();
+    return this.http.get<ITask[]>(`${url}/fila`, this.authOptions);
+  }
+
+  getTarefasLiberadasSala(): Observable<ITask[]> {
+    const url = this.salaPrefix;
+    if (!url) return this.getTarefasLiberadas();
+    return this.http.get<ITask[]>(`${url}/liberadas`, this.authOptions);
+  }
+
+  getTarefasVotadasSala(): Observable<ITask[]> {
+    const url = this.salaPrefix;
+    if (!url) return this.getTarefasVotadas();
+    return this.http.get<ITask[]>(`${url}/votadas`, this.authOptions);
+  }
+
+  importarCSVSala(tarefas: any[]): Observable<any> {
+    const url = this.salaPrefix;
+    if (!url) return this.importarCSV(tarefas);
+    return this.http.post(`${url}/importar`, tarefas, this.authOptions);
+  }
+
+  liberarTarefaSala(id: string): Observable<any> {
+    const url = this.salaPrefix;
+    if (!url) return this.liberarTarefa(id);
+    return this.http.post(`${url}/${id}/liberar`, {}, this.authOptions);
+  }
+
+  finalizarTarefaSala(id: string): Observable<any> {
+    const url = this.salaPrefix;
+    if (!url) return this.finalizarTarefa(id);
+    return this.http.post(`${url}/${id}/finalizar`, {}, this.authOptions);
+  }
+
+  pularTarefaSala(id: string): Observable<any> {
+    const url = this.salaPrefix;
+    if (!url) return this.pularTarefa(id);
+    return this.http.post(`${url}/${id}/pular`, {}, this.authOptions);
+  }
+
+  liberarHorasVotacaoSala(id: string): Observable<any> {
+    const url = this.salaPrefix;
+    if (!url) return this.liberarHorasVotacao(id);
+    return this.http.post(`${url}/${id}/liberar-horas`, {}, this.authOptions);
+  }
+
+  removerParticipanteSala(taskId: string, participante: string): Observable<any> {
+    const url = this.salaPrefix;
+    if (!url) return this.removerParticipante(taskId, participante);
+    return this.http.delete(
+      `${url}/${taskId}/participantes/${encodeURIComponent(participante)}`,
+      this.authOptions
+    );
+  }
+
+  removerTarefaSala(id: string): Observable<any> {
+    const url = this.salaPrefix;
+    if (!url) return this.removerTarefa(id);
+    return this.http.delete(`${url}/${id}`, this.authOptions);
+  }
 }

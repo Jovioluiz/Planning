@@ -1,5 +1,28 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ── Sala encerrada overlay ──────────────────────────────── */
+.sala-encerrada-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sala-encerrada-card {
+  background: #1e293b;
+  border: 1px solid #ef4444;
+  border-radius: 16px;
+  padding: 40px 48px;
+  text-align: center;
+  color: #f8fafc;
+  max-width: 400px;
+  .sala-encerrada-icon { font-size: 3rem; margin-bottom: 16px; }
+  h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 12px; color: #ef4444; }
+  p  { font-size: 0.95rem; color: #94a3b8; }
+}
+
 /* ── Header ─────────────────────────────────────────────── */
 .aguardando-header {
   position: fixed;

@@ -1,0 +1,216 @@
+.sala-landing-page {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.brand-panel {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #1c4f9c 0%, #327ACF 55%, #4a9ade 100%);
+  padding: 60px 48px;
+
+  @media (max-width: 768px) {
+    flex: none;
+    min-height: 180px;
+    padding: 32px 28px;
+  }
+}
+
+.brand-content {
+  text-align: center;
+  color: #fff;
+}
+
+.brand-logo {
+  font-size: 64px;
+  margin-bottom: 12px;
+}
+
+.brand-title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0 0 8px;
+}
+
+.brand-tagline {
+  font-size: 1rem;
+  opacity: 0.85;
+  margin: 0;
+}
+
+.form-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  padding: 48px 40px;
+
+  @media (max-width: 768px) {
+    padding: 32px 20px;
+  }
+}
+
+.form-inner {
+  width: 100%;
+  max-width: 400px;
+}
+
+.loading-state,
+.ja-logado {
+  text-align: center;
+  color: #555;
+  font-size: 1rem;
+}
+
+.erro-state {
+  text-align: center;
+}
+
+.btn-voltar {
+  display: inline-block;
+  margin-top: 12px;
+  color: #327ACF;
+  text-decoration: none;
+  font-weight: 600;
+
+  &:hover { text-decoration: underline; }
+}
+
+.sala-info {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.sala-icon {
+  font-size: 48px;
+}
+
+.sala-nome {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a2e4a;
+  margin: 8px 0 4px;
+}
+
+.sala-subtitulo {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.form-header {
+  margin-bottom: 24px;
+}
+
+.form-welcome {
+  font-size: 0.9rem;
+  color: #888;
+  margin: 0 0 4px;
+}
+
+.form-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1a2e4a;
+  margin: 0;
+}
+
+.field {
+  margin-bottom: 16px;
+
+  label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.input-wrap {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1.5px solid #dde3ee;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+
+  &:focus-within { border-color: #327ACF; }
+
+  .input-icon {
+    padding: 0 12px;
+    font-size: 16px;
+    color: #aaa;
+    flex-shrink: 0;
+  }
+
+  input, select {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 12px 12px 12px 0;
+    font-size: 0.95rem;
+    background: transparent;
+    color: #1a2e4a;
+  }
+}
+
+.btn-entrar {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #327ACF, #1c4f9c);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: opacity 0.2s;
+
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  &:not(:disabled):hover { opacity: 0.9; }
+}
+
+.erro {
+  color: #e53935;
+  font-size: 0.88rem;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.hint {
+  color: #999;
+  font-size: 0.82rem;
+  text-align: center;
+  margin-top: 16px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.spinner-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

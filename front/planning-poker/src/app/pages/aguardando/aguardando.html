@@ -1,4 +1,4 @@
-<div class="aguardando-page">
+<div class="aguardando-page" [class.sala-encerrada-mode]="salaEncerrada">
 
   <!-- ── Header ──────────────────────────────────────── -->
   <header class="aguardando-header">
@@ -13,8 +13,17 @@
     </div>
   </header>
 
+  <!-- ── Sala encerrada ──────────────────────────────── -->
+  <div *ngIf="salaEncerrada" class="sala-encerrada-overlay">
+    <div class="sala-encerrada-card">
+      <div class="sala-encerrada-icon">🔒</div>
+      <h2>Sala Encerrada</h2>
+      <p>O moderador saiu da sala. Você será redirecionado em instantes...</p>
+    </div>
+  </div>
+
   <!-- ── Conteúdo central ─────────────────────────────── -->
-  <div class="content">
+  <div class="content" [style.opacity]="salaEncerrada ? '0.3' : '1'">
 
     <!-- Xícara flutuando com vapor (sem animação de chute) -->
     <div class="coffee-scene">

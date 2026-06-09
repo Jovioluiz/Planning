@@ -15,3 +15,4 @@ back/target/classes/com/planningapp/controller/TaskController.class
 back/target/classes/com/planningapp/controller/EstimationController.class
 back/target/classes/com/planningapp/config/WebConfig.class
 back/target/classes/com/planningapp/auth/AuthController.class
+*.class

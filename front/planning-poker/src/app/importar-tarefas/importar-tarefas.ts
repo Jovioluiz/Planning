@@ -176,13 +176,30 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     return { media, mediana, min: valores[0], max: valores[valores.length - 1] };
   }
 
+  private topicSessoes = '/topic/sessoes';
+
   ngOnInit(): void {
     this.usuario = this.auth.getUsuario();
+
+    const salaId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('salaId') : null;
+    if (salaId) {
+      this.topicSessoes = `/topic/sala/${salaId}/sessoes`;
+    }
+
     this.carregarListas();
     this.carregarTarefaEmVotacao();
     this.carregarUsuariosOnline();
-    this.wsService.subscribe('/topic/sessoes', (msg) => {
+    this.wsService.subscribe(this.topicSessoes, (msg) => {
       const data = JSON.parse(msg.body);
+      if (data.acao === 'SALA_INATIVADA') {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem('salaId');
+          sessionStorage.removeItem('salaCodigo');
+          sessionStorage.removeItem('salaNome');
+        }
+        this.router.navigate(['/salas']);
+        return;
+      }
       if (data.acao === 'USUARIO_CONECTADO' && !this.usuariosOnline.includes(data.usuario)) {
         this.usuariosOnline = [...this.usuariosOnline, data.usuario];
       } else if (data.acao === 'USUARIO_DESCONECTADO') {
@@ -195,7 +212,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.wsService.unsubscribe('/topic/sessoes');
+    this.wsService.unsubscribe(this.topicSessoes);
     if (this.pollInterval) clearInterval(this.pollInterval);
     if (this.timerInterval) clearInterval(this.timerInterval);
   }
@@ -296,7 +313,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
           return;
         }
 
-        this.taskService.importarCSV(dados).subscribe({
+        this.taskService.importarCSVSala(dados).subscribe({
           next: (res: any) => {
             const msg = res?.message ?? `${dados.length} tarefa(s) importada(s) com sucesso!`;
             this.exibirMensagem(msg, 'sucesso');
@@ -347,11 +364,11 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   // ─── Carregamento de dados ───────────────────────────────
   carregarListas(): void {
-    this.taskService.getTarefasFila().subscribe({
+    this.taskService.getTarefasFilaSala().subscribe({
       next: (res) => { this.tarefasFila = res; this.cdr.detectChanges(); },
       error: () => {}
     });
-    this.taskService.getTarefasVotadas().subscribe({
+    this.taskService.getTarefasVotadasSala().subscribe({
       next: (res) => {
         this.tarefasEstimadas = res;
         this.carregarHorasEstimadas();
@@ -377,7 +394,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   }
 
   carregarTarefaEmVotacao(): void {
-    this.taskService.getTarefasLiberadas().subscribe({
+    this.taskService.getTarefasLiberadasSala().subscribe({
       next: (tarefas) => {
         if (tarefas.length > 0) {
           this.tarefaEmVotacao = tarefas[0];
@@ -402,7 +419,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   removerParticipante(participante: string): void {
     if (!this.tarefaEmVotacao) return;
-    this.taskService.removerParticipante(this.tarefaEmVotacao.id.toString(), participante).subscribe({
+    this.taskService.removerParticipanteSala(this.tarefaEmVotacao.id.toString(), participante).subscribe({
       next: () => {
         this.carregarParticipantesTarefa(this.tarefaEmVotacao!.id);
         this.carregarResumoVotos(this.tarefaEmVotacao!.id, () => this.verificarLiberacoes(this.tarefaEmVotacao!.id));
@@ -412,7 +429,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   }
 
   iniciarEstimativa(id: number): void {
-    this.taskService.liberarTarefa(id.toString()).subscribe({
+    this.taskService.liberarTarefaSala(id.toString()).subscribe({
       next: () => {
         this.carregarListas();
         this.carregarTarefaEmVotacao();
@@ -422,7 +439,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   }
 
   removerTarefaEstimativa(id: number): void {
-    this.taskService.removerTarefa(id.toString()).subscribe({
+    this.taskService.removerTarefaSala(id.toString()).subscribe({
       next: () => {
         this.carregarFilaTarefas();
         this.carregarListas();
@@ -432,7 +449,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   }
 
   carregarFilaTarefas(): void {
-    this.taskService.getTarefasFila().subscribe({
+    this.taskService.getTarefasFilaSala().subscribe({
       next: (dados) => { this.tarefasFila = dados; this.cdr.detectChanges(); },
       error: () => {}
     });
@@ -472,7 +489,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   liberarHorasVotacao(): void {
     if (!this.tarefaEmVotacao) return;
-    this.taskService.liberarHorasVotacao(this.tarefaEmVotacao.id.toString()).subscribe({
+    this.taskService.liberarHorasVotacaoSala(this.tarefaEmVotacao.id.toString()).subscribe({
       next: () => this.carregarTarefaEmVotacao(),
       error: () => this.exibirMensagem('Erro ao liberar votação de horas.', 'erro')
     });
@@ -504,7 +521,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     if (!this.tarefaEmVotacao) return;
     const s = this.calcularEstatisticasTarefa(this.estimativas);
     this.horasFinaisPorTarefa.set(this.tarefaEmVotacao.id, s.horasMedia ?? 0);
-    this.taskService.finalizarTarefa(this.tarefaEmVotacao.id.toString()).subscribe({
+    this.taskService.finalizarTarefaSala(this.tarefaEmVotacao.id.toString()).subscribe({
       next: () => {
         this.tarefaEmVotacao = null;
         this.estimativas = [];
@@ -522,7 +539,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   pularVotacao(): void {
     if (!this.tarefaEmVotacao) return;
-    this.taskService.pularTarefa(this.tarefaEmVotacao.id.toString()).subscribe({
+    this.taskService.pularTarefaSala(this.tarefaEmVotacao.id.toString()).subscribe({
       next: () => {
         this.tarefaEmVotacao = null;
         this.estimativas = [];

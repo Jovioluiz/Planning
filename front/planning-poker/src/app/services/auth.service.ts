@@ -54,6 +54,10 @@ export class AuthService {
     sessionStorage.removeItem('perfil');
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('sprint');
+    sessionStorage.removeItem('salaId');
+    sessionStorage.removeItem('salaCodigo');
+    sessionStorage.removeItem('salaNome');
+    sessionStorage.removeItem('pendingSalaCodigo');
   }
 
   getUsuario(): string | null {

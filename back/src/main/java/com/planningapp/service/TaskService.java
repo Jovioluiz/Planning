@@ -2,11 +2,14 @@ package com.planningapp.service;
 
 import com.planningapp.dto.TaskDTO;
 import com.planningapp.entity.Estimation;
+import com.planningapp.entity.Sala;
+import com.planningapp.entity.SalaMembro;
 import com.planningapp.entity.Task;
 import com.planningapp.entity.TaskParticipant;
 import com.planningapp.entity.UserSprint;
 import com.planningapp.entity.enums.TipoPerfil;
 import com.planningapp.repository.EstimationRepository;
+import com.planningapp.repository.SalaMembroRepository;
 import com.planningapp.repository.TaskParticipantRepository;
 import com.planningapp.repository.TaskRepository;
 import com.planningapp.repository.UserRepository;
@@ -37,6 +40,9 @@ public class TaskService {
 
     @Autowired
     private UserSprintRepository userSprintRepository;
+
+    @Autowired
+    private SalaMembroRepository salaMembroRepository;
 
     public List<Task> findAll() {
         return taskRepository.findAll();
@@ -203,6 +209,65 @@ public class TaskService {
 
     public List<String> listarSprints() {
         return taskRepository.findDistinctSprints();
+    }
+
+    // ─── Métodos por sala ────────────────────────────────────
+
+    public List<Task> findBySala(Sala sala) {
+        return taskRepository.findBySala(sala);
+    }
+
+    public List<Task> findNaoEstimadasENaoLiberadasSala(Sala sala) {
+        return taskRepository.findBySalaAndEstimadaFalseAndLiberadaFalseOrderByIdAsc(sala);
+    }
+
+    public List<Task> listarLiberadasSala(Sala sala) {
+        return taskRepository.findBySalaAndEstimadaFalseAndLiberadaTrueOrderByIdAsc(sala);
+    }
+
+    public List<Task> listarVotadasSala(Sala sala) {
+        return taskRepository.findBySalaAndEstimadaTrueOrderByIdDesc(sala);
+    }
+
+    @Transactional
+    public int importarDTOsSala(List<TaskDTO> dtos, Sala sala) {
+        List<Task> novas = dtos.stream()
+                .filter(dto -> !taskRepository.existsBySalaAndNumero(sala, dto.getNumero()))
+                .map(dto -> {
+                    Task task = new Task();
+                    task.setNumero(dto.getNumero());
+                    task.setTitulo(dto.getTitulo());
+                    task.setDescricao(dto.getDescricao());
+                    task.setPrioridade(dto.getPrioridade());
+                    task.setStatus(dto.getStatus());
+                    task.setSprint(dto.getSprint());
+                    task.setSala(sala);
+                    return task;
+                })
+                .toList();
+        if (!novas.isEmpty()) {
+            List<Task> salvas = taskRepository.saveAll(novas);
+            List<String> membros = salaMembroRepository.findBySala(sala)
+                    .stream().map(m -> m.getUsuario().getUsuario()).toList();
+            for (Task t : salvas) {
+                membros.forEach(u -> adicionarParticipante(t.getId(), u));
+            }
+        }
+        return novas.size();
+    }
+
+    @Transactional
+    public boolean liberarTarefaSala(Long id, Sala sala) {
+        return taskRepository.findById(id)
+                .filter(t -> sala.equals(t.getSala()))
+                .map(task -> {
+                    task.setLiberada(true);
+                    task.setLiberadaEm(java.time.Instant.now());
+                    taskRepository.save(task);
+                    salaMembroRepository.findBySala(sala)
+                            .forEach(m -> adicionarParticipante(id, m.getUsuario().getUsuario()));
+                    return true;
+                }).orElse(false);
     }
 
     public List<String> getParticipantes(Long taskId) {

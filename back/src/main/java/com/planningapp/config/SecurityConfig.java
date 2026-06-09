@@ -35,6 +35,7 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/salas/codigo/**").permitAll()
                 .requestMatchers("/ws-planning/**").permitAll()
                 .anyRequest().authenticated()
             );

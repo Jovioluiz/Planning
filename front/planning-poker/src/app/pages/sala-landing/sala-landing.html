@@ -1,0 +1,92 @@
+<div class="sala-landing-page">
+
+  <div class="brand-panel">
+    <div class="brand-content">
+      <div class="brand-logo">🦶</div>
+      <h1 class="brand-title">Chutômetro</h1>
+      <p class="brand-tagline">Porque alguém tem que chutar primeiro</p>
+    </div>
+  </div>
+
+  <div class="form-panel">
+    <div class="form-inner">
+
+      <div *ngIf="carregando" class="loading-state">
+        <span class="spinner"></span>
+        <p>Carregando sala...</p>
+      </div>
+
+      <div *ngIf="!carregando && erro && !salaNome" class="erro-state">
+        <p class="erro">{{ erro }}</p>
+        <a href="#/login" class="btn-voltar">Ir para o login</a>
+      </div>
+
+      <div *ngIf="!carregando && salaNome">
+
+        <div class="sala-info">
+          <span class="sala-icon">🃏</span>
+          <h2 class="sala-nome">{{ salaNome }}</h2>
+          <p class="sala-subtitulo">Você foi convidado para esta sessão de Planning Poker</p>
+        </div>
+
+        <div *ngIf="jaLogado" class="ja-logado">
+          <p *ngIf="!entrando">Entrando na sala como <strong>{{ auth.getUsuario() }}</strong>...</p>
+          <div *ngIf="entrando" class="spinner-row">
+            <span class="spinner"></span> Entrando...
+          </div>
+          <p *ngIf="erro" class="erro">{{ erro }}</p>
+        </div>
+
+        <div *ngIf="!jaLogado">
+          <div class="form-header">
+            <p class="form-welcome">Bem-vindo 👋</p>
+            <h3 class="form-title">Faça login para entrar na sala</h3>
+          </div>
+
+          <form (ngSubmit)="loginEJuntar($event)" novalidate>
+            <div class="field">
+              <label for="usuario">Usuário</label>
+              <div class="input-wrap">
+                <span class="input-icon">👤</span>
+                <input id="usuario" type="text" [(ngModel)]="usuario" name="usuario"
+                       placeholder="Seu nome de usuário" [disabled]="entrando" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="senha">Senha</label>
+              <div class="input-wrap">
+                <span class="input-icon">🔒</span>
+                <input id="senha" type="password" [(ngModel)]="senha" name="senha"
+                       placeholder="Sua senha" [disabled]="entrando" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="perfil">Perfil</label>
+              <div class="input-wrap select-wrap">
+                <span class="input-icon">🎭</span>
+                <select id="perfil" [(ngModel)]="perfil" name="perfil" [disabled]="entrando">
+                  <option value="JOGADOR">Player</option>
+                  <option value="OBSERVADOR">Observador</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-entrar" [disabled]="entrando">
+              <span *ngIf="!entrando">Entrar na sala</span>
+              <span *ngIf="entrando" class="spinner-row">
+                <span class="spinner"></span> Entrando...
+              </span>
+            </button>
+          </form>
+
+          <p *ngIf="erro" class="erro">{{ erro }}</p>
+          <p class="hint">Novo usuário? Basta entrar que sua conta será criada automaticamente.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>

@@ -52,13 +52,23 @@ export class Login {
 
         if (this.auth.isAdmin()) {
           this.carregando = false;
-          this.router.navigate(['/importar']);
+          this.router.navigate(['/salas']);
+          return;
+        }
+
+        // JOGADOR / OBSERVADOR: verifica se vem de um link de sala
+        const pendingCodigo = typeof sessionStorage !== 'undefined'
+          ? sessionStorage.getItem('pendingSalaCodigo')
+          : null;
+        if (pendingCodigo && (this.auth.isJogador() || this.auth.isObservador())) {
+          this.carregando = false;
+          this.router.navigate(['/sala', pendingCodigo]);
           return;
         }
 
         if (this.auth.isJogador()) {
           this.carregando = false;
-          this.router.navigate(['/selecionar-sprint']);
+          this.router.navigate(['/aguardando']);
           return;
         }
 

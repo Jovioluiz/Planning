@@ -180,7 +180,7 @@ public class EstimationController {
             taskService.save(task);
         });
 
-        notificationService.notificarTodos("REVELAR_PONTOS", taskId);
+        notificarPorSala(tarefaOpt.get(), "REVELAR_PONTOS", taskId, Map.of());
         return ResponseEntity.ok(Map.of("success", true, "message", "Pontos revelados"));
     }
 
@@ -201,7 +201,7 @@ public class EstimationController {
             taskService.save(task);
         });
 
-        notificationService.notificarTodos("REVELAR_HORAS", taskId);
+        notificarPorSala(tarefaOpt.get(), "REVELAR_HORAS", taskId, Map.of());
         return ResponseEntity.ok(Map.of("success", true, "message", "Horas reveladas"));
     }
 
@@ -218,8 +218,25 @@ public class EstimationController {
         task.setHorasLiberadas(false);
         taskService.save(task);
 
-        notificationService.notificarTodos("NOVA_RODADA", taskId);
+        notificarPorSala(task, "NOVA_RODADA", taskId, Map.of());
         return ResponseEntity.ok(Map.of("success", true, "message", "Nova rodada iniciada", "rodada", task.getRodadaAtual()));
+    }
+
+    private void notificarPorSala(Task task, String acao, Long taskId, Map<String, Object> extra) {
+        if (task.getSala() != null) {
+            Long salaId = task.getSala().getId();
+            if (extra.isEmpty()) {
+                notificationService.notificarSala(salaId, acao, taskId);
+            } else {
+                notificationService.notificarSala(salaId, acao, taskId, extra);
+            }
+        } else {
+            if (extra.isEmpty()) {
+                notificationService.notificarTodos(acao, taskId);
+            } else {
+                notificationService.notificarTodos(acao, taskId, extra);
+            }
+        }
     }
 
     @PostMapping("/resetar")

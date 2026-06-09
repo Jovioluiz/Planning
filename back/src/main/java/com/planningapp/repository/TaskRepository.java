@@ -1,5 +1,6 @@
 package com.planningapp.repository;
 
+import com.planningapp.entity.Sala;
 import com.planningapp.entity.Task;
 import java.util.List;
 import java.util.Optional;
@@ -18,4 +19,12 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     @Query(value = "SELECT DISTINCT sprint FROM tarefas WHERE sprint IS NOT NULL AND estimada = false ORDER BY sprint", nativeQuery = true)
     List<String> findDistinctSprints();
+
+    // Queries por sala
+    boolean existsBySalaAndEstimadaFalse(Sala sala);
+    List<Task> findBySala(Sala sala);
+    List<Task> findBySalaAndEstimadaFalseAndLiberadaFalseOrderByIdAsc(Sala sala);
+    List<Task> findBySalaAndEstimadaFalseAndLiberadaTrueOrderByIdAsc(Sala sala);
+    List<Task> findBySalaAndEstimadaTrueOrderByIdDesc(Sala sala);
+    boolean existsBySalaAndNumero(Sala sala, Long numero);
 }

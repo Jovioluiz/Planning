@@ -14,10 +14,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import com.planningapp.dto.LoginDTO;
+import com.planningapp.entity.Sala;
 import com.planningapp.entity.User;
 import com.planningapp.entity.enums.TipoPerfil;
 import com.planningapp.repository.UserRepository;
 import com.planningapp.security.JwtTokenProvider;
+import com.planningapp.service.SalaService;
+import com.planningapp.service.SessaoService;
 import com.planningapp.service.TaskService;
 
 @RestController
@@ -37,6 +40,12 @@ public class AuthController {
 
     @Autowired
     private TaskService taskService;
+
+    @Autowired
+    private SalaService salaService;
+
+    @Autowired
+    private SessaoService sessaoService;
 
     @GetMapping("/jogadores")
     public List<String> listarJogadores() {
@@ -76,12 +85,6 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(Map.of("success", false, "message", "Perfil inválido."));
-        }
-
-        if (perfil == TipoPerfil.ADMIN && !userRepository.findByTipoPerfil(TipoPerfil.ADMIN).isEmpty()) {
-            return ResponseEntity.status(403)
-                    .body(Map.of("success", false,
-                            "message", "Já existe um moderador cadastrado. Entre com uma conta de moderador existente."));
         }
 
         if (perfil == TipoPerfil.SUPER && !userRepository.findByTipoPerfil(TipoPerfil.SUPER).isEmpty()) {
@@ -153,5 +156,25 @@ public class AuthController {
         }
         taskService.vincularJogadorASprint(auth.getName(), sprint);
         return ResponseEntity.ok(Map.of("success", true, "message", "Sprint selecionada com sucesso."));
+    }
+
+    @PostMapping("/entrar-sala")
+    public ResponseEntity<?> entrarNaSala(@RequestBody Map<String, String> body, Authentication auth) {
+        String codigo = body.get("codigo");
+        if (codigo == null || codigo.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Código da sala inválido."));
+        }
+        try {
+            Sala sala = salaService.entrarNaSala(codigo, auth.getName());
+            sessaoService.registrarSalaDoUsuario(auth.getName(), sala.getId());
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "salaId", sala.getId(),
+                    "salaCodigo", sala.getCodigo(),
+                    "salaNome", sala.getNome()
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(Map.of("success", false, "message", e.getMessage()));
+        }
     }
 }

@@ -31,6 +31,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   todosVotaram = false;
   votando = false;
   foiSkipado = false;
+  salaEncerrada = false;
   sessionEnded: 'finalizada' | 'pulada' | null = null;
   tempoDecorrido = '00:00';
   usuariosOnline: string[] = [];
@@ -68,15 +69,36 @@ export class EstimationBoard implements OnInit, OnDestroy {
     return this.estimativas.filter((e: any) => (e.rodada ?? 1) < rodada);
   }
 
+  private topicEstimativas = '/topic/estimativas';
+  private topicSessoes = '/topic/sessoes';
+
   ngOnInit(): void {
     this.participante = this.auth.getUsuario() || '';
     this.taskId = this.route.snapshot.paramMap.get('id')!;
+
+    const salaId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('salaId') : null;
+    if (salaId) {
+      this.topicEstimativas = `/topic/sala/${salaId}/estimativas`;
+      this.topicSessoes = `/topic/sala/${salaId}/sessoes`;
+    }
+
     this.carregarTarefa();
     this.atualizarEstimativas();
     this.carregarUsuariosOnline();
 
-    this.wsService.subscribe('/topic/sessoes', (msg) => {
+    this.wsService.subscribe(this.topicSessoes, (msg) => {
       const data = JSON.parse(msg.body);
+      if (data.acao === 'SALA_INATIVADA') {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem('salaId');
+          sessionStorage.removeItem('salaCodigo');
+          sessionStorage.removeItem('salaNome');
+        }
+        this.salaEncerrada = true;
+        this.cdr.detectChanges();
+        setTimeout(() => this.router.navigate(['/login']), 3000);
+        return;
+      }
       if (data.acao === 'USUARIO_CONECTADO' && !this.usuariosOnline.includes(data.usuario)) {
         this.usuariosOnline = [...this.usuariosOnline, data.usuario];
       } else if (data.acao === 'USUARIO_DESCONECTADO') {
@@ -85,7 +107,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
       this.cdr.detectChanges();
     });
 
-    this.wsService.subscribe('/topic/estimativas', (msg) => {
+    this.wsService.subscribe(this.topicEstimativas, (msg) => {
       const data = JSON.parse(msg.body);
       if (String(data.taskId) === String(this.taskId)) {
         if (data.acao === 'REVELAR_HORAS') {
@@ -142,8 +164,8 @@ export class EstimationBoard implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.wsService.unsubscribe('/topic/estimativas');
-    this.wsService.unsubscribe('/topic/sessoes');
+    this.wsService.unsubscribe(this.topicEstimativas);
+    this.wsService.unsubscribe(this.topicSessoes);
     if (this.pollInterval) clearInterval(this.pollInterval);
     if (this.timerInterval) clearInterval(this.timerInterval);
   }
@@ -406,7 +428,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   }
 
   liberarHorasVotacao(): void {
-    this.taskService.liberarHorasVotacao(this.taskId!).subscribe({
+    this.taskService.liberarHorasVotacaoSala(this.taskId!).subscribe({
       next: () => { this.carregarTarefa(); },
       error: () => {}
     });
@@ -441,7 +463,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   }
 
   skipParticipante(participante: string): void {
-    this.taskService.removerParticipante(this.taskId!, participante).subscribe({
+    this.taskService.removerParticipanteSala(this.taskId!, participante).subscribe({
       next: () => {
         this.atualizarEstimativas();
         this.checkTodosVotaram();

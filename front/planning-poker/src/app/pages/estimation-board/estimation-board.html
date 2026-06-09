@@ -17,6 +17,15 @@
     </div>
   </header>
 
+  <!-- ─── Sala inativada ────────────────────────────────────────── -->
+  <div *ngIf="salaEncerrada" class="session-ended-overlay">
+    <div class="session-ended-card">
+      <div class="session-ended-icon">🔒</div>
+      <h2>Sala Encerrada</h2>
+      <p>O moderador saiu da sala. Você será redirecionado em instantes...</p>
+    </div>
+  </div>
+
   <!-- ─── Sessão encerrada ────────────────────────────────────── -->
   <div *ngIf="sessionEnded" class="session-ended-overlay">
     <div class="session-ended-card">

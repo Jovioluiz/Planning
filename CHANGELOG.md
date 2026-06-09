@@ -1,5 +1,332 @@
 # Changelog
 
+## 2026-04-28 — Super Usuário, gerenciamento de usuários, temporização de votos e correções de SSR
+
+### Backend
+
+#### `TipoPerfil` — novo perfil SUPER
+- **`back/.../entity/enums/TipoPerfil.java`**
+  - Valor `SUPER` adicionado ao enum; armazenado como VARCHAR sem necessidade de migração de banco
+
+#### `AuthController` — gerenciamento de usuários e regras de criação
+- **`back/.../auth/AuthController.java`**
+  - Auto-criação do primeiro ADMIN via login permitida quando nenhum ADMIN existe; a partir do segundo, exige conta existente
+  - Auto-criação do SUPER via login permitida quando nenhum SUPER existe; a partir do segundo, bloqueada com 403
+  - `GET /api/auth/usuarios` — lista todos os usuários (exceto SUPER); requer role `ROLE_SUPER`
+  - `DELETE /api/auth/usuarios/{usuario}` — exclui usuário (não permite excluir o próprio SUPER); requer role `ROLE_SUPER`
+  - Helper privado `isSuper(Authentication)` para verificação de role
+
+#### `UserController` — controller de usuários alternativo
+- **`back/.../controller/UserController.java`** *(novo)*
+  - `GET /api/usuarios` e `DELETE /api/usuarios/{usuario}` espelhando os endpoints do `AuthController`
+  - Usa `SecurityContextHolder` diretamente (alternativa ao parâmetro `Authentication`)
+
+#### `DataSeeder` — desativação do seed automático
+- **`back/.../config/DataSeeder.java`**
+  - Chamadas de criação automática dos usuários `admin`, `jogador1` e `obs1` comentadas; banco inicia vazio
+
+#### `Estimation` e `Task` — campos de temporização
+- **`back/.../entity/Estimation.java`**
+  - Campos `votadoEmPontos` (Instant) e `votadoEmHoras` (Instant) adicionados; preenchidos ao registrar voto
+- **`back/.../entity/Task.java`**
+  - Campos `horasLiberadasEm` (Instant) e `estimadaEm` (Instant) adicionados; preenchidos ao liberar horas e ao finalizar tarefa
+
+#### `EstimationController` — persistência de timestamps e restrição de participantes removidos
+- **`back/.../controller/EstimationController.java`**
+  - `votar` e `votarHoras` registram o timestamp no momento do voto
+  - Participantes removidos da tarefa são bloqueados de votar (retorna 403)
+  - Helper `calcularSegundos(Instant, Instant)` para duração entre eventos
+
+#### `EstimationNotificationService` — payload estendido
+- **`back/.../notification/service/EstimationNotificationService.java`**
+  - Notificação de remoção de participante inclui payload adicional com dados do participante removido
+
+#### `EstimativaResponseDTO` — campos de tempo
+- **`back/.../dto/EstimativaResponseDTO.java`**
+  - Campos de tempo de voto adicionados ao DTO de resposta
+
+---
+
+### Frontend
+
+#### Rodapé global com créditos
+- **`front/.../app.html`**
+  - Footer com nome do desenvolvedor (Jóvio Luiz Giacomolli) e link para o repositório no GitHub
+- **`front/.../styles.scss`**
+  - Estilos `.app-footer`, `.footer-dev`, `.footer-sep`, `.footer-link`, `.footer-gh-icon` adicionados globalmente
+
+#### Nova página: Gerenciar Usuários (`/usuarios`)
+- **`front/.../pages/gerenciar-usuarios/gerenciar-usuarios.ts`** *(novo)*
+  - Componente standalone com `ChangeDetectorRef` (compatível com modo zoneless)
+  - `isPlatformBrowser()` impede chamadas HTTP no lado do servidor (SSR-safe)
+  - `Authorization` explícito via `HttpHeaders` para contornar possíveis falhas do interceptor em SSR
+  - Usuários agrupados por perfil via getter `porPerfil`
+  - Listagem via `GET /api/auth/usuarios`; exclusão via `DELETE /api/auth/usuarios/{usuario}`
+- **`front/.../pages/gerenciar-usuarios/gerenciar-usuarios.html`** *(novo)*
+  - Usuários agrupados em seções (Moderadores, Players, Observadores)
+  - Modal de confirmação antes de excluir
+- **`front/.../pages/gerenciar-usuarios/gerenciar-usuarios.scss`** *(novo)*
+  - Tema escuro alinhado com o restante do app; badge roxo para identificar o Super Usuário
+
+#### Login — suporte ao perfil Super Usuário
+- **`front/.../pages/login/login.html`**
+  - Opção `Super Usuário` adicionada ao dropdown de perfil
+- **`front/.../pages/login/login.ts`**
+  - Após login bem-sucedido como SUPER, redireciona para `/usuarios`
+
+#### `AuthService` — método `isSuper()`
+- **`front/.../services/auth.service.ts`**
+  - `isSuper(): boolean` adicionado (compara perfil salvo no `sessionStorage` com `'SUPER'`)
+
+#### Painel Admin — coluna de horas e temporização de votos
+- **`front/.../importar-tarefas/importar-tarefas.ts`**
+  - Exibição do tempo por voto calculado a partir dos timestamps do backend
+  - Totais e médias de horas por tarefa com cálculo e cache de resumos
+  - Coluna "Horas Estimadas" adicionada à tabela de tarefas
+- **`front/.../importar-tarefas/importar-tarefas.html`**
+  - Coluna de horas estimadas e totalizador exibidos na tabela
+- **`front/.../importar-tarefas/importar-tarefas.scss`**
+  - Refinamentos visuais de tema claro/escuro e ajustes de layout
+
+#### Tela de Estimativas — tempo por voto
+- **`front/.../pages/estimation-board/estimation-board.ts`**
+  - Exibe tempo decorrido desde a abertura da votação para cada voto
+- **`front/.../pages/estimation-board/estimation-board.html`** e `.scss`
+  - Layout e estilos para exibição de temporização
+
+#### Roteamento e SSR
+- **`front/.../app.routes.ts`**
+  - Rota `/usuarios` com `canActivate: [authGuard]` adicionada
+- **`front/.../app.routes.server.ts`**
+  - `RenderMode.Client` definido para `/usuarios` (evita requisição sem token no servidor)
+- **`front/.../app.config.ts`**
+  - `withHttpTransferCacheOptions({ filter: (req) => !req.url.includes('/api/') })` — impede que respostas de endpoints autenticados sejam cacheadas pelo transfer cache do SSR
+
+#### `authGuard` — compatibilidade com SSR
+- **`front/.../guards/auth.guard.ts`**
+  - `isPlatformBrowser()` adicionado: em contexto servidor retorna `true` sem tentar ler `sessionStorage`
+
+---
+
+## 2026-04-26 — Rodadas de votação, rastreamento de sessões, alternância de tema e redesign do login
+
+### Backend
+
+#### `SessaoService` — rastreamento de usuários online via WebSocket
+- **`back/.../service/SessaoService.java`** *(novo)*
+  - `ConcurrentHashMap<String, Instant> sessoes` mantido em memória; registra conexões e desconexões via `@EventListener SessionConnectEvent` / `SessionDisconnectEvent`
+  - `getUsuariosOnline()` retorna lista de usuários com sessão WebSocket ativa
+  - `SessaoController` expõe `GET /api/sessao/online` para consulta da lista de online
+
+#### `EstimationService` — votação filtrada por participantes online
+- **`back/.../service/EstimationService.java`**
+  - `participantesOnlineDaTarefa(taskId)`: intersecção entre JOGADORs vinculados à tarefa e usuários atualmente online; fallback para todos os JOGADORs quando `sessoes` está vazio (ex.: após restart)
+  - `todosVotaramPontos` e `todosVotaramHoras` usam `participantesOnlineDaTarefa` em vez do total de participantes
+
+#### `EstimationController` — suporte a rodadas
+- **`back/.../controller/EstimationController.java`**
+  - Campo `rodada` adicionado em `Estimation` e nos endpoints de votação/listagem
+  - Endpoint `POST /estimativas/{taskId}/nova-rodada` — incrementa rodada e limpa votos anteriores
+  - Validação de usuário via JWT em todos os endpoints de voto
+
+#### Entidades e repositórios atualizados
+- **`back/.../entity/Estimation.java`** — campo `rodada` (Integer) adicionado
+- **`back/.../entity/Task.java`** — campo `rodadaAtual` adicionado
+- **`back/.../entity/TaskParticipant.java`** — `@ManyToOne` para `User` (antes era String)
+- **`back/.../entity/UserSprint.java`** — vínculo direto com `User`
+- **`back/.../repository/EstimationRepository.java`** — queries `findByTaskIdAndRodada`, `findByTaskIdAndUsuarioAndRodada`
+- **`back/.../repository/TaskParticipantRepository.java`** — query `findByTaskIdAndUsuario`
+
+---
+
+### Frontend
+
+#### Painel Admin (`importar-tarefas`) — reformulação completa
+- **`front/.../importar-tarefas/importar-tarefas.ts`**
+  - Alternância de tema claro/escuro: `temaEscuro` + `toggleTema()` com persistência em `localStorage`
+  - Painel de usuários online: `usuariosOnline[]` consultado via `GET /api/sessao/online`
+  - Suporte a rodadas: `rodadaAtual`, `estimativasRodadaAtual` (filtradas por rodada)
+  - `quemNaoVotou` filtra apenas participantes online (sem exigir voto de usuários offline)
+  - `verificarLiberacoes` executado localmente no frontend (sem chamada extra ao backend) para garantir sincronia com dados já carregados
+  - Callback pattern em `carregarResumoVotos` evita condição de corrida ao checar se todos votaram
+  - Botão "Nova Rodada" dispara `POST /estimativas/{id}/nova-rodada`
+  - Opção de exportação de resultados
+- **`front/.../importar-tarefas/importar-tarefas.html`**
+  - `[class.tema-escuro]="temaEscuro"` na raiz; botão `☀️/🌙` no header
+  - Painel de usuários online na barra lateral
+  - Exibição de rodada atual e histórico de rodadas anteriores
+  - Controles de nova rodada e liberação de horas
+- **`front/.../importar-tarefas/importar-tarefas.scss`**
+  - Bloco `.admin-page.tema-escuro { ... }` com overrides completos (background `#0f172a`, cards `#1e293b`, bordas `#334155`, toasts e banners invertidos)
+  - Estilos para painel de usuários online, controles de rodada e exportação
+
+#### Tela de login — redesign visual completo
+- **`front/.../pages/login/login.html`** *(reescrita)*
+  - Layout two-panel: painel esquerdo de branding (gradiente azul, cartas flutuantes decorativas, logo, tagline, lista de features) + painel direito com formulário
+  - Campos com ícone emoji embutido via `.input-wrap` + `.input-icon`
+  - Select de perfil com seta CSS (`::after`)
+- **`front/.../pages/login/login.scss`** *(reescrita)*
+  - `display: flex; min-height: 100vh` — split horizontal
+  - Painel esquerdo: `background: linear-gradient(145deg, #1c4f9c 0%, #327ACF 55%, #4a9ade 100%)`
+  - Cartas decorativas com `@keyframes float` (oscilação vertical)
+  - Painel direito: `width: 460px`, `background: #f8fafc`
+  - Cor primária `#327ACF`; foco com `box-shadow: 0 0 0 3px rgba(50,122,207,.15)`
+  - Responsivo: empilhamento vertical em `max-width: 768px`; features ocultas no mobile
+
+#### Tela de estimativas — suporte a rodadas
+- **`front/.../pages/estimation-board/estimation-board.ts`** e `.html`
+  - Exibe rodada atual; adapta UI para aguardar abertura de nova rodada pelo admin
+  - WebSocket processa evento de nova rodada e recarrega estado
+
+#### Selecionar Sprint — melhorias
+- **`front/.../pages/selecionar-sprint/selecionar-sprint.ts`**
+  - Chama `POST /api/auth/selecionar-sprint` ao confirmar sprint; armazena resultado no `AuthService`
+- **`front/.../pages/selecionar-sprint/selecionar-sprint.scss`** — estilos adicionados
+
+#### `WebSocketService` — reconexão robusta
+- **`front/.../websocket/websocket.service.ts`**
+  - Fila de subscriptions pré-conexão agora relida ao reconectar (não apenas na primeira conexão)
+  - Heartbeat e reconnect delay ajustados
+
+---
+
+## 2026-04-23 — Ajustes de configuração de CORS e ambiente
+
+### Backend
+- **`back/.../config/WebConfig.java`** e **`WebSocketConfig.java`** — atualização de origens permitidas no CORS
+
+### Frontend
+- **`front/.../environments/environment.ts`** — atualização da URL da API
+- **`front/.../importar-tarefas/importar-tarefas.html`** — ajuste de template
+
+---
+
+## 2026-04-22 — Múltiplas melhorias de UX, estatísticas de votos e gestão de participantes
+
+### Backend
+
+#### Novo endpoint: remover participante
+- **`back/.../controller/TaskController.java`**
+  - `DELETE /{id}/participantes/{participante}` — remove participante da tarefa ativa e notifica clientes via WebSocket
+- **`back/.../service/TaskService.java`**
+  - `removerParticipanteDaTarefa(taskId, participante)` implementado
+- **`back/.../repository/TaskParticipantRepository.java`** — `deleteByTaskIdAndParticipante` adicionado
+
+#### `Task.liberadaEm`
+- **`back/.../entity/Task.java`** — campo `liberadaEm` (Instant) adicionado; definido ao liberar e limpo ao resetar/pular
+
+---
+
+### Frontend
+
+#### Rebrand para "Chutômetro"
+- **`front/.../src/index.html`** e **`app.html`** — título e nome da aplicação atualizados para "Chutômetro"
+
+#### Painel Admin — estatísticas e controles avançados
+- **`front/.../importar-tarefas/importar-tarefas.ts`**
+  - Cronômetro baseado em `task.liberadaEm`: exibe tempo decorrido desde a liberação
+  - Estatísticas calculadas após revelação: média, mediana, mínimo, máximo, dispersão e contagem de cafés (para pontos e horas)
+  - Classificação de votos por otimista/pessimista
+  - Banners de divergência e consenso baseados em dispersão
+  - Remoção/pulo de participante: chamada ao novo endpoint `DELETE /{id}/participantes/{participante}`
+  - Tarefas estimadas agrupadas por sprint na fila
+  - Sprint obrigatória na importação via CSV
+- **`front/.../importar-tarefas/importar-tarefas.html`**
+  - Cards de estatísticas (média, mediana, min/max, dispersão)
+  - Banner de divergência/consenso
+  - Botão de pulo/remoção por participante
+  - Coluna de sprint na tabela de tarefas
+- **`front/.../importar-tarefas/importar-tarefas.scss`**
+  - Blocos de estatísticas, cronômetro, banners de divergência, estilos de participantes
+
+#### Tela de espera (`/aguardando`) — nova animação
+- **`front/.../pages/aguardando/aguardando.html`** e `.scss`
+  - Substituída animação de xícara de café por splash animado
+  - Layout e temática atualizados
+
+#### Tela de estimativas — estado `aguardando_horas`
+- **`front/.../pages/estimation-board/estimation-board.ts`** e `.html` e `.scss`
+  - Estado `aguardando_horas`: jogador vê mensagem de espera até o admin liberar votação de horas
+  - Exibição de votos e estatísticas após revelação
+
+---
+
+## 2026-04-20 — Workflow por sprint, infraestrutura Docker e configuração de deploy
+
+### Backend
+
+#### Nova entidade: `UserSprint`
+- **`back/.../entity/UserSprint.java`** *(novo)* — vincula usuário à sprint selecionada
+- **`back/.../repository/UserSprintRepository.java`** *(novo)*
+
+#### `TaskService` — sprints e liberação de horas
+- **`back/.../service/TaskService.java`**
+  - `vincularJogadorASprint`: vincula participante apenas à sprint selecionada (não a todas as tarefas)
+  - `listarSprints`: retorna sprints distintas com tarefas pendentes
+  - `liberarHorasVotacao`: marca `horasLiberadas = true` na tarefa ativa
+
+#### `AuthController` — endpoint `/selecionar-sprint`
+- **`back/.../auth/AuthController.java`**
+  - Remoção do vínculo automático durante login
+  - `POST /api/auth/selecionar-sprint` — persiste sprint escolhida via `UserSprint`
+
+#### `TaskController` — novos endpoints
+- **`back/.../controller/TaskController.java`**
+  - `GET /tasks/sprints` — lista sprints disponíveis
+  - `POST /tasks/{id}/liberar-horas` — libera votação de horas para tarefa ativa
+
+#### Configuração
+- **`back/src/main/resources/application.yml`** — ajustes de porta, dialeto Hibernate e variáveis de ambiente
+- **`back/Dockerfile`** e **`back/render.yaml`** — imagem Docker e configuração de deploy no Render.com (criados em 2026-04-13, refinados)
+- **`docker-compose.yml`** — atualização de portas e variáveis de ambiente
+
+---
+
+### Frontend
+
+#### Nova página: Selecionar Sprint
+- **`front/.../pages/selecionar-sprint/selecionar-sprint.ts`** *(novo)*
+  - JOGADOR redirecionado após login para escolher sprint antes de entrar no board
+  - Sprint selecionada salva no `AuthService` e enviada ao backend
+- **`front/.../pages/selecionar-sprint/selecionar-sprint.html`** *(novo)*
+- **`front/.../pages/selecionar-sprint/selecionar-sprint.scss`** *(novo)*
+- **`front/.../app.routes.ts`** — rota `/selecionar-sprint` adicionada
+
+#### Tela de Importação — campo sprint
+- **`front/.../importar-tarefas/importar-tarefas.html`** — coluna sprint adicionada na tabela e campo obrigatório na importação CSV
+- **`front/.../importar-tarefas/importar-tarefas.ts`** — `sprint` incluído no payload de importação
+- **`front/.../importar-tarefas/importar-tarefas.scss`** — estilos para coluna sprint
+
+#### Tela de Estimativas — liberação de horas pelo admin
+- **`front/.../pages/estimation-board/estimation-board.html`** — botão "Liberar Votação de Horas" exibido para ADMIN; estado `aguardando_horas` exibido para jogadores
+- **`front/.../pages/estimation-board/estimation-board.ts`** — `liberarHorasVotacao()` implementado; estado `aguardando_horas` adicionado
+
+#### Infraestrutura
+- **`front/planning-poker/Dockerfile`** *(novo)* — imagem Docker para o frontend Angular
+- **`front/.../environments/environment.ts`** — URL da API atualizada
+- **`.gitignore`** *(novo)* — ignora `node_modules`, `target/`, `.env`, logs e artefatos de build
+
+---
+
+## 2026-04-13 — Configuração de deploy e infraestrutura
+
+### Backend
+- **`back/Dockerfile`** *(novo)* — imagem Docker multi-stage para Spring Boot (JDK 17 → JRE)
+- **`back/render.yaml`** *(novo)* — definição de serviço web no Render.com
+- **`back/.../config/WebConfig.java`** — origens de produção adicionadas ao CORS
+- **`back/.../config/WebSocketConfig.java`** — origens de produção adicionadas ao CORS WebSocket
+- **`back/src/main/resources/application.yml`** — variáveis de ambiente para banco e JWT configuradas para produção
+
+### Frontend
+- **`front/planning-poker/angular.json`** — configurações de build ajustadas para produção
+- **`front/.../environments/environment.prod.ts`** *(novo)* — URL da API de produção (Render.com)
+- **`front/planning-poker/render.yaml`** *(novo)* — definição de site estático no Render.com
+
+### Infra
+- **`docker-compose.yml`** *(novo)* — orquestração local: PostgreSQL na porta 5433, backend na 8081, frontend na 4200
+
+---
+
 ## 2026-04-12 (commit 2) — Tela de espera animada e detecção de finalização por polling
 
 ### Frontend

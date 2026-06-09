@@ -24,4 +24,18 @@ public class EstimationNotificationService {
         payload.put("taskId", taskId.toString());
         messagingTemplate.convertAndSend("/topic/estimativas", payload);
     }
+
+    public void notificarSala(Long salaId, String acao, Long taskId) {
+        messagingTemplate.convertAndSend("/topic/sala/" + salaId + "/estimativas", Map.of(
+                "acao", acao,
+                "taskId", taskId.toString()
+        ));
+    }
+
+    public void notificarSala(Long salaId, String acao, Long taskId, Map<String, Object> extra) {
+        java.util.Map<String, Object> payload = new java.util.HashMap<>(extra);
+        payload.put("acao", acao);
+        payload.put("taskId", taskId.toString());
+        messagingTemplate.convertAndSend("/topic/sala/" + salaId + "/estimativas", payload);
+    }
 }

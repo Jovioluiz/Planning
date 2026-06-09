@@ -28,6 +28,10 @@ public class Task {
     private Instant estimadaEm;
     private Integer rodadaAtual = 1;
 
+    @ManyToOne
+    @JoinColumn(name = "id_sala", nullable = true)
+    private Sala sala;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -75,4 +79,7 @@ public class Task {
 
     public Integer getRodadaAtual() { return rodadaAtual != null ? rodadaAtual : 1; }
     public void setRodadaAtual(Integer rodadaAtual) { this.rodadaAtual = rodadaAtual; }
+
+    public Sala getSala() { return sala; }
+    public void setSala(Sala sala) { this.sala = sala; }
 }
