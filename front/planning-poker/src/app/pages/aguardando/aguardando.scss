@@ -84,6 +84,20 @@
   &:hover { border-color: #ef4444; color: #ef4444; }
 }
 
+.btn-tema {
+  background: transparent;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+  line-height: 1;
+
+  &:hover { border-color: #64748b; color: #e2e8f0; }
+}
+
 /* ── Página ─────────────────────────────────────────────── */
 .aguardando-page {
   min-height: 100vh;
@@ -282,4 +296,33 @@
   text-align: center;
   max-width: 260px;
   line-height: 1.6;
+}
+
+/* ── Tema Claro ──────────────────────────────────────────── */
+.aguardando-page.tema-claro {
+  background: #f1f5f9;
+
+  .title    { color: #0f172a; }
+  .subtitle { color: #475569; }
+
+  .cup {
+    background: linear-gradient(160deg, #4b6b8a 0%, #2d4a6a 55%, #1e3550 100%);
+  }
+
+  .rim {
+    background: linear-gradient(135deg, #5a7a9a, #3a5a7a);
+  }
+
+  .handle {
+    border-color: #3a5a7a;
+  }
+
+  .saucer {
+    background: linear-gradient(160deg, #4b6b8a 0%, #2d4a6a 100%);
+    box-shadow: 0 6px 20px rgba(0,0,0,.2), inset 0 2px 4px rgba(255,255,255,.1);
+  }
+
+  .w1, .w2, .w3 {
+    background: linear-gradient(to top, rgba(71,85,105,.6), transparent);
+  }
 }

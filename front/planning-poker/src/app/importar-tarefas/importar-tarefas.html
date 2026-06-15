@@ -8,6 +8,10 @@
       <span class="brand-role">Moderador</span>
     </div>
     <div class="header-user">
+      <button *ngIf="linkSala" class="btn-copiar-link" (click)="copiarLink()"
+              [class.copiado]="linkCopiado" [title]="linkSala">
+        {{ linkCopiado ? '✓ Copiado!' : '🔗 Copiar link' }}
+      </button>
       <button class="btn-tema" (click)="toggleTema()" [title]="temaEscuro ? 'Mudar para claro' : 'Mudar para escuro'">
         {{ temaEscuro ? '☀️' : '🌙' }}
       </button>
@@ -51,16 +55,6 @@
           <h2 class="card-title">Importar Tarefas</h2>
         </div>
         <div class="card-body import-area">
-          <div class="sprint-input-row">
-            <label class="sprint-input-label" for="sprintImport">Sprint <span class="obrigatorio">*</span></label>
-            <input
-              id="sprintImport"
-              type="text"
-              class="sprint-input"
-              [(ngModel)]="sprintImport"
-              placeholder="Ex: 42"
-              [disabled]="importando" />
-          </div>
           <label class="file-label" [class.loading]="importando">
             <span *ngIf="!importando">📂 Selecionar arquivo CSV</span>
             <span *ngIf="importando" class="importing-row">
@@ -68,7 +62,7 @@
             </span>
             <input type="file" (change)="onFileSelected($event)" accept=".csv" [disabled]="importando" hidden />
           </label>
-          <p class="file-hint">Colunas obrigatórias: <code>numero</code>, <code>titulo</code>, <code>descricao</code>, <code>sprint</code> — separadas por <code>;</code></p>
+          <p class="file-hint">Colunas obrigatórias: <code>numero</code>, <code>titulo</code></p>
         </div>
       </div>
 
@@ -97,9 +91,7 @@
                 <tr>
                   <th class="col-check"></th>
                   <th>Número</th>
-                  <th class="col-sprint">Sprint</th>
-                  <th>Título</th>
-                  <th>Descrição</th>
+                  <th *ngFor="let col of colunasExtras">{{ col }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -113,9 +105,7 @@
                       (click)="$event.stopPropagation()" />
                   </td>
                   <td><span class="badge-num">#{{ t.numero }}</span></td>
-                  <td class="col-sprint"><span class="badge-sprint">{{ t.sprint || '—' }}</span></td>
-                  <td class="td-title">{{ t.titulo }}</td>
-                  <td class="td-desc">{{ t.descricao }}</td>
+                  <td *ngFor="let col of colunasExtras">{{ t.dadosExtras?.[col] ?? '—' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -130,6 +120,253 @@
               <p>Nenhuma tarefa na fila. Importe um CSV para começar.</p>
             </div>
           </ng-template>
+        </div>
+      </div>
+
+      <!-- Tarefa em votação (aparece entre fila e estimadas) -->
+      <div class="card voting-main-card" *ngIf="tarefaEmVotacao">
+        <div class="card-header">
+          <div class="voting-header-left">
+            <h2 class="card-title">Votação Ativa</h2>
+            <span class="status-dot active"></span>
+            <span class="badge-num voting-header-badge">#{{ tarefaEmVotacao.numero }}</span>
+          </div>
+          <div class="timer-display voting-header-timer">
+            <span class="timer-icon">⏱</span>
+            <span class="timer-value">{{ tempoDecorrido }}</span>
+          </div>
+        </div>
+        <div class="card-body voting-main-body">
+          <div class="voting-layout">
+
+            <!-- Coluna esquerda: info + ações -->
+            <div class="voting-left">
+              <div class="voting-task">
+                <h3 class="voting-title">{{ tarefaEmVotacao.titulo }}</h3>
+                <p class="voting-desc">{{ tarefaEmVotacao.descricao }}</p>
+              </div>
+
+              <div class="reveal-actions">
+                <button class="btn btn-primary btn-full"
+                  [disabled]="!podeRevelarPontos || tarefaEmVotacao.pontosRevelados"
+                  (click)="revelarPontos()">
+                  {{ tarefaEmVotacao.pontosRevelados ? '✓ Pontos Revelados' : '👁 Revelar Pontos' }}
+                </button>
+                <button *ngIf="nivelDivergencia === 'divergente' && tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas"
+                  class="btn btn-danger btn-full"
+                  (click)="novaRodada()">
+                  🔄 Nova Rodada
+                </button>
+                <button *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas && nivelDivergencia !== 'divergente'"
+                  class="btn btn-warning btn-full"
+                  (click)="liberarHorasVotacao()">
+                  🕐 Liberar Votação de Horas
+                </button>
+                <button *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas && nivelDivergencia === 'divergente'"
+                  class="btn btn-warning btn-full"
+                  (click)="liberarHorasVotacao()">
+                  🕐 Liberar Horas mesmo assim
+                </button>
+                <button class="btn btn-primary btn-full"
+                  [disabled]="!podeRevelarHoras || tarefaEmVotacao.horasReveladas || !tarefaEmVotacao.horasLiberadas"
+                  (click)="revelarHoras()">
+                  {{ tarefaEmVotacao.horasReveladas ? '✓ Horas Reveladas' : '⏱ Revelar Horas' }}
+                </button>
+              </div>
+
+              <!-- Fase Teste -->
+              <div *ngIf="tarefaEmVotacao.horasReveladas" class="reveal-actions">
+                <button *ngIf="!tarefaEmVotacao.horasTesteLiberadas"
+                  class="btn btn-warning btn-full"
+                  (click)="liberarHorasTeste()">
+                  🧪 Liberar Votação de Teste
+                </button>
+                <button *ngIf="tarefaEmVotacao.horasTesteLiberadas && !tarefaEmVotacao.horasTesteReveladas"
+                  class="btn btn-primary btn-full"
+                  [disabled]="!todosTestadoresVotaram"
+                  (click)="revelarHorasTeste()">
+                  👁 Revelar Horas de Teste
+                </button>
+                <div *ngIf="tarefaEmVotacao.horasTesteLiberadas && !todosTestadoresVotaram && !tarefaEmVotacao.horasTesteReveladas"
+                  class="waiting-hint">
+                  Aguardando testadores votarem...
+                </div>
+              </div>
+
+              <div *ngIf="!podeRevelarPontos && !tarefaEmVotacao.pontosRevelados" class="waiting-hint">
+                Aguardando todos votarem pontos...
+              </div>
+              <div *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas && !tarefaEmVotacao.horasReveladas" class="waiting-hint">
+                Pontos revelados — discuta e clique em "Liberar Votação de Horas" quando pronto.
+              </div>
+              <div *ngIf="tarefaEmVotacao.horasLiberadas && !podeRevelarHoras && !tarefaEmVotacao.horasReveladas" class="waiting-hint">
+                Aguardando todos votarem horas...
+              </div>
+
+              <!-- Banner de consenso/divergência -->
+              <div *ngIf="nivelDivergencia" class="divergencia-banner-side"
+                   [class.side-consenso]="nivelDivergencia === 'consenso'"
+                   [class.side-proximo]="nivelDivergencia === 'proximo'"
+                   [class.side-divergente]="nivelDivergencia === 'divergente'">
+                <span *ngIf="nivelDivergencia === 'consenso'">✅ Consenso total</span>
+                <span *ngIf="nivelDivergencia === 'proximo'">🟡 Consenso próximo</span>
+                <span *ngIf="nivelDivergencia === 'divergente'">🔴 Alta divergência!</span>
+              </div>
+
+              <!-- Ações finais -->
+              <div *ngIf="tarefaEmVotacao.pontosRevelados && tarefaEmVotacao.horasReveladas" class="final-actions">
+                <button class="btn btn-success btn-full" (click)="finalizarVotacao()">
+                  ✓ Finalizar Tarefa
+                </button>
+                <button class="btn btn-warning btn-full" (click)="pularVotacao()">
+                  ↷ Passar sem Estimar
+                </button>
+              </div>
+
+              <div *ngIf="!tarefaEmVotacao.pontosRevelados || !tarefaEmVotacao.horasReveladas" class="skip-action">
+                <button class="btn btn-ghost btn-full" (click)="pularVotacao()">
+                  ↷ Passar sem Estimar
+                </button>
+              </div>
+            </div>
+
+            <!-- Coluna direita: estatísticas + participantes -->
+            <div class="voting-right">
+
+              <!-- Estatísticas de pontos -->
+              <div *ngIf="estatisticasPontos" class="stats-block">
+                <div class="stats-block-header">
+                  <span class="stats-block-icon">📊</span>
+                  <span class="stats-block-title">Estatísticas · Pontos</span>
+                </div>
+                <div class="stats-grid">
+                  <div class="stats-cell">
+                    <span class="stats-cell-label">Média</span>
+                    <span class="stats-cell-value">{{ estatisticasPontos.media }}</span>
+                  </div>
+                  <div class="stats-cell">
+                    <span class="stats-cell-label">Mediana</span>
+                    <span class="stats-cell-value">{{ estatisticasPontos.mediana }}</span>
+                  </div>
+                  <div class="stats-cell">
+                    <span class="stats-cell-label">Mín</span>
+                    <span class="stats-cell-value stats-min">{{ estatisticasPontos.min }}</span>
+                  </div>
+                  <div class="stats-cell">
+                    <span class="stats-cell-label">Máx</span>
+                    <span class="stats-cell-value stats-max">{{ estatisticasPontos.max }}</span>
+                  </div>
+                  <div class="stats-cell">
+                    <span class="stats-cell-label">Spread</span>
+                    <span class="stats-cell-value" [class.stats-spread-high]="estatisticasPontos.spread >= 5">{{ estatisticasPontos.spread }}</span>
+                  </div>
+                  <div class="stats-cell" *ngIf="estatisticasPontos.cafe > 0">
+                    <span class="stats-cell-label">☕ Café</span>
+                    <span class="stats-cell-value stats-cafe">{{ estatisticasPontos.cafe }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Estatísticas de horas -->
+              <div *ngIf="estatisticasHoras" class="stats-block stats-block-horas">
+                <div class="stats-block-header">
+                  <span class="stats-block-icon">⏱</span>
+                  <span class="stats-block-title">Estatísticas · Horas</span>
+                </div>
+                <div class="stats-grid">
+                  <div class="stats-cell">
+                    <span class="stats-cell-label">Média</span>
+                    <span class="stats-cell-value">{{ estatisticasHoras.media }}h</span>
+                  </div>
+                  <div class="stats-cell">
+                    <span class="stats-cell-label">Mediana</span>
+                    <span class="stats-cell-value">{{ estatisticasHoras.mediana }}h</span>
+                  </div>
+                  <div class="stats-cell">
+                    <span class="stats-cell-label">Mín</span>
+                    <span class="stats-cell-value stats-min">{{ estatisticasHoras.min }}h</span>
+                  </div>
+                  <div class="stats-cell">
+                    <span class="stats-cell-label">Máx</span>
+                    <span class="stats-cell-value stats-max">{{ estatisticasHoras.max }}h</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Testadores -->
+              <div *ngIf="estimativasTeste.length > 0" class="participants">
+                <h4 class="participants-title">🧪 Testadores</h4>
+                <div *ngFor="let est of estimativasTeste" class="participant-row">
+                  <span class="participant-name">{{ est.participante }}</span>
+                  <span class="participant-vote">
+                    <ng-container *ngIf="tarefaEmVotacao.horasTesteReveladas; else votoOculto">
+                      {{ est.horasTeste !== null && est.horasTeste !== undefined ? est.horasTeste + 'h' : '—' }}
+                    </ng-container>
+                    <ng-template #votoOculto>
+                      <span *ngIf="est.horasTeste !== null && est.horasTeste !== undefined" class="voto-confirmado">✓</span>
+                      <span *ngIf="est.horasTeste === null || est.horasTeste === undefined">—</span>
+                    </ng-template>
+                  </span>
+                </div>
+                <div *ngIf="tarefaEmVotacao.horasTesteReveladas && mediaHorasTeste !== null" class="teste-media-row">
+                  <span class="teste-media-label">Média</span>
+                  <span class="teste-media-valor">{{ mediaHorasTeste }}h</span>
+                </div>
+              </div>
+
+              <!-- Rodada anterior como referência -->
+              <div class="participants previous-round-ref" *ngIf="estimativasRodadaAnterior.length > 0">
+                <h4 class="participants-title previous-round-label">
+                  Rodada {{ rodadaAtualNum - 1 }} — Referência
+                </h4>
+                <div class="participant-row participant-previous" *ngFor="let est of estimativasRodadaAnterior">
+                  <span class="participant-name">{{ est.participante }}</span>
+                  <span class="participant-vote">{{ est.pontos }}</span>
+                  <span class="participant-hours">—</span>
+                </div>
+              </div>
+
+              <!-- Participantes que já votaram -->
+              <div class="participants" *ngIf="estimativasRodadaAtual.length > 0">
+                <h4 class="participants-title">
+                  Votaram
+                  <span *ngIf="rodadaAtualNum > 1" class="round-badge">Rodada {{ rodadaAtualNum }}</span>
+                </h4>
+                <div class="participant-row" *ngFor="let est of estimativasRodadaAtual"
+                     [class.row-otimista]="classificarVoto(est.pontos) === 'otimista'"
+                     [class.row-pessimista]="classificarVoto(est.pontos) === 'pessimista'">
+                  <span class="participant-name">
+                    {{ est.participante }}
+                    <span *ngIf="classificarVoto(est.pontos) === 'otimista'" class="tag-voto tag-otimista">⬇</span>
+                    <span *ngIf="classificarVoto(est.pontos) === 'pessimista'" class="tag-voto tag-pessimista">⬆</span>
+                  </span>
+                  <span class="participant-vote">{{ est.pontos }}</span>
+                  <span class="participant-hours">{{ est.horas !== null ? est.horas : '—' }}</span>
+                  <span class="participant-tempo" [title]="'Pontos: ' + formatarTempo(est.segundosPontos) + ' | Horas: ' + formatarTempo(est.segundosHoras)">
+                    ⏱ {{ formatarTempo(est.segundosPontos) }}
+                  </span>
+                  <button class="btn-remove-participant" title="Remover da votação"
+                    (click)="removerParticipante(est.participante)">✕</button>
+                </div>
+                <div class="participants-legend">
+                  <span>Pontos</span>
+                  <span>Horas</span>
+                  <span>Tempo</span>
+                </div>
+              </div>
+
+              <!-- Quem ainda não votou -->
+              <div class="pending-voters" *ngIf="quemNaoVotou.length > 0">
+                <h4 class="participants-title pending-title">Aguardando</h4>
+                <div class="pending-name" *ngFor="let nome of quemNaoVotou">
+                  <span class="dot-pending"></span>{{ nome }}
+                  <button class="btn-skip-participant" title="Skipar este participante"
+                    (click)="removerParticipante(nome)">Skipar</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
         </div>
       </div>
 
@@ -157,21 +394,23 @@
             <thead>
               <tr>
                 <th>Número</th>
-                <th>Título</th>
-                <th>Descrição</th>
+                <th *ngFor="let col of colunasExtras">{{ col }}</th>
                 <th class="col-horas-est">Horas (média)</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let tarefa of tarefasEstimadasDaSprintAtual">
-                <td><span class="badge-num">#{{ tarefa.numero }}</span></td>
-                <td>{{ tarefa.titulo }}</td>
-                <td class="td-desc">{{ tarefa.descricao }}</td>
+              <tr *ngFor="let tarefa of tarefasEstimadasDaSprintAtual"
+                  [class.row-pulada]="tarefa.pulada">
+                <td>
+                  <span class="badge-num">#{{ tarefa.numero }}</span>
+                  <span *ngIf="tarefa.pulada" class="badge-pulada">Sem estimativa</span>
+                </td>
+                <td *ngFor="let col of colunasExtras">{{ tarefa.dadosExtras?.[col] ?? '—' }}</td>
                 <td class="col-horas-est td-horas-est">
-                  <span *ngIf="(horasFinaisPorTarefa.get(tarefa.id) ?? 0) > 0">
+                  <span *ngIf="!tarefa.pulada && (horasFinaisPorTarefa.get(tarefa.id) ?? 0) > 0">
                     {{ horasFinaisPorTarefa.get(tarefa.id) }}h
                   </span>
-                  <span *ngIf="(horasFinaisPorTarefa.get(tarefa.id) ?? 0) === 0" class="td-sem-horas">—</span>
+                  <span *ngIf="tarefa.pulada || (horasFinaisPorTarefa.get(tarefa.id) ?? 0) === 0" class="td-sem-horas">—</span>
                 </td>
               </tr>
             </tbody>
@@ -209,210 +448,6 @@
         </div>
       </div>
 
-      <div class="card side-card">
-        <div class="card-header">
-          <h2 class="card-title">Votação Ativa</h2>
-          <span class="status-dot" [class.active]="tarefaEmVotacao !== null"></span>
-        </div>
-        <div class="card-body">
-
-          <div *ngIf="tarefaEmVotacao; else semVotacao">
-            <div class="voting-task">
-              <span class="badge-num">#{{ tarefaEmVotacao.numero }}</span>
-              <h3 class="voting-title">{{ tarefaEmVotacao.titulo }}</h3>
-              <p class="voting-desc">{{ tarefaEmVotacao.descricao }}</p>
-              <div class="timer-display">
-                <span class="timer-icon">⏱</span>
-                <span class="timer-value">{{ tempoDecorrido }}</span>
-              </div>
-            </div>
-
-            <div class="reveal-actions">
-              <button class="btn btn-primary btn-full"
-                [disabled]="!podeRevelarPontos || tarefaEmVotacao.pontosRevelados"
-                (click)="revelarPontos()">
-                {{ tarefaEmVotacao.pontosRevelados ? '✓ Pontos Revelados' : '👁 Revelar Pontos' }}
-              </button>
-              <button *ngIf="nivelDivergencia === 'divergente' && tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas"
-                class="btn btn-danger btn-full"
-                (click)="novaRodada()">
-                🔄 Nova Rodada
-              </button>
-              <button *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas && nivelDivergencia !== 'divergente'"
-                class="btn btn-warning btn-full"
-                (click)="liberarHorasVotacao()">
-                🕐 Liberar Votação de Horas
-              </button>
-              <button *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas && nivelDivergencia === 'divergente'"
-                class="btn btn-warning btn-full"
-                (click)="liberarHorasVotacao()">
-                🕐 Liberar Horas mesmo assim
-              </button>
-              <button class="btn btn-primary btn-full"
-                [disabled]="!podeRevelarHoras || tarefaEmVotacao.horasReveladas || !tarefaEmVotacao.horasLiberadas"
-                (click)="revelarHoras()">
-                {{ tarefaEmVotacao.horasReveladas ? '✓ Horas Reveladas' : '⏱ Revelar Horas' }}
-              </button>
-            </div>
-
-            <!-- Estatísticas de pontos (exibidas após revelar pontos) -->
-            <div *ngIf="estatisticasPontos" class="stats-block">
-              <div class="stats-block-header">
-                <span class="stats-block-icon">📊</span>
-                <span class="stats-block-title">Estatísticas · Pontos</span>
-              </div>
-              <div class="stats-grid">
-                <div class="stats-cell">
-                  <span class="stats-cell-label">Média</span>
-                  <span class="stats-cell-value">{{ estatisticasPontos.media }}</span>
-                </div>
-                <div class="stats-cell">
-                  <span class="stats-cell-label">Mediana</span>
-                  <span class="stats-cell-value">{{ estatisticasPontos.mediana }}</span>
-                </div>
-                <div class="stats-cell">
-                  <span class="stats-cell-label">Mín</span>
-                  <span class="stats-cell-value stats-min">{{ estatisticasPontos.min }}</span>
-                </div>
-                <div class="stats-cell">
-                  <span class="stats-cell-label">Máx</span>
-                  <span class="stats-cell-value stats-max">{{ estatisticasPontos.max }}</span>
-                </div>
-                <div class="stats-cell">
-                  <span class="stats-cell-label">Spread</span>
-                  <span class="stats-cell-value" [class.stats-spread-high]="estatisticasPontos.spread >= 5">{{ estatisticasPontos.spread }}</span>
-                </div>
-                <div class="stats-cell" *ngIf="estatisticasPontos.cafe > 0">
-                  <span class="stats-cell-label">☕ Café</span>
-                  <span class="stats-cell-value stats-cafe">{{ estatisticasPontos.cafe }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Estatísticas de horas (exibidas após revelar horas) -->
-            <div *ngIf="estatisticasHoras" class="stats-block stats-block-horas">
-              <div class="stats-block-header">
-                <span class="stats-block-icon">⏱</span>
-                <span class="stats-block-title">Estatísticas · Horas</span>
-              </div>
-              <div class="stats-grid">
-                <div class="stats-cell">
-                  <span class="stats-cell-label">Média</span>
-                  <span class="stats-cell-value">{{ estatisticasHoras.media }}h</span>
-                </div>
-                <div class="stats-cell">
-                  <span class="stats-cell-label">Mediana</span>
-                  <span class="stats-cell-value">{{ estatisticasHoras.mediana }}h</span>
-                </div>
-                <div class="stats-cell">
-                  <span class="stats-cell-label">Mín</span>
-                  <span class="stats-cell-value stats-min">{{ estatisticasHoras.min }}h</span>
-                </div>
-                <div class="stats-cell">
-                  <span class="stats-cell-label">Máx</span>
-                  <span class="stats-cell-value stats-max">{{ estatisticasHoras.max }}h</span>
-                </div>
-              </div>
-            </div>
-
-            <div *ngIf="!podeRevelarPontos && !tarefaEmVotacao.pontosRevelados" class="waiting-hint">
-              Aguardando todos votarem pontos...
-            </div>
-            <div *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas && !tarefaEmVotacao.horasReveladas" class="waiting-hint">
-              Pontos revelados — discuta e clique em "Liberar Votação de Horas" quando pronto.
-            </div>
-            <div *ngIf="tarefaEmVotacao.horasLiberadas && !podeRevelarHoras && !tarefaEmVotacao.horasReveladas" class="waiting-hint">
-              Aguardando todos votarem horas...
-            </div>
-
-            <!-- Ações finais (visíveis após ambas as revelações) -->
-            <div *ngIf="tarefaEmVotacao.pontosRevelados && tarefaEmVotacao.horasReveladas" class="final-actions">
-              <button class="btn btn-success btn-full" (click)="finalizarVotacao()">
-                ✓ Finalizar Tarefa
-              </button>
-              <button class="btn btn-warning btn-full" (click)="pularVotacao()">
-                ↷ Passar sem Estimar
-              </button>
-            </div>
-
-            <!-- Pular também disponível antes do reveal completo -->
-            <div *ngIf="!tarefaEmVotacao.pontosRevelados || !tarefaEmVotacao.horasReveladas" class="skip-action">
-              <button class="btn btn-ghost btn-full" (click)="pularVotacao()">
-                ↷ Passar sem Estimar
-              </button>
-            </div>
-
-            <!-- Banner de consenso/divergência (após revelar pontos) -->
-            <div *ngIf="nivelDivergencia" class="divergencia-banner-side"
-                 [class.side-consenso]="nivelDivergencia === 'consenso'"
-                 [class.side-proximo]="nivelDivergencia === 'proximo'"
-                 [class.side-divergente]="nivelDivergencia === 'divergente'">
-              <span *ngIf="nivelDivergencia === 'consenso'">✅ Consenso total</span>
-              <span *ngIf="nivelDivergencia === 'proximo'">🟡 Consenso próximo</span>
-              <span *ngIf="nivelDivergencia === 'divergente'">🔴 Alta divergência!</span>
-            </div>
-
-            <!-- Rodada anterior como referência (visível após nova-rodada) -->
-            <div class="participants previous-round-ref" *ngIf="estimativasRodadaAnterior.length > 0">
-              <h4 class="participants-title previous-round-label">
-                Rodada {{ rodadaAtualNum - 1 }} — Referência
-              </h4>
-              <div class="participant-row participant-previous" *ngFor="let est of estimativasRodadaAnterior">
-                <span class="participant-name">{{ est.participante }}</span>
-                <span class="participant-vote">{{ est.pontos }}</span>
-                <span class="participant-hours">—</span>
-              </div>
-            </div>
-
-            <!-- Participantes que já votaram (rodada atual) -->
-            <div class="participants" *ngIf="estimativasRodadaAtual.length > 0">
-              <h4 class="participants-title">
-                Votaram
-                <span *ngIf="rodadaAtualNum > 1" class="round-badge">Rodada {{ rodadaAtualNum }}</span>
-              </h4>
-              <div class="participant-row" *ngFor="let est of estimativasRodadaAtual"
-                   [class.row-otimista]="classificarVoto(est.pontos) === 'otimista'"
-                   [class.row-pessimista]="classificarVoto(est.pontos) === 'pessimista'">
-                <span class="participant-name">
-                  {{ est.participante }}
-                  <span *ngIf="classificarVoto(est.pontos) === 'otimista'" class="tag-voto tag-otimista">⬇</span>
-                  <span *ngIf="classificarVoto(est.pontos) === 'pessimista'" class="tag-voto tag-pessimista">⬆</span>
-                </span>
-                <span class="participant-vote">{{ est.pontos }}</span>
-                <span class="participant-hours">{{ est.horas !== null ? est.horas : '—' }}</span>
-                <span class="participant-tempo" [title]="'Pontos: ' + formatarTempo(est.segundosPontos) + ' | Horas: ' + formatarTempo(est.segundosHoras)">
-                  ⏱ {{ formatarTempo(est.segundosPontos) }}
-                </span>
-                <button class="btn-remove-participant" title="Remover da votação"
-                  (click)="removerParticipante(est.participante)">✕</button>
-              </div>
-              <div class="participants-legend">
-                <span>Pontos</span>
-                <span>Horas</span>
-                <span>Tempo</span>
-              </div>
-            </div>
-
-            <!-- Quem ainda não votou -->
-            <div class="pending-voters" *ngIf="quemNaoVotou.length > 0">
-              <h4 class="participants-title pending-title">Aguardando</h4>
-              <div class="pending-name" *ngFor="let nome of quemNaoVotou">
-                <span class="dot-pending"></span>{{ nome }}
-                <button class="btn-skip-participant" title="Skipar este participante"
-                  (click)="removerParticipante(nome)">Skipar</button>
-              </div>
-            </div>
-          </div>
-
-          <ng-template #semVotacao>
-            <div class="empty-state">
-              <span>🎯</span>
-              <p>Nenhuma tarefa em votação.<br>Selecione uma tarefa da fila e clique em <strong>Iniciar Votação</strong>.</p>
-            </div>
-          </ng-template>
-
-        </div>
-      </div>
     </aside>
 
   </div>

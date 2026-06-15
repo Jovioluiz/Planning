@@ -2,6 +2,7 @@ package com.planningapp.service;
 
 import com.planningapp.dto.SalaDTO;
 import com.planningapp.entity.*;
+import com.planningapp.entity.enums.TipoPerfil;
 import com.planningapp.repository.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,11 +48,13 @@ public class SalaService {
 
         if (!salaMembroRepository.existsBySalaAndUsuario(sala, usuario)) {
             salaMembroRepository.save(new SalaMembro(sala, usuario));
-            // Vincula o novo membro às tarefas não estimadas da sala
-            taskRepository.findBySalaAndEstimadaFalseAndLiberadaFalseOrderByIdAsc(sala)
-                    .forEach(t -> adicionarParticipante(t.getId(), usuario));
-            taskRepository.findBySalaAndEstimadaFalseAndLiberadaTrueOrderByIdAsc(sala)
-                    .forEach(t -> adicionarParticipante(t.getId(), usuario));
+            // Vincula apenas JOGADORs às tarefas — observadores não votam
+            if (usuario.getTipoPerfil() == TipoPerfil.JOGADOR) {
+                taskRepository.findBySalaAndEstimadaFalseAndLiberadaFalseOrderByIdAsc(sala)
+                        .forEach(t -> adicionarParticipante(t.getId(), usuario));
+                taskRepository.findBySalaAndEstimadaFalseAndLiberadaTrueOrderByIdAsc(sala)
+                        .forEach(t -> adicionarParticipante(t.getId(), usuario));
+            }
         }
 
         return sala;

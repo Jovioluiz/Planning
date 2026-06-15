@@ -48,7 +48,8 @@
               <label for="usuario">Usuário</label>
               <div class="input-wrap">
                 <span class="input-icon">👤</span>
-                <input id="usuario" type="text" [(ngModel)]="usuario" name="usuario"
+                <input id="usuario" type="text" [ngModel]="usuario" name="usuario"
+                       (ngModelChange)="onUsuarioChange($event)"
                        placeholder="Seu nome de usuário" [disabled]="entrando" />
               </div>
             </div>
@@ -69,6 +70,7 @@
                 <select id="perfil" [(ngModel)]="perfil" name="perfil" [disabled]="entrando">
                   <option value="JOGADOR">Player</option>
                   <option value="OBSERVADOR">Observador</option>
+                  <option value="TESTE">Testador</option>
                 </select>
               </div>
             </div>

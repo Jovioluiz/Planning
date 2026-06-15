@@ -1,4 +1,4 @@
-<div class="aguardando-page" [class.sala-encerrada-mode]="salaEncerrada">
+<div class="aguardando-page" [class.sala-encerrada-mode]="salaEncerrada" [class.tema-claro]="!temaEscuro">
 
   <!-- ── Header ──────────────────────────────────────── -->
   <header class="aguardando-header">
@@ -9,6 +9,9 @@
     <div class="header-user">
       <span class="user-avatar">{{ (usuario || 'U')[0].toUpperCase() }}</span>
       <span class="user-name">{{ usuario }}</span>
+      <button class="btn-tema" (click)="toggleTema()" [title]="temaEscuro ? 'Mudar para claro' : 'Mudar para escuro'">
+        {{ temaEscuro ? '☀️' : '🌙' }}
+      </button>
       <button class="btn-logout" (click)="logout()">Sair</button>
     </div>
   </header>

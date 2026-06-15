@@ -8,6 +8,7 @@ import { AuthService } from '../services/auth.service';
 import { TaskService, ITask } from '../services/task.service';
 import { EstimationService } from '../services/estimation.service';
 import { WebSocketService } from '../websocket/websocket.service';
+import { SalaService } from '../services/sala.service';
 
 @Component({
   selector: 'app-importar-tarefas',
@@ -26,9 +27,10 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   participantesTarefa: string[] = [];
   podeRevelarPontos = false;
   podeRevelarHoras = false;
+  estimativasTeste: any[] = [];
+  todosTestadoresVotaram = false;
   importando = false;
   tarefaSelecionadaId: number | null = null;
-  sprintImport = '';
 
   mensagem = '';
   mensagemTipo: 'sucesso' | 'erro' | '' = '';
@@ -38,6 +40,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   usuariosOnline: string[] = [];
   temaEscuro = localStorage.getItem('tema') === 'escuro';
   horasFinaisPorTarefa = new Map<number, number>();
+  linkCopiado = false;
 
   private pollInterval: any = null;
   private timerInterval: any = null;
@@ -49,13 +52,15 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     private estimationService: EstimationService,
     private cdr: ChangeDetectorRef,
     private injector: EnvironmentInjector,
-    private wsService: WebSocketService
+    private wsService: WebSocketService,
+    private salaService: SalaService
   ) {}
 
   get sprintAtual(): string | null {
-    return this.tarefaEmVotacao?.sprint
+    const s = this.tarefaEmVotacao?.sprint
       ?? this.tarefasFila[0]?.sprint
       ?? null;
+    return s || null;
   }
 
   get tarefasEstimadasDaSprintAtual(): any[] {
@@ -176,30 +181,26 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     return { media, mediana, min: valores[0], max: valores[valores.length - 1] };
   }
 
-  private topicSessoes = '/topic/sessoes';
+  // Tópico global — recebe USUARIO_CONECTADO / USUARIO_DESCONECTADO
+  private readonly topicSessoes = '/topic/sessoes';
+  // Tópico de sala — recebe SALA_INATIVADA (só existe quando há salaId)
+  private topicSalaEventos: string | null = null;
 
   ngOnInit(): void {
     this.usuario = this.auth.getUsuario();
 
     const salaId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('salaId') : null;
     if (salaId) {
-      this.topicSessoes = `/topic/sala/${salaId}/sessoes`;
+      this.topicSalaEventos = `/topic/sala/${salaId}/sessoes`;
     }
 
     this.carregarListas();
     this.carregarTarefaEmVotacao();
     this.carregarUsuariosOnline();
+
+    // Eventos globais de presença (USUARIO_CONECTADO / USUARIO_DESCONECTADO)
     this.wsService.subscribe(this.topicSessoes, (msg) => {
       const data = JSON.parse(msg.body);
-      if (data.acao === 'SALA_INATIVADA') {
-        if (typeof sessionStorage !== 'undefined') {
-          sessionStorage.removeItem('salaId');
-          sessionStorage.removeItem('salaCodigo');
-          sessionStorage.removeItem('salaNome');
-        }
-        this.router.navigate(['/salas']);
-        return;
-      }
       if (data.acao === 'USUARIO_CONECTADO' && !this.usuariosOnline.includes(data.usuario)) {
         this.usuariosOnline = [...this.usuariosOnline, data.usuario];
       } else if (data.acao === 'USUARIO_DESCONECTADO') {
@@ -207,12 +208,33 @@ export class ImportarTarefas implements OnInit, OnDestroy {
       }
       this.cdr.detectChanges();
     });
-    // Polling a cada 5s para atualizar status dos votos em tempo real
-    this.pollInterval = setInterval(() => this.atualizarStatusVotacao(), 5000);
+
+    // Eventos específicos da sala (SALA_INATIVADA)
+    if (this.topicSalaEventos) {
+      this.wsService.subscribe(this.topicSalaEventos, (msg) => {
+        const data = JSON.parse(msg.body);
+        if (data.acao === 'SALA_INATIVADA') {
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.removeItem('salaId');
+            sessionStorage.removeItem('salaCodigo');
+            sessionStorage.removeItem('salaNome');
+          }
+          this.router.navigate(['/salas']);
+        }
+        this.cdr.detectChanges();
+      });
+    }
+
+    // Polling a cada 5s: atualiza votos e refresca lista de online como fallback
+    this.pollInterval = setInterval(() => {
+      this.atualizarStatusVotacao();
+      this.carregarUsuariosOnline();
+    }, 5000);
   }
 
   ngOnDestroy(): void {
     this.wsService.unsubscribe(this.topicSessoes);
+    if (this.topicSalaEventos) this.wsService.unsubscribe(this.topicSalaEventos);
     if (this.pollInterval) clearInterval(this.pollInterval);
     if (this.timerInterval) clearInterval(this.timerInterval);
   }
@@ -248,7 +270,23 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     this.carregarParticipantesTarefa(id);
     this.carregarResumoVotos(id, () => this.verificarLiberacoes(id));
     this.taskService.getTaskById(id.toString()).subscribe({
-      next: (t) => { this.tarefaEmVotacao = t; this.cdr.detectChanges(); },
+      next: (t) => {
+        if (t.estimada) {
+          // Tarefa foi finalizada — limpa o painel de votação
+          this.tarefaEmVotacao = null;
+          this.estimativas = [];
+          this.participantesTarefa = [];
+          this.podeRevelarPontos = false;
+          this.podeRevelarHoras = false;
+          this.tempoDecorrido = '00:00';
+          if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
+          this.carregarListas();
+        } else {
+          this.tarefaEmVotacao = t;
+          if (t.horasTesteLiberadas) this.atualizarEstimativasTeste();
+        }
+        this.cdr.detectChanges();
+      },
       error: () => {}
     });
   }
@@ -272,75 +310,111 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     }, 5000);
   }
 
+  get colunasExtras(): string[] {
+    const primeira = [...this.tarefasFila, ...this.tarefasEstimadas]
+      .find(t => t.dadosExtras && Object.keys(t.dadosExtras).length > 0);
+    return primeira?.dadosExtras ? Object.keys(primeira.dadosExtras) : [];
+  }
+
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-
     if (!file) return;
 
-    if (!this.sprintImport.trim()) {
-      this.mensagem = 'Informe a Sprint antes de importar.';
-      this.mensagemTipo = 'erro';
-      this.cdr.detectChanges();
-      setTimeout(() => { this.mensagem = ''; this.mensagemTipo = ''; this.cdr.detectChanges(); }, 5000);
-      input.value = '';
-      return;
-    }
-
     this.importando = true;
-    this.cdr.detectChanges(); // força o "Importando..." aparecer imediatamente
+    this.cdr.detectChanges();
 
-    Papa.parse(file, {
-      header: true,
-      delimiter: ';',
-      skipEmptyLines: true,
-      complete: (result: { data: any[] }) => {
-        const dados = result.data
-          .filter((t: any) => t.numero && t.titulo && t.descricao)
-          .map((t: any) => ({
-            numero: Number(t.numero),  // CSV retorna strings; backend espera Long
-            titulo: String(t.titulo).trim(),
-            descricao: String(t.descricao).trim(),
-            sprint: this.sprintImport.trim() || null
-          }))
-          .filter((t: any) => !isNaN(t.numero) && t.numero > 0);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const buffer = e.target?.result as ArrayBuffer;
+      let texto: string;
+      try {
+        texto = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+        if (texto.charCodeAt(0) === 0xFEFF) texto = texto.slice(1); // remove BOM UTF-8
+      } catch {
+        texto = new TextDecoder('windows-1252').decode(buffer);
+      }
 
-        if (dados.length === 0) {
+      Papa.parse(texto, {
+        header: true,
+        delimiter: ';',
+        skipEmptyLines: true,
+        complete: (result: { data: any[]; meta: { fields?: string[] } }) => {
+          const campos = (result.meta.fields ?? []).map((f: string) => f.toLowerCase());
+          const faltando = ['numero', 'titulo'].filter(c => !campos.includes(c));
+          if (faltando.length > 0) {
+            this.importando = false;
+            this.exibirMensagem(`Colunas obrigatórias ausentes no CSV: ${faltando.join(', ')}`, 'erro');
+            this.cdr.detectChanges();
+            input.value = '';
+            return;
+          }
+
+          const dados = result.data
+            .map((t: any) => {
+              // Todas as colunas exceto 'numero' viram dadosExtras para exibição dinâmica
+              const dadosExtras: Record<string, string> = {};
+              Object.keys(t).forEach(key => {
+                if (key.toLowerCase() !== 'numero' && t[key] !== '' && t[key] != null) {
+                  dadosExtras[key] = String(t[key]).trim();
+                }
+              });
+              const tarefa: any = {
+                numero: Number(t.numero ?? t.Numero ?? t.NUMERO),
+                // Campos dedicados mapeados para funcionamento do voting board
+                titulo: (t.titulo ?? t.Titulo ?? t.TITULO ?? '').toString().trim(),
+                descricao: (t.descricao ?? t.Descricao ?? t.DESCRICAO ?? '').toString().trim(),
+                sprint: (t.sprint ?? t.Sprint ?? t.SPRINT ?? '').toString().trim()
+              };
+              if (Object.keys(dadosExtras).length > 0) tarefa.dadosExtras = dadosExtras;
+              return tarefa;
+            })
+            .filter((t: any) => !isNaN(t.numero) && t.numero > 0);
+
+          if (dados.length === 0) {
+            this.importando = false;
+            this.cdr.detectChanges();
+            input.value = '';
+            return;
+          }
+
+          this.taskService.importarCSVSala(dados).subscribe({
+            next: (res: any) => {
+              const msg = res?.message ?? `${dados.length} tarefa(s) importada(s) com sucesso!`;
+              this.exibirMensagem(msg, 'sucesso');
+              this.tarefaSelecionadaId = null;
+              this.importando = false;
+              this.carregarListas();
+              this.cdr.detectChanges();
+              input.value = '';
+            },
+            error: (err: any) => {
+              const msg = err?.error?.message
+                ?? (err?.error?.errors ? 'Validação: ' + Object.values(err.error.errors).join('; ') : null)
+                ?? `Erro ${err?.status ?? ''}: falha ao importar tarefas.`;
+              this.exibirMensagem(msg, 'erro');
+              this.importando = false;
+              this.carregarListas();
+              this.cdr.detectChanges();
+              input.value = '';
+            }
+          });
+        },
+        error: () => {
           this.importando = false;
           this.cdr.detectChanges();
-          this.exibirMensagem('Nenhuma tarefa válida encontrada no CSV. Verifique as colunas: numero, titulo, descricao.', 'erro');
+          this.exibirMensagem('Falha ao processar o arquivo CSV.', 'erro');
           input.value = '';
-          return;
         }
-
-        this.taskService.importarCSVSala(dados).subscribe({
-          next: (res: any) => {
-            const msg = res?.message ?? `${dados.length} tarefa(s) importada(s) com sucesso!`;
-            this.exibirMensagem(msg, 'sucesso');
-            this.tarefaSelecionadaId = null;
-            this.importando = false;
-            this.cdr.detectChanges();
-            this.carregarFilaTarefas();
-            this.carregarListas();
-            input.value = '';
-          },
-          error: (err: any) => {
-            const msg = err?.error?.message
-              ?? (err?.error?.errors ? 'Validação: ' + Object.values(err.error.errors).join('; ') : null)
-              ?? `Erro ${err?.status ?? ''}: falha ao importar tarefas.`;
-            this.exibirMensagem(msg, 'erro');
-            this.importando = false;
-            this.cdr.detectChanges();
-            input.value = '';
-          }
-        });
-      },
-      error: () => {
-        this.importando = false;
-        this.cdr.detectChanges();
-        this.exibirMensagem('Falha ao processar o arquivo CSV.', 'erro');
-      }
-    });
+      });
+    };
+    reader.onerror = () => {
+      this.importando = false;
+      this.cdr.detectChanges();
+      this.exibirMensagem('Falha ao ler o arquivo.', 'erro');
+      input.value = '';
+    };
+    reader.readAsArrayBuffer(file);
   }
 
   // ─── Seleção de tarefa (comportamento de radio) ───────────
@@ -649,10 +723,57 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     if (!this.tarefaEmVotacao) return;
     this.estimationService.novaRodada(this.tarefaEmVotacao.id.toString()).subscribe({
       next: () => {
+        this.estimativasTeste = [];
+        this.todosTestadoresVotaram = false;
         this.carregarTarefaEmVotacao();
         this.carregarResumoVotos(this.tarefaEmVotacao!.id, () => this.verificarLiberacoes(this.tarefaEmVotacao!.id));
       },
       error: () => this.exibirMensagem('Erro ao iniciar nova rodada.', 'erro')
+    });
+  }
+
+  get mediaHorasTeste(): number | null {
+    const valores = this.estimativasTeste
+      .map((e: any) => e.horasTeste)
+      .filter((h: any): h is number => h !== null && h !== undefined && typeof h === 'number' && h > 0);
+    if (!valores.length) return null;
+    return Math.round(valores.reduce((a, b) => a + b, 0) / valores.length * 10) / 10;
+  }
+
+  atualizarEstimativasTeste(): void {
+    if (!this.tarefaEmVotacao) return;
+    this.estimationService.listarTeste(this.tarefaEmVotacao.id.toString()).subscribe({
+      next: (res) => {
+        this.estimativasTeste = res;
+        this.estimationService.todosTestadoresVotaram(this.tarefaEmVotacao!.id.toString()).subscribe({
+          next: (todos) => { this.todosTestadoresVotaram = todos; this.cdr.detectChanges(); },
+          error: () => {}
+        });
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  liberarHorasTeste(): void {
+    if (!this.tarefaEmVotacao) return;
+    this.taskService.liberarHorasTesteSala(this.tarefaEmVotacao.id.toString()).subscribe({
+      next: () => {
+        this.carregarTarefaEmVotacao();
+        this.exibirMensagem('Votação de teste liberada!', 'sucesso');
+      },
+      error: () => this.exibirMensagem('Erro ao liberar votação de teste.', 'erro')
+    });
+  }
+
+  revelarHorasTeste(): void {
+    if (!this.tarefaEmVotacao) return;
+    this.estimationService.revelarHorasTeste(this.tarefaEmVotacao.id.toString()).subscribe({
+      next: () => {
+        this.atualizarEstimativasTeste();
+        this.carregarTarefaEmVotacao();
+      },
+      error: () => this.exibirMensagem('Erro ao revelar horas de teste.', 'erro')
     });
   }
 
@@ -666,6 +787,21 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   toggleTema(): void {
     this.temaEscuro = !this.temaEscuro;
     localStorage.setItem('tema', this.temaEscuro ? 'escuro' : 'claro');
+  }
+
+  get linkSala(): string | null {
+    const codigo = this.salaService.getSalaCodigo();
+    return codigo ? this.salaService.getLinkCompartilhavel(codigo) : null;
+  }
+
+  copiarLink(): void {
+    const link = this.linkSala;
+    if (!link) return;
+    navigator.clipboard.writeText(link).then(() => {
+      this.linkCopiado = true;
+      this.cdr.detectChanges();
+      setTimeout(() => { this.linkCopiado = false; this.cdr.detectChanges(); }, 2000);
+    });
   }
 
   logout(): void {

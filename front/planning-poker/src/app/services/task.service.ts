@@ -15,9 +15,13 @@ export interface ITask {
   pontosRevelados?: boolean;
   horasReveladas?: boolean;
   horasLiberadas?: boolean;
+  horasTesteLiberadas?: boolean;
+  horasTesteReveladas?: boolean;
   sprint?: string;
   liberadaEm?: string;
   rodadaAtual?: number;
+  pulada?: boolean;
+  dadosExtras?: Record<string, any>;
 }
 
 @Injectable({
@@ -88,6 +92,10 @@ export class TaskService {
     return this.http.post(`${this.url}/${id}/liberar-horas`, {}, this.authOptions);
   }
 
+  liberarHorasTeste(id: string): Observable<any> {
+    return this.http.post(`${this.url}/${id}/liberar-horas-teste`, {}, this.authOptions);
+  }
+
   getSprints(): Observable<string[]> {
     return this.http.get<string[]>(`${this.url}/sprints`, this.authOptions);
   }
@@ -156,6 +164,12 @@ export class TaskService {
     const url = this.salaPrefix;
     if (!url) return this.liberarHorasVotacao(id);
     return this.http.post(`${url}/${id}/liberar-horas`, {}, this.authOptions);
+  }
+
+  liberarHorasTesteSala(id: string): Observable<any> {
+    const url = this.salaPrefix;
+    if (!url) return this.liberarHorasTeste(id);
+    return this.http.post(`${url}/${id}/liberar-horas-teste`, {}, this.authOptions);
   }
 
   removerParticipanteSala(taskId: string, participante: string): Observable<any> {

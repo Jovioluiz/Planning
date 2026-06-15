@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -34,15 +35,20 @@ public class EstimationController {
     @Autowired private com.planningapp.repository.TaskParticipantRepository participantRepository;
 
     @GetMapping("/listar")
-    public List<EstimativaResponseDTO> listarEstimativas(@PathVariable Long taskId) {
+    public List<EstimativaResponseDTO> listarEstimativas(@PathVariable Long taskId, Authentication auth) {
+        boolean isObservador = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_OBSERVADOR"));
+        boolean isTeste = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_TESTE"));
         Task task = taskService.findById(taskId).orElse(null);
         return estimationService.findByTaskId(taskId).stream()
+                .filter(est -> est.getUsuario().getTipoPerfil() != com.planningapp.entity.enums.TipoPerfil.TESTE)
                 .map(est -> {
-                    Object pontos = est.isRevealed()
+                    Object pontos = (est.isRevealed() || isObservador || isTeste)
                             ? (est.getPontos() != null && est.getPontos() == 0 ? "☕" : est.getPontos())
                             : "🔒";
                     boolean horasRev = Boolean.TRUE.equals(est.isHorasReveladas());
-                    Object horas = horasRev
+                    Object horas = (horasRev || isObservador || isTeste)
                             ? est.getHoras()
                             : (est.getHoras() != null ? "🔒" : null);
                     Long segundosPontos = segundosEntre(
@@ -57,6 +63,22 @@ public class EstimationController {
                 .collect(Collectors.toList());
     }
 
+    @GetMapping("/listar-teste")
+    public List<EstimativaResponseDTO> listarEstimativasTeste(@PathVariable Long taskId, Authentication auth) {
+        boolean isAdmin = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        Task task = taskService.findById(taskId).orElse(null);
+        boolean reveladas = task != null && task.isHorasTesteReveladas();
+        return estimationService.findTesteByTaskId(taskId).stream()
+                .map(est -> {
+                    Object horasTeste = (reveladas || isAdmin)
+                            ? est.getHorasTeste()
+                            : (est.getHorasTeste() != null ? "🔒" : null);
+                    return new EstimativaResponseDTO(est.getUsuario().getUsuario(), horasTeste, reveladas || isAdmin);
+                })
+                .collect(Collectors.toList());
+    }
+
     private Long segundosEntre(Instant inicio, Instant fim) {
         if (inicio == null || fim == null) return null;
         long s = Duration.between(inicio, fim).getSeconds();
@@ -64,8 +86,8 @@ public class EstimationController {
     }
 
     @GetMapping("/resumo-votos")
-    public List<EstimativaResponseDTO> listarResumoVotos(@PathVariable Long taskId) {
-        return listarEstimativas(taskId);
+    public List<EstimativaResponseDTO> listarResumoVotos(@PathVariable Long taskId, Authentication auth) {
+        return listarEstimativas(taskId, auth);
     }
 
     @PostMapping("/votar")
@@ -111,6 +133,7 @@ public class EstimationController {
         estimativa.setRodada(rodadaAtual);
         estimativa.setVotadoEmPontos(Instant.now());
         estimationService.save(estimativa);
+        notificarPorSala(task, "VOTO_REGISTRADO", taskId, Map.of());
 
         return ResponseEntity.ok(Map.of("success", true, "message", "Voto registrado"));
     }
@@ -159,6 +182,7 @@ public class EstimationController {
         est.setHoras(dto.getHoras());
         est.setVotadoEmHoras(Instant.now());
         estimationService.save(est);
+        notificarPorSala(task, "VOTO_REGISTRADO", taskId, Map.of());
 
         return ResponseEntity.ok(Map.of("success", true, "message", "Horas registradas"));
     }
@@ -216,10 +240,93 @@ public class EstimationController {
         task.setRodadaAtual(task.getRodadaAtual() + 1);
         task.setPontosRevelados(false);
         task.setHorasLiberadas(false);
+        task.setHorasTesteLiberadas(false);
+        task.setHorasTesteReveladas(false);
         taskService.save(task);
 
         notificarPorSala(task, "NOVA_RODADA", taskId, Map.of());
         return ResponseEntity.ok(Map.of("success", true, "message", "Nova rodada iniciada", "rodada", task.getRodadaAtual()));
+    }
+
+    @PostMapping("/votarHorasTeste")
+    public ResponseEntity<?> votarHorasTeste(@PathVariable Long taskId,
+            @Valid @RequestBody EstimativaHorasDTO dto, Authentication auth) {
+        boolean isTeste = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_TESTE"));
+        if (!isTeste) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("success", false, "message", "Apenas testadores podem votar aqui"));
+        }
+
+        Optional<Task> tarefaOpt = taskService.findById(taskId);
+        if (tarefaOpt.isEmpty()) {
+            return ResponseEntity.status(404)
+                    .body(Map.of("success", false, "message", "Tarefa não encontrada"));
+        }
+
+        Task task = tarefaOpt.get();
+        if (!task.isHorasTesteLiberadas()) {
+            return ResponseEntity.status(400)
+                    .body(Map.of("success", false, "message", "Votação de teste ainda não liberada"));
+        }
+
+        var userOpt = userRepository.findByUsuario(dto.getParticipante());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404)
+                    .body(Map.of("success", false, "message", "Usuário não encontrado"));
+        }
+
+        int rodadaAtual = task.getRodadaAtual();
+        Optional<Estimation> estOpt =
+                estimationService.findByTaskIdAndParticipanteAndRodada(taskId, dto.getParticipante(), rodadaAtual);
+
+        if (estOpt.isPresent() && estOpt.get().getHorasTeste() != null) {
+            return ResponseEntity.status(409)
+                    .body(Map.of("success", false, "message", "Você já votou nesta tarefa."));
+        }
+
+        Estimation est;
+        if (estOpt.isEmpty()) {
+            est = new Estimation();
+            est.setTarefa(task);
+            est.setUsuario(userOpt.get());
+            est.setRodada(rodadaAtual);
+        } else {
+            est = estOpt.get();
+        }
+
+        est.setHorasTeste(dto.getHoras());
+        estimationService.save(est);
+        notificarPorSala(task, "VOTO_TESTE_REGISTRADO", taskId, Map.of());
+
+        return ResponseEntity.ok(Map.of("success", true, "message", "Horas de teste registradas"));
+    }
+
+    @PostMapping("/revelar-horas-teste")
+    public ResponseEntity<?> revelarHorasTeste(@PathVariable Long taskId) {
+        Optional<Task> tarefaOpt = taskService.findById(taskId);
+        if (tarefaOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("success", false, "message", "Tarefa não encontrada"));
+        }
+
+        List<Estimation> estimativas = estimationService.findTesteByTaskId(taskId);
+        estimativas.forEach(est -> est.setHorasTesteReveladas(true));
+        estimationService.saveAll(estimativas);
+
+        taskService.findById(taskId).ifPresent(task -> {
+            task.setHorasTesteReveladas(true);
+            taskService.save(task);
+        });
+
+        notificarPorSala(tarefaOpt.get(), "REVELAR_HORAS_TESTE", taskId, Map.of());
+        return ResponseEntity.ok(Map.of("success", true, "message", "Horas de teste reveladas"));
+    }
+
+    @GetMapping("/todos-testadores-votaram")
+    public boolean todosTestadoresVotaram(@PathVariable Long taskId) {
+        Optional<Task> taskOpt = taskService.findById(taskId);
+        if (taskOpt.isEmpty()) return false;
+        return estimationService.todosTesteVotaram(taskId, taskOpt.get().getRodadaAtual());
     }
 
     private void notificarPorSala(Task task, String acao, Long taskId, Map<String, Object> extra) {
@@ -247,6 +354,8 @@ public class EstimationController {
             task.setPontosRevelados(false);
             task.setHorasReveladas(false);
             task.setHorasLiberadas(false);
+            task.setHorasTesteLiberadas(false);
+            task.setHorasTesteReveladas(false);
             task.setRodadaAtual(1);
             taskService.save(task);
         });

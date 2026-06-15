@@ -436,6 +436,23 @@
   font-family: monospace;
 }
 
+.badge-pulada {
+  display: inline-block;
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.row-pulada {
+  opacity: 0.75;
+}
+
 .badge {
   display: inline-block;
   padding: 3px 10px;
@@ -948,6 +965,28 @@
   &:hover { background: rgba(255,255,255,.22); }
 }
 
+/* ─── Botão copiar link ──────────────────────────────────── */
+.btn-copiar-link {
+  padding: 6px 14px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 8px;
+  color: rgba(255,255,255,.9);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .2s, color .2s, border-color .2s;
+  white-space: nowrap;
+
+  &:hover { background: rgba(255,255,255,.2); }
+
+  &.copiado {
+    background: rgba(16,185,129,.25);
+    border-color: rgba(16,185,129,.5);
+    color: #6ee7b7;
+  }
+}
+
 /* ─── Tema escuro ────────────────────────────────────────── */
 .admin-page.tema-escuro {
   background: #0f172a;
@@ -1010,11 +1049,27 @@
     color: #93c5fd;
     border-color: #1e40af;
   }
+  .badge-pulada {
+    background: #431407;
+    color: #fb923c;
+    border-color: #7c2d12;
+  }
+  .row-pulada {
+    opacity: 0.65;
+  }
   .badge-sprint {
     background: #1e1b4b;
     color: #a5b4fc;
     border-color: #3730a3;
   }
+
+  /* Média de teste */
+  .teste-media-row {
+    background: linear-gradient(135deg, #052e16, #0c2218);
+    border-color: #166534;
+  }
+  .teste-media-label { color: #6ee7b7; }
+  .teste-media-valor  { color: #34d399; }
 
   /* Totalizador */
   .totalizador-horas {
@@ -1136,9 +1191,86 @@
   }
 }
 
+/* ─── Voto de teste confirmado (antes de revelar) ───────── */
+.voto-confirmado {
+  color: #10b981;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* ─── Média de horas de teste ───────────────────────────── */
+.teste-media-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+}
+
+.teste-media-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #065f46;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.teste-media-valor {
+  font-size: 20px;
+  font-weight: 800;
+  color: #059669;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* ─── Votação Ativa (card na coluna principal) ───────────── */
+.voting-main-card {
+  border-top: 3px solid #f59e0b;
+}
+
+.voting-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.voting-header-badge {
+  font-size: 13px;
+}
+
+.voting-header-timer {
+  margin-top: 0;
+  padding: 4px 12px;
+}
+
+.voting-main-body {
+  padding: 20px;
+}
+
+.voting-layout {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.voting-left {
+  flex: 0 0 300px;
+  min-width: 0;
+}
+
+.voting-right {
+  flex: 1;
+  min-width: 0;
+}
+
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 900px) {
   .admin-body { flex-direction: column; }
   .side-col { width: 100%; }
   .stats-row { flex-wrap: wrap; }
+  .voting-layout { flex-direction: column; }
+  .voting-left { flex: none; width: 100%; }
 }

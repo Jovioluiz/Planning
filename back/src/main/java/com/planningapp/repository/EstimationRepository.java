@@ -2,6 +2,7 @@ package com.planningapp.repository;
 
 import com.planningapp.entity.Estimation;
 import com.planningapp.entity.User;
+import com.planningapp.entity.enums.TipoPerfil;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,4 +19,10 @@ public interface EstimationRepository extends JpaRepository<Estimation, Long> {
 
     @Query("SELECT e FROM Estimation e WHERE e.task.id = :taskId AND e.usuario = :usuario AND COALESCE(e.rodada, 1) = :rodada")
     Optional<Estimation> findByTaskIdAndUsuarioAndRodada(@Param("taskId") Long taskId, @Param("usuario") User usuario, @Param("rodada") Integer rodada);
+
+    @Query("SELECT e FROM Estimation e WHERE e.task.id = :taskId AND e.usuario.tipoPerfil != :perfil")
+    List<Estimation> findByTaskIdExcludingPerfil(@Param("taskId") Long taskId, @Param("perfil") TipoPerfil perfil);
+
+    @Query("SELECT e FROM Estimation e WHERE e.task.id = :taskId AND e.usuario.tipoPerfil = :perfil")
+    List<Estimation> findByTaskIdAndPerfil(@Param("taskId") Long taskId, @Param("perfil") TipoPerfil perfil);
 }

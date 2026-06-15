@@ -1,4 +1,4 @@
-<div class="board-page">
+<div class="board-page" [class.tema-claro]="!temaEscuro">
 
   <!-- ─── Header ──────────────────────────────────────────────── -->
   <header class="board-header">
@@ -13,6 +13,9 @@
     <div class="board-user">
       <span class="user-avatar">{{ (participante || 'U')[0].toUpperCase() }}</span>
       <span class="user-name">{{ participante }}</span>
+      <button class="btn-tema" (click)="toggleTema()" [title]="temaEscuro ? 'Mudar para claro' : 'Mudar para escuro'">
+        {{ temaEscuro ? '☀️' : '🌙' }}
+      </button>
       <button class="btn-logout" (click)="logout()">Sair</button>
     </div>
   </header>
@@ -71,14 +74,19 @@
     <span>👁 Modo Observador — acompanhe a votação abaixo</span>
   </div>
 
+  <!-- ─── Testador ────────────────────────────────────────────── -->
+  <div *ngIf="isTeste" class="observer-bar tester-bar">
+    <span>🧪 Modo Testador — acompanhe a votação e vote o tempo de teste quando liberado</span>
+  </div>
+
   <!-- ─── Skipado pelo moderador ──────────────────────────────── -->
-  <section *ngIf="!isObservador && !isAdmin && foiSkipado" class="voting-section done-section skipped-section">
+  <section *ngIf="!isObservador && !isTeste && !isAdmin && foiSkipado" class="voting-section done-section skipped-section">
     <div class="done-msg skipped-msg">⏭ Você foi removido desta votação</div>
     <p class="done-hint">O moderador te removeu da votação desta tarefa.<br>Aguarde a próxima tarefa.</p>
   </section>
 
   <!-- ─── Votação de Pontos ────────────────────────────────────── -->
-  <section *ngIf="!isObservador && !foiSkipado && estadoVotacao === 'pontos'" class="voting-section">
+  <section *ngIf="!isObservador && !isTeste && !foiSkipado && estadoVotacao === 'pontos'" class="voting-section">
     <h2 class="voting-label">Escolha sua estimativa de esforço</h2>
     <div class="cards-row">
       <button
@@ -108,7 +116,7 @@
   </section>
 
   <!-- ─── Votação de Horas ─────────────────────────────────────── -->
-  <section *ngIf="!isObservador && !foiSkipado && estadoVotacao === 'horas'" class="voting-section">
+  <section *ngIf="!isObservador && !isTeste && !foiSkipado && estadoVotacao === 'horas'" class="voting-section">
     <h2 class="voting-label">Quantas horas para concluir?</h2>
     <div class="cards-row">
       <button
@@ -132,15 +140,51 @@
   </section>
 
   <!-- ─── Aguardando Admin liberar horas ──────────────────────── -->
-  <section *ngIf="!isObservador && !foiSkipado && estadoVotacao === 'aguardando_horas'" class="voting-section done-section">
+  <section *ngIf="!isObservador && !isTeste && !foiSkipado && estadoVotacao === 'aguardando_horas'" class="voting-section done-section">
     <div class="done-msg">✓ Pontos registrados!</div>
     <p class="done-hint">Discussão em andamento...<br>Aguarde o moderador liberar a votação de horas.</p>
   </section>
 
   <!-- ─── Fase Finalizada (jogador) ────────────────────────────── -->
-  <section *ngIf="!isObservador && !foiSkipado && estadoVotacao === 'finalizado'" class="voting-section done-section">
+  <section *ngIf="!isObservador && !isTeste && !foiSkipado && estadoVotacao === 'finalizado'" class="voting-section done-section">
     <div class="done-msg">✓ Seu voto foi registrado com sucesso!</div>
     <p class="done-hint">Aguarde o moderador revelar os resultados.</p>
+  </section>
+
+  <!-- ─── Votação de Teste ─────────────────────────────────────── -->
+  <section *ngIf="isTeste && tarefa?.horasTesteLiberadas && !jaVotouHorasTeste" class="voting-section">
+    <h2 class="voting-label">🧪 Quantas horas para testar esta tarefa?</h2>
+    <div class="cards-row">
+      <button
+        *ngFor="let h of horas"
+        class="poker-card hora-card"
+        [class.selected]="h === horasTesteSelecionadas"
+        [disabled]="votando"
+        (click)="horasTesteSelecionadas = +h">
+        <span class="card-top-num">{{ h }}</span>
+        <span class="card-center">{{ h }}</span>
+        <span class="card-suit">h</span>
+      </button>
+    </div>
+    <div class="confirm-row">
+      <button class="btn-confirm"
+        [disabled]="!horasTesteSelecionadas || votando"
+        (click)="votarHorasTeste()">
+        {{ votando ? 'Registrando...' : 'Confirmar Horas de Teste' }}
+      </button>
+    </div>
+  </section>
+
+  <!-- ─── Testador: aguardando liberação ──────────────────────── -->
+  <section *ngIf="isTeste && !tarefa?.horasTesteLiberadas" class="voting-section done-section">
+    <div class="done-msg">⏳ Aguardando o moderador liberar a votação de teste...</div>
+    <p class="done-hint">Acompanhe a votação dos players acima.</p>
+  </section>
+
+  <!-- ─── Testador: já votou ───────────────────────────────────── -->
+  <section *ngIf="isTeste && tarefa?.horasTesteLiberadas && jaVotouHorasTeste" class="voting-section done-section">
+    <div class="done-msg">✓ Voto de teste registrado!</div>
+    <p class="done-hint">Aguarde o moderador revelar os resultados de teste.</p>
   </section>
 
   <!-- ─── Grid de Participantes ────────────────────────────────── -->
@@ -148,7 +192,7 @@
     <h2 class="section-title">Participantes</h2>
 
     <!-- Banner de consenso/divergência (após revelar pontos, admin e observador) -->
-    <div *ngIf="(isAdmin || isObservador) && nivelDivergencia" class="divergencia-banner"
+    <div *ngIf="(isAdmin || isObservador || isTeste) && nivelDivergencia" class="divergencia-banner"
          [class.banner-consenso]="nivelDivergencia === 'consenso'"
          [class.banner-proximo]="nivelDivergencia === 'proximo'"
          [class.banner-divergente]="nivelDivergencia === 'divergente'">
@@ -158,7 +202,7 @@
     </div>
 
     <!-- Rodada anterior como referência (admin/observador, após nova-rodada) -->
-    <ng-container *ngIf="(isAdmin || isObservador) && estimativasRodadaAnterior.length > 0">
+    <ng-container *ngIf="(isAdmin || isObservador || isTeste) && estimativasRodadaAnterior.length > 0">
       <div class="previous-round-section">
         <h3 class="previous-round-title">Rodada {{ rodadaAtualNum - 1 }} — Referência</h3>
         <div class="participants-grid previous-round-grid">
@@ -178,8 +222,8 @@
       </div>
     </ng-container>
 
-    <!-- Admin e Observador: veem o grid sempre (com 🔒 antes de revelar) -->
-    <ng-container *ngIf="isAdmin || isObservador; else playerView">
+    <!-- Admin, Observador e Testador: veem o grid sempre (com 🔒 antes de revelar) -->
+    <ng-container *ngIf="isAdmin || isObservador || isTeste; else playerView">
       <div *ngIf="estimativasRodadaAtual.length > 0; else semVotos" class="participants-grid">
         <div *ngFor="let est of estimativasRodadaAtual" class="p-card"
              [class.card-otimista]="classificarVoto(est.pontos) === 'otimista'"
@@ -189,23 +233,25 @@
           <div *ngIf="classificarVoto(est.pontos) === 'otimista'" class="voto-label voto-otimista">⬇ Otimista</div>
           <div *ngIf="classificarVoto(est.pontos) === 'pessimista'" class="voto-label voto-pessimista">⬆ Pessimista</div>
 
-          <div class="p-vote-row">
-            <span class="p-label">Pontos</span>
-            <div class="vote-card" [class.vc-hidden]="!est.revealed">
-              <span class="vc-corner">{{ est.revealed ? est.pontos : '' }}</span>
-              <span class="vc-center">{{ est.revealed ? est.pontos : '' }}</span>
-              <span class="vc-suit">♠</span>
+          <div class="p-votes">
+            <div class="p-vote-row">
+              <span class="p-label">Pontos</span>
+              <div class="vote-card" [class.vc-hidden]="!est.revealed && !isObservador">
+                <span class="vc-corner">{{ est.revealed || isObservador ? est.pontos : '' }}</span>
+                <span class="vc-center">{{ est.revealed || isObservador ? est.pontos : '' }}</span>
+                <span class="vc-suit">♠</span>
+              </div>
             </div>
-          </div>
 
-          <div class="p-vote-row" *ngIf="estadoVotacao === 'horas' || estadoVotacao === 'finalizado'">
-            <span class="p-label">Horas</span>
-            <div class="vote-card vc-hours"
-                 [class.vc-hidden]="est.horas !== null && !est.horasReveladas"
-                 [class.vc-empty]="est.horas === null">
-              <span class="vc-corner">{{ est.horasReveladas && est.horas !== null ? est.horas : '' }}</span>
-              <span class="vc-center">{{ est.horasReveladas && est.horas !== null ? est.horas : (est.horas === null ? '—' : '') }}</span>
-              <span class="vc-suit">h</span>
+            <div class="p-vote-row" *ngIf="estadoVotacao === 'horas' || estadoVotacao === 'finalizado'">
+              <span class="p-label">Horas</span>
+              <div class="vote-card vc-hours"
+                   [class.vc-hidden]="est.horas !== null && !est.horasReveladas && !isObservador"
+                   [class.vc-empty]="est.horas === null">
+                <span class="vc-corner">{{ (est.horasReveladas || isObservador) && est.horas !== null ? est.horas : '' }}</span>
+                <span class="vc-center">{{ (est.horasReveladas || isObservador) && est.horas !== null ? est.horas : (est.horas === null ? '—' : '') }}</span>
+                <span class="vc-suit">h</span>
+              </div>
             </div>
           </div>
 
@@ -232,30 +278,32 @@
           <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
           <div class="p-name">{{ est.participante }}</div>
 
-          <div class="p-vote-row">
-            <span class="p-label">Pontos</span>
-            <div class="vote-card">
-              <span class="vc-corner">{{ est.pontos }}</span>
-              <span class="vc-center">{{ est.pontos }}</span>
-              <span class="vc-suit">♠</span>
+          <div class="p-votes">
+            <div class="p-vote-row">
+              <span class="p-label">Pontos</span>
+              <div class="vote-card">
+                <span class="vc-corner">{{ est.pontos }}</span>
+                <span class="vc-center">{{ est.pontos }}</span>
+                <span class="vc-suit">♠</span>
+              </div>
             </div>
-          </div>
 
-          <div class="p-vote-row" *ngIf="tarefa?.horasReveladas">
-            <span class="p-label">Horas</span>
-            <div class="vote-card vc-hours">
-              <span class="vc-corner">{{ est.horas !== null ? est.horas : '—' }}</span>
-              <span class="vc-center">{{ est.horas !== null ? est.horas : '—' }}</span>
-              <span class="vc-suit">h</span>
+            <div class="p-vote-row" *ngIf="tarefa?.horasReveladas">
+              <span class="p-label">Horas</span>
+              <div class="vote-card vc-hours">
+                <span class="vc-corner">{{ est.horas !== null ? est.horas : '—' }}</span>
+                <span class="vc-center">{{ est.horas !== null ? est.horas : '—' }}</span>
+                <span class="vc-suit">h</span>
+              </div>
             </div>
-          </div>
 
-          <div class="p-vote-row" *ngIf="tarefa?.pontosRevelados && !tarefa?.horasReveladas && (estadoVotacao === 'horas' || estadoVotacao === 'aguardando_horas' || estadoVotacao === 'finalizado')">
-            <span class="p-label">Horas</span>
-            <div class="vote-card vc-empty">
-              <span class="vc-corner"></span>
-              <span class="vc-center">…</span>
-              <span class="vc-suit">h</span>
+            <div class="p-vote-row" *ngIf="tarefa?.pontosRevelados && !tarefa?.horasReveladas && (estadoVotacao === 'horas' || estadoVotacao === 'aguardando_horas' || estadoVotacao === 'finalizado')">
+              <span class="p-label">Horas</span>
+              <div class="vote-card vc-empty">
+                <span class="vc-corner"></span>
+                <span class="vc-center">…</span>
+                <span class="vc-suit">h</span>
+              </div>
             </div>
           </div>
         </div>
@@ -269,38 +317,87 @@
 
   <!-- ─── Controles Admin ──────────────────────────────────────── -->
   <section *ngIf="isAdmin" class="admin-bar">
-    <button *ngIf="estadoVotacao === 'pontos'"
-      class="btn-reveal"
-      [disabled]="!todosVotaram"
-      (click)="revelar()">
-      👁 Revelar Pontos
-    </button>
-    <button *ngIf="nivelDivergencia === 'divergente' && estadoVotacao === 'aguardando_horas'"
-      class="btn-nova-rodada"
-      (click)="novaRodada()">
-      🔄 Nova Rodada
-    </button>
-    <button *ngIf="estadoVotacao === 'aguardando_horas'"
-      class="btn-liberar-horas"
-      (click)="liberarHorasVotacao()">
-      🕐 {{ nivelDivergencia === 'divergente' ? 'Liberar Horas mesmo assim' : 'Liberar Votação de Horas' }}
-    </button>
-    <button *ngIf="estadoVotacao === 'horas'"
-      class="btn-reveal"
-      [disabled]="!todosVotaram"
-      (click)="revelar()">
-      ⏱ Revelar Horas
-    </button>
-    <button class="btn-reset" (click)="resetar()">↺ Resetar Votação</button>
-    <span *ngIf="estadoVotacao === 'pontos' && !todosVotaram" class="waiting-hint">
-      Aguardando todos votarem pontos...
-    </span>
-    <span *ngIf="estadoVotacao === 'horas' && !todosVotaram" class="waiting-hint">
-      Aguardando todos votarem horas...
-    </span>
-    <span *ngIf="estadoVotacao === 'aguardando_horas'" class="waiting-hint">
-      Libere a votação de horas quando pronto.
-    </span>
+
+    <!-- Fase 1: Pontos -->
+    <div *ngIf="estadoVotacao === 'pontos'" class="admin-phase">
+      <span class="admin-phase-label">Fase Pontos</span>
+      <button class="btn-reveal" [disabled]="!todosVotaram" (click)="revelar()">
+        👁 Revelar Pontos
+      </button>
+      <span *ngIf="!todosVotaram" class="waiting-hint">Aguardando todos votarem pontos...</span>
+    </div>
+
+    <!-- Fase 2: Horas -->
+    <div *ngIf="estadoVotacao === 'aguardando_horas'" class="admin-phase">
+      <span class="admin-phase-label">Fase Horas</span>
+      <button *ngIf="nivelDivergencia === 'divergente'" class="btn-nova-rodada" (click)="novaRodada()">
+        🔄 Nova Rodada
+      </button>
+      <button class="btn-liberar-horas" (click)="liberarHorasVotacao()">
+        🕐 {{ nivelDivergencia === 'divergente' ? 'Liberar Horas mesmo assim' : 'Liberar Votação de Horas' }}
+      </button>
+      <span class="waiting-hint">Libere a votação de horas quando pronto.</span>
+    </div>
+
+    <div *ngIf="estadoVotacao === 'horas'" class="admin-phase">
+      <span class="admin-phase-label">Fase Horas</span>
+      <button class="btn-reveal" [disabled]="!todosVotaram" (click)="revelar()">
+        ⏱ Revelar Horas
+      </button>
+      <span *ngIf="!todosVotaram" class="waiting-hint">Aguardando todos votarem horas...</span>
+    </div>
+
+    <!-- Fase 3: Teste -->
+    <div class="admin-phase admin-phase-teste">
+      <span class="admin-phase-label">Fase Teste</span>
+      <button *ngIf="!tarefa?.horasTesteLiberadas" class="btn-liberar-horas" (click)="liberarHorasTeste()">
+        🧪 Liberar Votação de Teste
+      </button>
+      <button *ngIf="tarefa?.horasTesteLiberadas && !tarefa?.horasTesteReveladas"
+        class="btn-reveal" [disabled]="!todosTestadoresVotaram" (click)="revelarHorasTeste()">
+        👁 Revelar Horas de Teste
+      </button>
+      <span *ngIf="tarefa?.horasTesteLiberadas && !todosTestadoresVotaram && !tarefa?.horasTesteReveladas" class="waiting-hint">
+        Aguardando testadores votarem...
+      </span>
+
+      <!-- Votos dos testadores -->
+      <div *ngIf="estimativasTeste.length > 0" class="teste-votes-grid">
+        <div *ngFor="let est of estimativasTeste" class="teste-vote-chip">
+          <span class="teste-vote-name">{{ est.participante }}</span>
+          <span class="teste-vote-val" [class.locked]="est.horasTeste === '🔒'">
+            {{ est.horasTeste !== null && est.horasTeste !== undefined ? est.horasTeste : '—' }}
+          </span>
+        </div>
+      </div>
+      <span *ngIf="estimativasTeste.length === 0" class="waiting-hint">Nenhum testador online.</span>
+    </div>
+
+    <!-- Rodapé: ações destrutivas -->
+    <div class="admin-footer">
+      <button class="btn-reset" (click)="resetar()">↺ Resetar Votação</button>
+    </div>
+  </section>
+
+  <!-- ─── Card de Teste (visão do testador com votos revelados) ─── -->
+  <section *ngIf="isTeste && tarefa?.horasTesteReveladas && estimativasTeste.length > 0" class="participants-section">
+    <h2 class="section-title">🧪 Resultado — Horas de Teste</h2>
+    <div class="participants-grid">
+      <div *ngFor="let est of estimativasTeste" class="p-card">
+        <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
+        <div class="p-name">{{ est.participante }}</div>
+        <div class="p-votes">
+          <div class="p-vote-row">
+            <span class="p-label">Horas Teste</span>
+            <div class="vote-card vc-hours">
+              <span class="vc-corner">{{ est.horasTeste }}</span>
+              <span class="vc-center">{{ est.horasTeste }}</span>
+              <span class="vc-suit">h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ─── Erro ─────────────────────────────────────────────────── -->

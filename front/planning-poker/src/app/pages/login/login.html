@@ -55,9 +55,11 @@
               id="usuario"
               type="text"
               [(ngModel)]="usuario"
+              (ngModelChange)="onUsuarioChange($event)"
               name="usuario"
               placeholder="Seu nome de usuário"
               autocomplete="username"
+              class="input-uppercase"
               [disabled]="carregando"
             />
           </div>
@@ -85,10 +87,11 @@
             <span class="input-icon">🎭</span>
             <select id="perfil" [(ngModel)]="perfil" name="perfil" [disabled]="carregando">
               <option value="" disabled selected>Selecione um perfil</option>
+              <option value="SUPER">Super Usuário</option>
               <option value="ADMIN">Moderador</option>
               <option value="JOGADOR">Player</option>
               <option value="OBSERVADOR">Observador</option>
-              <option value="SUPER">Super Usuário</option>
+              <option value="TESTE">Testador</option>
             </select>
           </div>
         </div>

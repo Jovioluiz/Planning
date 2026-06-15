@@ -19,12 +19,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class TaskService {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Autowired
     private TaskRepository taskRepository;
@@ -64,6 +68,16 @@ public class TaskService {
         taskRepository.saveAll(tarefas);
     }
 
+    private void aplicarDadosExtras(Task task, TaskDTO dto) {
+        if (dto.getDadosExtras() != null && !dto.getDadosExtras().isEmpty()) {
+            try {
+                task.setDadosExtras(MAPPER.writeValueAsString(dto.getDadosExtras()));
+            } catch (JsonProcessingException e) {
+                // ignora campos extras inválidos
+            }
+        }
+    }
+
     @Transactional
     public int importarDTOs(List<TaskDTO> dtos) {
         List<Task> novas = dtos.stream()
@@ -71,11 +85,12 @@ public class TaskService {
                 .map(dto -> {
                     Task task = new Task();
                     task.setNumero(dto.getNumero());
-                    task.setTitulo(dto.getTitulo());
-                    task.setDescricao(dto.getDescricao());
+                    task.setTitulo(dto.getTitulo() != null ? dto.getTitulo() : "");
+                    task.setDescricao(dto.getDescricao() != null ? dto.getDescricao() : "");
                     task.setPrioridade(dto.getPrioridade());
                     task.setStatus(dto.getStatus());
-                    task.setSprint(dto.getSprint());
+                    task.setSprint(dto.getSprint() != null ? dto.getSprint() : "");
+                    aplicarDadosExtras(task, dto);
                     return task;
                 })
                 .toList();
@@ -155,13 +170,28 @@ public class TaskService {
     }
 
     @Transactional
+    public boolean liberarHorasTesteVotacao(Long id) {
+        return taskRepository.findById(id).map(task -> {
+            task.setHorasTesteLiberadas(true);
+            task.setHorasTesteLiberadasEm(Instant.now());
+            taskRepository.save(task);
+            return true;
+        }).orElse(false);
+    }
+
+    @Transactional
     public boolean pularTarefa(Long id) {
         return taskRepository.findById(id).map(task -> {
             task.setLiberada(false);
+            task.setEstimada(true);
+            task.setPulada(true);
             task.setPontosRevelados(false);
             task.setHorasReveladas(false);
             task.setHorasLiberadas(false);
+            task.setHorasTesteLiberadas(false);
+            task.setHorasTesteReveladas(false);
             task.setLiberadaEm(null);
+            task.setEstimadaEm(Instant.now());
             taskRepository.save(task);
             List<Estimation> votos = estimationRepository.findByTaskId(id);
             estimationRepository.deleteAll(votos);
@@ -236,19 +266,22 @@ public class TaskService {
                 .map(dto -> {
                     Task task = new Task();
                     task.setNumero(dto.getNumero());
-                    task.setTitulo(dto.getTitulo());
-                    task.setDescricao(dto.getDescricao());
+                    task.setTitulo(dto.getTitulo() != null ? dto.getTitulo() : "");
+                    task.setDescricao(dto.getDescricao() != null ? dto.getDescricao() : "");
                     task.setPrioridade(dto.getPrioridade());
                     task.setStatus(dto.getStatus());
-                    task.setSprint(dto.getSprint());
+                    task.setSprint(dto.getSprint() != null ? dto.getSprint() : "");
                     task.setSala(sala);
+                    aplicarDadosExtras(task, dto);
                     return task;
                 })
                 .toList();
         if (!novas.isEmpty()) {
             List<Task> salvas = taskRepository.saveAll(novas);
             List<String> membros = salaMembroRepository.findBySala(sala)
-                    .stream().map(m -> m.getUsuario().getUsuario()).toList();
+                    .stream()
+                    .filter(m -> m.getUsuario().getTipoPerfil() == TipoPerfil.JOGADOR)
+                    .map(m -> m.getUsuario().getUsuario()).toList();
             for (Task t : salvas) {
                 membros.forEach(u -> adicionarParticipante(t.getId(), u));
             }
@@ -264,7 +297,8 @@ public class TaskService {
                     task.setLiberada(true);
                     task.setLiberadaEm(java.time.Instant.now());
                     taskRepository.save(task);
-                    salaMembroRepository.findBySala(sala)
+                    salaMembroRepository.findBySala(sala).stream()
+                            .filter(m -> m.getUsuario().getTipoPerfil() == TipoPerfil.JOGADOR)
                             .forEach(m -> adicionarParticipante(id, m.getUsuario().getUsuario()));
                     return true;
                 }).orElse(false);

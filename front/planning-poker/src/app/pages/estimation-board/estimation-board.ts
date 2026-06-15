@@ -36,6 +36,10 @@ export class EstimationBoard implements OnInit, OnDestroy {
   tempoDecorrido = '00:00';
   usuariosOnline: string[] = [];
   readonly CARTA_CAFE = CARTA_CAFE;
+  temaEscuro = typeof localStorage !== 'undefined' ? localStorage.getItem('tema') !== 'claro' : true;
+  estimativasTeste: any[] = [];
+  horasTesteSelecionadas: number = 0;
+  todosTestadoresVotaram = false;
   private pollInterval: any = null;
   private timerInterval: any = null;
   private wasLiberated = false;
@@ -52,6 +56,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
 
   get isAdmin(): boolean { return this.auth.isAdmin(); }
   get isObservador(): boolean { return this.auth.isObservador(); }
+  get isTeste(): boolean { return this.auth.isTeste(); }
 
   get rodadaAtualNum(): number {
     if (this.tarefa?.rodadaAtual) return this.tarefa.rodadaAtual;
@@ -84,6 +89,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
 
     this.carregarTarefa();
     this.atualizarEstimativas();
+    this.atualizarEstimativasTeste();
     this.carregarUsuariosOnline();
 
     this.wsService.subscribe(this.topicSessoes, (msg) => {
@@ -117,8 +123,18 @@ export class EstimationBoard implements OnInit, OnDestroy {
         } else if (data.acao === 'REVELAR_PONTOS' || data.acao === 'HORAS_LIBERADAS') {
           this.atualizarEstimativas();
           this.carregarTarefa();
+        } else if (data.acao === 'HORAS_TESTE_LIBERADAS') {
+          this.carregarTarefa();
+        } else if (data.acao === 'REVELAR_HORAS_TESTE') {
+          this.atualizarEstimativasTeste();
+          this.carregarTarefa();
+        } else if (data.acao === 'VOTO_TESTE_REGISTRADO') {
+          if (this.isAdmin || this.isTeste) {
+            this.atualizarEstimativasTeste();
+          }
+          if (this.isAdmin) this.checkTodosTestadoresVotaram();
         } else if (data.acao === 'PARTICIPANTE_REMOVIDO') {
-          if (!this.isAdmin && !this.isObservador && data.participante === this.participante) {
+          if (!this.isAdmin && !this.isObservador && !this.isTeste && data.participante === this.participante) {
             this.foiSkipado = true;
             this.votando = false;
             this.cdr.detectChanges();
@@ -128,8 +144,10 @@ export class EstimationBoard implements OnInit, OnDestroy {
         } else if (data.acao === 'NOVA_RODADA') {
           this.pontoSelecionado = null;
           this.horaSelecionada = 0;
+          this.horasTesteSelecionadas = 0;
           this.estadoVotacao = 'pontos';
           this.todosVotaram = false;
+          this.todosTestadoresVotaram = false;
           this.foiSkipado = false;
           this.cdr.detectChanges();
           // Carrega tarefa primeiro (rodadaAtual atualizado) e só então estimativas,
@@ -138,10 +156,16 @@ export class EstimationBoard implements OnInit, OnDestroy {
             next: (tarefa) => {
               this.tarefa = tarefa;
               this.atualizarEstimativas();
+              this.atualizarEstimativasTeste();
               this.cdr.detectChanges();
             },
             error: () => this.atualizarEstimativas()
           });
+        } else if (data.acao === 'VOTO_REGISTRADO') {
+          if (this.isAdmin || this.isObservador || this.isTeste) {
+            this.atualizarEstimativas();
+          }
+          if (this.isAdmin) this.checkTodosVotaram();
         } else if (data.acao === 'TAREFA_FINALIZADA') {
           this.sessionEnded = 'finalizada';
           if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
@@ -159,6 +183,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
       if (!this.sessionEnded) {
         this.carregarTarefa();
         if (this.estadoVotacao !== 'finalizado') this.atualizarEstimativas();
+        if (this.isAdmin || this.isTeste) this.atualizarEstimativasTeste();
       }
     }, 5000);
   }
@@ -175,6 +200,14 @@ export class EstimationBoard implements OnInit, OnDestroy {
       next: (res) => { this.usuariosOnline = res; this.cdr.detectChanges(); },
       error: () => {}
     });
+  }
+
+  toggleTema(): void {
+    this.temaEscuro = !this.temaEscuro;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('tema', this.temaEscuro ? 'escuro' : 'claro');
+    }
+    this.cdr.detectChanges();
   }
 
   logout(): void {
@@ -434,6 +467,68 @@ export class EstimationBoard implements OnInit, OnDestroy {
     });
   }
 
+  liberarHorasTeste(): void {
+    this.taskService.liberarHorasTesteSala(this.taskId!).subscribe({
+      next: () => { this.carregarTarefa(); },
+      error: () => {}
+    });
+  }
+
+  revelarHorasTeste(): void {
+    this.estimationService.revelarHorasTeste(this.taskId!).subscribe({
+      next: () => { this.atualizarEstimativasTeste(); this.carregarTarefa(); },
+      error: () => {}
+    });
+  }
+
+  votarHorasTeste(): void {
+    if (!this.horasTesteSelecionadas) {
+      this.erro = 'Selecione uma estimativa de horas de teste!';
+      this.cdr.detectChanges();
+      return;
+    }
+    this.votando = true;
+    this.erro = '';
+    this.cdr.detectChanges();
+    this.estimationService.votarHorasTeste(this.taskId!, this.participante, this.horasTesteSelecionadas).subscribe({
+      next: () => {
+        this.erro = '';
+        this.atualizarEstimativasTeste();
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        this.erro = err.error?.message || 'Erro ao registrar horas de teste.';
+        this.cdr.detectChanges();
+      },
+      complete: () => {
+        this.votando = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  checkTodosTestadoresVotaram(): void {
+    this.estimationService.todosTestadoresVotaram(this.taskId!).subscribe({
+      next: (res) => { this.todosTestadoresVotaram = res; this.cdr.detectChanges(); },
+      error: () => {}
+    });
+  }
+
+  atualizarEstimativasTeste(): void {
+    this.estimationService.listarTeste(this.taskId!).subscribe({
+      next: (res) => {
+        this.estimativasTeste = res;
+        if (this.isAdmin) this.checkTodosTestadoresVotaram();
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  get jaVotouHorasTeste(): boolean {
+    return this.estimativasTeste.some(e => e.participante === this.participante && e.horasTeste !== null && e.horasTeste !== undefined);
+  }
+
   revelar(): void {
     if (this.estadoVotacao === 'pontos') {
       this.estimationService.revelarPontos(this.taskId!).subscribe({
@@ -477,11 +572,12 @@ export class EstimationBoard implements OnInit, OnDestroy {
       next: () => {
         this.pontoSelecionado = null;
         this.horaSelecionada = 0;
+        this.horasTesteSelecionadas = 0;
         this.estadoVotacao = 'pontos';
         this.todosVotaram = false;
-        this.pontoSelecionado = null;
-        this.horaSelecionada = 0;
+        this.todosTestadoresVotaram = false;
         this.atualizarEstimativas();
+        this.atualizarEstimativasTeste();
         this.cdr.detectChanges();
       },
       error: () => {}

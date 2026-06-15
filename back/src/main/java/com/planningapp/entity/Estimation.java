@@ -37,6 +37,12 @@ public class Estimation {
     @Column(name = "votado_em_horas")
     private Instant votadoEmHoras;
 
+    @Column(name = "horas_teste")
+    private Double horasTeste;
+
+    @Column(name = "horas_teste_reveladas")
+    private Boolean horasTesteReveladas = false;
+
     @ManyToOne
     @JoinColumn(name = "id_tarefas", nullable = false)
     private Task task;
@@ -72,4 +78,10 @@ public class Estimation {
 
     public Instant getVotadoEmHoras() { return votadoEmHoras; }
     public void setVotadoEmHoras(Instant votadoEmHoras) { this.votadoEmHoras = votadoEmHoras; }
+
+    public Double getHorasTeste() { return horasTeste; }
+    public void setHorasTeste(Double horasTeste) { this.horasTeste = horasTeste; }
+
+    public Boolean isHorasTesteReveladas() { return horasTesteReveladas; }
+    public void setHorasTesteReveladas(boolean horasTesteReveladas) { this.horasTesteReveladas = horasTesteReveladas; }
 }

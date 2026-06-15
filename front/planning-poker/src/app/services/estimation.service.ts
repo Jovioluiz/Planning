@@ -56,4 +56,20 @@ export class EstimationService {
   novaRodada(taskId: string): Observable<any> {
     return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/nova-rodada`, {}, this.authOptions);
   }
+
+  listarTeste(taskId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.api}/tarefas/${taskId}/estimativas/listar-teste`, this.authOptions);
+  }
+
+  votarHorasTeste(taskId: string, participante: string, horas: number): Observable<any> {
+    return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/votarHorasTeste`, { participante, horas }, this.authOptions);
+  }
+
+  revelarHorasTeste(taskId: string): Observable<any> {
+    return this.http.post(`${this.api}/tarefas/${taskId}/estimativas/revelar-horas-teste`, {}, this.authOptions);
+  }
+
+  todosTestadoresVotaram(taskId: string): Observable<boolean> {
+    return this.http.get<boolean>(`${this.api}/tarefas/${taskId}/estimativas/todos-testadores-votaram`, this.authOptions);
+  }
 }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
+import jakarta.annotation.PreDestroy;
 import java.security.Principal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -17,9 +18,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SessaoService {
+
+    // Tempo de espera antes de inativar a sala após o moderador desconectar.
+    // Tolera refreshes de página sem deslogar os players.
+    private static final long GRACE_PERIOD_SECONDS = 15;
 
     // username → último instante conectado (para getUsuariosOnline)
     private final ConcurrentHashMap<String, Instant> sessoes = new ConcurrentHashMap<>();
@@ -31,6 +40,11 @@ public class SessaoService {
     private final ConcurrentHashMap<String, Set<String>> usuarioSessoes = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<String, Long> usuarioSala = new ConcurrentHashMap<>();
+
+    // Tarefas de inativação de sala agendadas — canceladas se o moderador reconectar
+    private final ConcurrentHashMap<String, ScheduledFuture<?>> pendingInativacoes = new ConcurrentHashMap<>();
+
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
     @Lazy
     @Autowired
@@ -45,6 +59,12 @@ public class SessaoService {
         String sessionId = extrairSessionId(event.getMessage());
         String username  = extrairUsername(event.getUser(), event.getMessage());
         if (username == null || sessionId == null) return;
+
+        // Cancela inativação pendente (moderador reconectou antes do período de graça expirar)
+        ScheduledFuture<?> pending = pendingInativacoes.remove(username);
+        if (pending != null) {
+            pending.cancel(false);
+        }
 
         Set<String> sessions = usuarioSessoes.computeIfAbsent(username, k -> ConcurrentHashMap.newKeySet());
         boolean primeiraConexao = sessions.isEmpty();
@@ -81,10 +101,21 @@ public class SessaoService {
             messagingTemplate.convertAndSend("/topic/sessoes",
                     Map.of("acao", "USUARIO_DESCONECTADO", "usuario", username));
 
-            salaService.inativarSalasDeModerador(username).forEach(salaId ->
-                messagingTemplate.convertAndSend("/topic/sala/" + salaId + "/sessoes",
-                    Map.of("acao", "SALA_INATIVADA", "salaId", salaId))
-            );
+            // Aguarda o período de graça antes de inativar a sala.
+            // Se o moderador reconectar (ex.: refresh de página), a tarefa é cancelada em onConnect.
+            final String u = username;
+            ScheduledFuture<?> task = scheduler.schedule(() -> {
+                if (!sessoes.containsKey(u)) {
+                    salaService.inativarSalasDeModerador(u).forEach(salaId ->
+                        messagingTemplate.convertAndSend("/topic/sala/" + salaId + "/sessoes",
+                            Map.of("acao", "SALA_INATIVADA", "salaId", salaId))
+                    );
+                }
+                pendingInativacoes.remove(u);
+            }, GRACE_PERIOD_SECONDS, TimeUnit.SECONDS);
+
+            ScheduledFuture<?> anterior = pendingInativacoes.put(username, task);
+            if (anterior != null) anterior.cancel(false);
         }
     }
 
@@ -94,6 +125,11 @@ public class SessaoService {
 
     public void registrarSalaDoUsuario(String username, Long salaId) {
         usuarioSala.put(username, salaId);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        scheduler.shutdownNow();
     }
 
     private String extrairSessionId(Message<?> message) {

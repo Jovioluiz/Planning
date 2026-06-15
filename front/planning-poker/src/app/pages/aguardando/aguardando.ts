@@ -15,6 +15,7 @@ import { WebSocketService } from '../../websocket/websocket.service';
 export class Aguardando implements OnInit, OnDestroy {
   usuario: string | null = '';
   salaEncerrada = false;
+  temaEscuro = typeof localStorage !== 'undefined' ? localStorage.getItem('tema') !== 'claro' : true;
   private topicSessoes = '/topic/sessoes';
   private intervalo: ReturnType<typeof setInterval> | null = null;
 
@@ -64,6 +65,14 @@ export class Aguardando implements OnInit, OnDestroy {
       },
       error: () => {}
     });
+  }
+
+  toggleTema(): void {
+    this.temaEscuro = !this.temaEscuro;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('tema', this.temaEscuro ? 'escuro' : 'claro');
+    }
+    this.cdr.detectChanges();
   }
 
   logout(): void {

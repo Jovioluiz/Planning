@@ -57,7 +57,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginDTO login) {
-        String usuario = login.getUsuario().trim();
+        String usuario = login.getUsuario().trim().toUpperCase();
         String senha = login.getSenha().trim();
         String perfilStr = login.getPerfil().trim().toUpperCase();
 
@@ -87,10 +87,10 @@ public class AuthController {
                     .body(Map.of("success", false, "message", "Perfil inválido."));
         }
 
-        if (perfil == TipoPerfil.SUPER && !userRepository.findByTipoPerfil(TipoPerfil.SUPER).isEmpty()) {
+        if (perfil == TipoPerfil.SUPER) {
             return ResponseEntity.status(403)
                     .body(Map.of("success", false,
-                            "message", "Já existe um super usuário cadastrado."));
+                            "message", "Super usuário deve ser criado via banco de dados."));
         }
 
         User novoUser = new User();
@@ -129,7 +129,7 @@ public class AuthController {
             return ResponseEntity.status(403)
                     .body(Map.of("success", false, "message", "Acesso restrito ao super usuário."));
         }
-        Optional<User> userOpt = userRepository.findByUsuario(usuario);
+        Optional<User> userOpt = userRepository.findByUsuario(usuario.toUpperCase());
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(404)
                     .body(Map.of("success", false, "message", "Usuário não encontrado."));

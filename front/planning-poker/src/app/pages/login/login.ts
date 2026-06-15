@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -22,8 +22,14 @@ export class Login {
   constructor(
     private auth: AuthService,
     private router: Router,
-    private taskService: TaskService
+    private taskService: TaskService,
+    private cdr: ChangeDetectorRef
   ) {}
+
+  onUsuarioChange(value: string): void {
+    this.usuario = value.toUpperCase();
+    this.cdr.detectChanges();
+  }
 
   login(event: Event): void {
     event.preventDefault();
@@ -60,7 +66,7 @@ export class Login {
         const pendingCodigo = typeof sessionStorage !== 'undefined'
           ? sessionStorage.getItem('pendingSalaCodigo')
           : null;
-        if (pendingCodigo && (this.auth.isJogador() || this.auth.isObservador())) {
+        if (pendingCodigo && (this.auth.isJogador() || this.auth.isObservador() || this.auth.isTeste())) {
           this.carregando = false;
           this.router.navigate(['/sala', pendingCodigo]);
           return;
@@ -72,7 +78,7 @@ export class Login {
           return;
         }
 
-        // OBSERVADOR: busca tarefa liberada diretamente
+        // OBSERVADOR / TESTE: busca tarefa liberada diretamente
         this.taskService.getTarefasLiberadas().subscribe({
           next: (tarefas) => {
             this.carregando = false;
@@ -89,7 +95,6 @@ export class Login {
         });
       },
       error: (err: Error) => {
-        // Exibe a mensagem específica do backend (ex: bloqueio de ADMIN)
         this.erro = err.message || 'Erro ao conectar com o servidor';
         this.carregando = false;
       }

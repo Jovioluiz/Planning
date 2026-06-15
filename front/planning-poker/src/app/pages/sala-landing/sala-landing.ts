@@ -61,6 +61,11 @@ export class SalaLanding implements OnInit {
     return this.auth.isLogado();
   }
 
+  onUsuarioChange(value: string): void {
+    this.usuario = value.toUpperCase();
+    this.cdr.detectChanges();
+  }
+
   loginEJuntar(event: Event): void {
     event.preventDefault();
     if (!this.usuario || !this.senha || !this.perfil) {

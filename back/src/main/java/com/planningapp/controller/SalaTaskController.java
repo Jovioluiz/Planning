@@ -105,6 +105,20 @@ public class SalaTaskController {
         return ResponseEntity.status(404).body(Map.of("success", false, "message", "Tarefa não encontrada"));
     }
 
+    @PostMapping("/{id}/liberar-horas-teste")
+    public ResponseEntity<?> liberarHorasTeste(
+            @PathVariable Long salaId,
+            @PathVariable Long id,
+            Authentication auth) {
+        if (!isModerador(auth, salaId)) return forbidden();
+        boolean ok = taskService.liberarHorasTesteVotacao(id);
+        if (ok) {
+            notificationService.notificarSala(salaId, "HORAS_TESTE_LIBERADAS", id);
+            return ResponseEntity.ok(Map.of("success", true, "message", "Votação de teste liberada"));
+        }
+        return ResponseEntity.status(404).body(Map.of("success", false, "message", "Tarefa não encontrada"));
+    }
+
     @PostMapping("/{id}/finalizar")
     public ResponseEntity<?> finalizar(
             @PathVariable Long salaId,

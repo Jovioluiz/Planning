@@ -9,6 +9,8 @@ public class EstimativaResponseDTO {
     private Integer rodada;
     private Long segundosPontos;
     private Long segundosHoras;
+    private Object horasTeste;
+    private boolean horasTesteReveladas;
 
     public EstimativaResponseDTO(String participante, Object pontos, Object horas,
                                   boolean revealed, boolean horasReveladas, Integer rodada,
@@ -23,6 +25,12 @@ public class EstimativaResponseDTO {
         this.segundosHoras = segundosHoras;
     }
 
+    public EstimativaResponseDTO(String participante, Object horasTeste, boolean horasTesteReveladas) {
+        this.participante = participante;
+        this.horasTeste = horasTeste;
+        this.horasTesteReveladas = horasTesteReveladas;
+    }
+
     public String getParticipante() { return participante; }
     public Object getPontos() { return pontos; }
     public Object getHoras() { return horas; }
@@ -31,4 +39,6 @@ public class EstimativaResponseDTO {
     public Integer getRodada() { return rodada; }
     public Long getSegundosPontos() { return segundosPontos; }
     public Long getSegundosHoras() { return segundosHoras; }
+    public Object getHorasTeste() { return horasTeste; }
+    public boolean isHorasTesteReveladas() { return horasTesteReveladas; }
 }

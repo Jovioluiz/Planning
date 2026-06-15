@@ -20,7 +20,7 @@ export class AuthService {
     ).pipe(
       map(response => {
         if (response.success && response.token) {
-          this.setUsuario(usuario);
+          this.setUsuario(usuario.toUpperCase());
           this.setPerfil(response.perfil);
           this.setToken(response.token);
           this.ws.connect();
@@ -94,6 +94,10 @@ export class AuthService {
 
   isObservador(): boolean {
     return this.getPerfil() === 'OBSERVADOR';
+  }
+
+  isTeste(): boolean {
+    return this.getPerfil() === 'TESTE';
   }
 
   isSuper(): boolean {

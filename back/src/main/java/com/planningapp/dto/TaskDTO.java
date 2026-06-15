@@ -1,22 +1,20 @@
 package com.planningapp.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
 
 public class TaskDTO {
 
     @NotNull(message = "Número é obrigatório")
     private Long numero;
 
-    @NotBlank(message = "Título é obrigatório")
     private String titulo;
-
-    @NotBlank(message = "Descrição é obrigatória")
     private String descricao;
 
     private Integer prioridade;
     private String status;
     private String sprint;
+    private Map<String, Object> dadosExtras;
 
     public Long getNumero() { return numero; }
     public void setNumero(Long numero) { this.numero = numero; }
@@ -35,4 +33,7 @@ public class TaskDTO {
 
     public String getSprint() { return sprint; }
     public void setSprint(String sprint) { this.sprint = sprint; }
+
+    public Map<String, Object> getDadosExtras() { return dadosExtras; }
+    public void setDadosExtras(Map<String, Object> dadosExtras) { this.dadosExtras = dadosExtras; }
 }

@@ -2,6 +2,7 @@ package com.planningapp.service;
 
 import com.planningapp.entity.Estimation;
 import com.planningapp.entity.TaskParticipant;
+import com.planningapp.entity.User;
 import com.planningapp.entity.enums.TipoPerfil;
 import com.planningapp.repository.EstimationRepository;
 import com.planningapp.repository.TaskParticipantRepository;
@@ -36,6 +37,10 @@ public class EstimationService {
 
     public List<Estimation> findByTaskId(Long taskId) {
         return estimationRepository.findByTaskId(taskId);
+    }
+
+    public List<Estimation> findTesteByTaskId(Long taskId) {
+        return estimationRepository.findByTaskIdAndPerfil(taskId, TipoPerfil.TESTE);
     }
 
     public List<Estimation> findByTaskIdAndRodada(Long taskId, Integer rodada) {
@@ -108,5 +113,31 @@ public class EstimationService {
             return jogadores;
         }
         return jogadores.stream().filter(online::contains).collect(Collectors.toList());
+    }
+
+    public boolean todosTesteVotaram(Long taskId, Integer rodada) {
+        List<String> testadoresOnline = participantesTesteOnline();
+        if (testadoresOnline.isEmpty()) return false;
+        List<Estimation> estimativas = estimationRepository.findByTaskIdAndPerfil(taskId, TipoPerfil.TESTE);
+        long votaram = estimativas.stream()
+                .filter(e -> COALESCE(e.getRodada()) == rodada
+                        && e.getHorasTeste() != null
+                        && testadoresOnline.contains(e.getUsuario().getUsuario()))
+                .count();
+        return votaram >= testadoresOnline.size();
+    }
+
+    private int COALESCE(Integer val) {
+        return val != null ? val : 1;
+    }
+
+    public List<String> participantesTesteOnline() {
+        List<String> online = sessaoService.getUsuariosOnline();
+        List<User> testadores = userRepository.findByTipoPerfil(TipoPerfil.TESTE);
+        List<String> nomes = testadores.stream()
+                .map(User::getUsuario)
+                .collect(Collectors.toList());
+        if (online.isEmpty()) return nomes;
+        return nomes.stream().filter(online::contains).collect(Collectors.toList());
     }
 }
