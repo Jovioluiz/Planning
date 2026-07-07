@@ -1,4 +1,4 @@
-<div class="board-page" [class.tema-claro]="!temaEscuro">
+﻿<div class="board-page" [class.tema-claro]="!temaEscuro">
 
   <!-- ─── Header ──────────────────────────────────────────────── -->
   <header class="board-header">
@@ -362,13 +362,26 @@
       </span>
 
       <!-- Votos dos testadores -->
-      <div *ngIf="estimativasTeste.length > 0" class="teste-votes-grid">
-        <div *ngFor="let est of estimativasTeste" class="teste-vote-chip">
-          <span class="teste-vote-name">{{ est.participante }}</span>
-          <span class="teste-vote-val" [class.locked]="est.horasTeste === '🔒'">
-            {{ est.horasTeste !== null && est.horasTeste !== undefined ? est.horasTeste : '—' }}
-          </span>
+      <div *ngIf="estimativasTeste.length > 0" class="participants-grid">
+        <div *ngFor="let est of estimativasTeste" class="p-card">
+          <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
+          <div class="p-name">{{ est.participante }}</div>
+          <div class="p-votes">
+            <div class="p-vote-row">
+              <span class="p-label">Horas Teste</span>
+              <div class="vote-card vc-hours"
+                   [class.vc-empty]="est.horasTeste === null || est.horasTeste === undefined">
+                <span class="vc-corner">{{ est.horasTeste !== null && est.horasTeste !== undefined ? est.horasTeste : '' }}</span>
+                <span class="vc-center">{{ est.horasTeste !== null && est.horasTeste !== undefined ? est.horasTeste : '—' }}</span>
+                <span class="vc-suit">h</span>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+      <div *ngIf="mediaHorasTeste !== null" class="teste-media-summary">
+        <span class="teste-media-label">Média Teste</span>
+        <span class="teste-media-valor">{{ mediaHorasTeste }}h</span>
       </div>
       <span *ngIf="estimativasTeste.length === 0" class="waiting-hint">Nenhum testador online.</span>
     </div>
@@ -397,6 +410,10 @@
           </div>
         </div>
       </div>
+    </div>
+    <div *ngIf="mediaHorasTeste !== null" class="teste-media-summary">
+      <span class="teste-media-label">Média Teste</span>
+      <span class="teste-media-valor">{{ mediaHorasTeste }}h</span>
     </div>
   </section>
 

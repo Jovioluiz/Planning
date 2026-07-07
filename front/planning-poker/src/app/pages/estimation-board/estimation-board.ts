@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -105,7 +105,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
         setTimeout(() => this.router.navigate(['/login']), 3000);
         return;
       }
-      if (data.acao === 'USUARIO_CONECTADO' && !this.usuariosOnline.includes(data.usuario)) {
+      if (data.acao === 'USUARIO_CONECTADO' && !this.usuariosOnline.includes(data.usuario) && data.usuario !== this.participante) {
         this.usuariosOnline = [...this.usuariosOnline, data.usuario];
       } else if (data.acao === 'USUARIO_DESCONECTADO') {
         this.usuariosOnline = this.usuariosOnline.filter((u: string) => u !== data.usuario);
@@ -197,7 +197,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
 
   private carregarUsuariosOnline(): void {
     this.taskService.getUsuariosOnline().subscribe({
-      next: (res) => { this.usuariosOnline = res; this.cdr.detectChanges(); },
+      next: (res) => { this.usuariosOnline = res.filter((u: string) => u !== this.participante); this.cdr.detectChanges(); },
       error: () => {}
     });
   }
@@ -527,6 +527,14 @@ export class EstimationBoard implements OnInit, OnDestroy {
 
   get jaVotouHorasTeste(): boolean {
     return this.estimativasTeste.some(e => e.participante === this.participante && e.horasTeste !== null && e.horasTeste !== undefined);
+  }
+
+  get mediaHorasTeste(): number | null {
+    const valores = this.estimativasTeste
+      .map((e: any) => e.horasTeste)
+      .filter((h: any) => h !== null && h !== undefined && typeof h === 'number');
+    if (valores.length === 0) return null;
+    return Math.round((valores.reduce((a: number, b: number) => a + b, 0) / valores.length) * 10) / 10;
   }
 
   revelar(): void {

@@ -1,4 +1,4 @@
-/* ─── Base ─────────────────────────────────────────────────── */
+﻿/* ─── Base ─────────────────────────────────────────────────── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 .board-page {
@@ -1072,4 +1072,33 @@
   .voting-section { padding: 20px 16px; }
   .participants-section { padding: 20px 16px; }
   .poker-card { width: 64px; height: 96px; .card-center { font-size: 24px; } }
+}
+
+/* ─── Média de Teste ────────────────────────────────────────── */
+.teste-media-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 20px;
+  background: rgba(16,185,129,.08);
+  border: 1px solid rgba(16,185,129,.25);
+  border-radius: 10px;
+  width: fit-content;
+  margin-inline: auto;
+
+  .teste-media-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: #34d399;
+  }
+
+  .teste-media-valor {
+    font-size: 20px;
+    font-weight: 700;
+    color: #6ee7b7;
+  }
 }

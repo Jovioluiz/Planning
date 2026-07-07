@@ -1,4 +1,4 @@
-import * as Papa from 'papaparse';
+﻿import * as Papa from 'papaparse';
 import { forkJoin } from 'rxjs';
 import { ChangeDetectorRef, Component, EnvironmentInjector, OnDestroy, OnInit, runInInjectionContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -599,6 +599,8 @@ export class ImportarTarefas implements OnInit, OnDestroy {
       next: () => {
         this.tarefaEmVotacao = null;
         this.estimativas = [];
+        this.estimativasTeste = [];
+        this.todosTestadoresVotaram = false;
         this.participantesTarefa = [];
         this.podeRevelarPontos = false;
         this.podeRevelarHoras = false;
@@ -617,6 +619,8 @@ export class ImportarTarefas implements OnInit, OnDestroy {
       next: () => {
         this.tarefaEmVotacao = null;
         this.estimativas = [];
+        this.estimativasTeste = [];
+        this.todosTestadoresVotaram = false;
         this.participantesTarefa = [];
         this.podeRevelarPontos = false;
         this.podeRevelarHoras = false;

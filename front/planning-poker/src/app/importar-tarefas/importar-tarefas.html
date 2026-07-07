@@ -1,4 +1,4 @@
-<div class="admin-page" [class.tema-escuro]="temaEscuro">
+﻿<div class="admin-page" [class.tema-escuro]="temaEscuro">
 
   <!-- ─── Header ─────────────────────────────────────────── -->
   <header class="admin-header">
@@ -63,63 +63,6 @@
             <input type="file" (change)="onFileSelected($event)" accept=".csv" [disabled]="importando" hidden />
           </label>
           <p class="file-hint">Colunas obrigatórias: <code>numero</code>, <code>titulo</code></p>
-        </div>
-      </div>
-
-      <!-- Fila de tarefas -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Fila de Tarefas</h2>
-          <div class="card-actions" *ngIf="tarefasFila.length > 0">
-            <button class="btn btn-primary"
-              [disabled]="tarefaSelecionadaId === null || tarefaEmVotacao !== null"
-              (click)="iniciarVotacaoSelecionada()">
-              ▶ Iniciar Votação
-            </button>
-            <button class="btn btn-danger"
-              [disabled]="tarefaSelecionadaId === null"
-              (click)="excluirSelecionada()">
-              🗑 Excluir
-            </button>
-          </div>
-        </div>
-
-        <div class="card-body">
-          <div *ngIf="tarefasFila.length > 0; else filaVazia">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th class="col-check"></th>
-                  <th>Número</th>
-                  <th *ngFor="let col of colunasExtras">{{ col }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let t of tarefasFila"
-                    [class.row-selected]="tarefaSelecionadaId === t.id"
-                    (click)="selecionarTarefa(t.id)">
-                  <td class="col-check">
-                    <input type="checkbox"
-                      [checked]="tarefaSelecionadaId === t.id"
-                      (change)="selecionarTarefa(t.id)"
-                      (click)="$event.stopPropagation()" />
-                  </td>
-                  <td><span class="badge-num">#{{ t.numero }}</span></td>
-                  <td *ngFor="let col of colunasExtras">{{ t.dadosExtras?.[col] ?? '—' }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <p *ngIf="tarefaSelecionadaId === null" class="select-hint">Clique em uma linha para selecionar a tarefa</p>
-            <p *ngIf="tarefaEmVotacao !== null && tarefaSelecionadaId !== null" class="select-hint warn">
-              Finalize a votação atual antes de iniciar outra
-            </p>
-          </div>
-          <ng-template #filaVazia>
-            <div class="empty-state">
-              <span>📋</span>
-              <p>Nenhuma tarefa na fila. Importe um CSV para começar.</p>
-            </div>
-          </ng-template>
         </div>
       </div>
 
@@ -293,27 +236,6 @@
                 </div>
               </div>
 
-              <!-- Testadores -->
-              <div *ngIf="estimativasTeste.length > 0" class="participants">
-                <h4 class="participants-title">🧪 Testadores</h4>
-                <div *ngFor="let est of estimativasTeste" class="participant-row">
-                  <span class="participant-name">{{ est.participante }}</span>
-                  <span class="participant-vote">
-                    <ng-container *ngIf="tarefaEmVotacao.horasTesteReveladas; else votoOculto">
-                      {{ est.horasTeste !== null && est.horasTeste !== undefined ? est.horasTeste + 'h' : '—' }}
-                    </ng-container>
-                    <ng-template #votoOculto>
-                      <span *ngIf="est.horasTeste !== null && est.horasTeste !== undefined" class="voto-confirmado">✓</span>
-                      <span *ngIf="est.horasTeste === null || est.horasTeste === undefined">—</span>
-                    </ng-template>
-                  </span>
-                </div>
-                <div *ngIf="tarefaEmVotacao.horasTesteReveladas && mediaHorasTeste !== null" class="teste-media-row">
-                  <span class="teste-media-label">Média</span>
-                  <span class="teste-media-valor">{{ mediaHorasTeste }}h</span>
-                </div>
-              </div>
-
               <!-- Rodada anterior como referência -->
               <div class="participants previous-round-ref" *ngIf="estimativasRodadaAnterior.length > 0">
                 <h4 class="participants-title previous-round-label">
@@ -355,6 +277,30 @@
                 </div>
               </div>
 
+              <!-- Testadores -->
+              <div *ngIf="estimativasTeste.length > 0 && tarefaEmVotacao.horasTesteLiberadas" class="participants">
+                <h4 class="participants-title">🧪 Testadores</h4>
+                <div *ngFor="let est of estimativasTeste" class="participant-row">
+                  <span class="participant-name">{{ est.participante }}</span>
+                  <span class="participant-hours">
+                    <ng-container *ngIf="tarefaEmVotacao.horasTesteReveladas">
+                      {{ est.horasTeste !== null && est.horasTeste !== undefined ? est.horasTeste + 'h' : '—' }}
+                    </ng-container>
+                    <ng-container *ngIf="!tarefaEmVotacao.horasTesteReveladas">
+                      <span *ngIf="est.horasTeste !== null && est.horasTeste !== undefined" class="voto-confirmado">✓</span>
+                      <span *ngIf="est.horasTeste === null || est.horasTeste === undefined">—</span>
+                    </ng-container>
+                  </span>
+                </div>
+                <div class="participants-legend">
+                  <span>Horas</span>
+                </div>
+                <div *ngIf="tarefaEmVotacao.horasTesteReveladas && mediaHorasTeste !== null" class="teste-media-row">
+                  <span class="teste-media-label">Média</span>
+                  <span class="teste-media-valor">{{ mediaHorasTeste }}h</span>
+                </div>
+              </div>
+
               <!-- Quem ainda não votou -->
               <div class="pending-voters" *ngIf="quemNaoVotou.length > 0">
                 <h4 class="participants-title pending-title">Aguardando</h4>
@@ -367,6 +313,63 @@
 
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Fila de tarefas -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Fila de Tarefas</h2>
+          <div class="card-actions" *ngIf="tarefasFila.length > 0">
+            <button class="btn btn-primary"
+              [disabled]="tarefaSelecionadaId === null || tarefaEmVotacao !== null"
+              (click)="iniciarVotacaoSelecionada()">
+              ▶ Iniciar Votação
+            </button>
+            <button class="btn btn-danger"
+              [disabled]="tarefaSelecionadaId === null"
+              (click)="excluirSelecionada()">
+              🗑 Excluir
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div *ngIf="tarefasFila.length > 0; else filaVazia">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-check"></th>
+                  <th>Número</th>
+                  <th *ngFor="let col of colunasExtras">{{ col }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let t of tarefasFila"
+                    [class.row-selected]="tarefaSelecionadaId === t.id"
+                    (click)="selecionarTarefa(t.id)">
+                  <td class="col-check">
+                    <input type="checkbox"
+                      [checked]="tarefaSelecionadaId === t.id"
+                      (change)="selecionarTarefa(t.id)"
+                      (click)="$event.stopPropagation()" />
+                  </td>
+                  <td><span class="badge-num">#{{ t.numero }}</span></td>
+                  <td *ngFor="let col of colunasExtras">{{ t.dadosExtras?.[col] ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p *ngIf="tarefaSelecionadaId === null" class="select-hint">Clique em uma linha para selecionar a tarefa</p>
+            <p *ngIf="tarefaEmVotacao !== null && tarefaSelecionadaId !== null" class="select-hint warn">
+              Finalize a votação atual antes de iniciar outra
+            </p>
+          </div>
+          <ng-template #filaVazia>
+            <div class="empty-state">
+              <span>📋</span>
+              <p>Nenhuma tarefa na fila. Importe um CSV para começar.</p>
+            </div>
+          </ng-template>
         </div>
       </div>
 
