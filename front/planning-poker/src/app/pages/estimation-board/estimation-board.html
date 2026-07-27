@@ -6,10 +6,6 @@
       <span class="brand-icon">🦶</span>
       <span class="brand-title">Chutômetro</span>
     </div>
-    <div *ngIf="tarefa" class="board-task-meta">
-      <span class="task-num">#{{ tarefa.numero }}</span>
-      <span class="task-title-short">{{ tarefa.titulo }}</span>
-    </div>
     <div class="board-user">
       <span class="user-avatar">{{ (participante || 'U')[0].toUpperCase() }}</span>
       <span class="user-name">{{ participante }}</span>

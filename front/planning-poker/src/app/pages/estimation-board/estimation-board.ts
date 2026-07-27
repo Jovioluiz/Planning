@@ -222,7 +222,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   private iniciarTimer(liberadaEm: string): void {
     if (this.timerInterval) clearInterval(this.timerInterval);
     this.timerInterval = setInterval(() => {
-      const diff = Math.floor((Date.now() - new Date(liberadaEm).getTime()) / 1000);
+      const diff = Math.max(0, Math.floor((Date.now() - new Date(liberadaEm).getTime()) / 1000));
       const mins = Math.floor(diff / 60).toString().padStart(2, '0');
       const secs = (diff % 60).toString().padStart(2, '0');
       this.tempoDecorrido = `${mins}:${secs}`;
