@@ -1,50 +1,88 @@
+@use '../../../styles/np' as np;
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* ── Sala encerrada overlay ──────────────────────────────── */
 .sala-encerrada-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0,0,0,.75);
   z-index: 999;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px;
 }
+
 .sala-encerrada-card {
-  background: #1e293b;
-  border: 1px solid #ef4444;
-  border-radius: 16px;
-  padding: 40px 48px;
+  position: relative;
+  overflow: hidden;
+  background: var(--black);
+  border-radius: 18px;
+  padding: 44px 40px;
   text-align: center;
-  color: #f8fafc;
-  max-width: 400px;
-  .sala-encerrada-icon { font-size: 3rem; margin-bottom: 16px; }
-  h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 12px; color: #ef4444; }
-  p  { font-size: 0.95rem; color: #94a3b8; }
+  color: #fff;
+  max-width: 420px;
+  width: 100%;
+
+  &::before {
+    content: '';
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    right: -60px;
+    top: -60px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  > * { position: relative; }
+
+  .sala-encerrada-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 10px;
+  }
+
+  p { font-size: 14px; color: rgba(255,255,255,.65); line-height: 1.6; }
 }
 
 /* ── Header ─────────────────────────────────────────────── */
 .aguardando-header {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 56px;
-  background: rgba(20, 27, 45, 0.96);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid #1e293b;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  z-index: 100;
+  @include np.header;
+  & {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+  }
 }
 
 .header-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 
-  .brand-icon { font-size: 20px; }
-  .brand-name { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+  .brand-icon { @include np.brand-icon; }
+  .brand-name { @include np.brand-name; }
+  .brand-role {
+    @include np.brand-role;
+    @media (max-width: 560px) { display: none; }
+  }
 }
 
 .header-user {
@@ -54,71 +92,92 @@
 }
 
 .user-avatar {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  background: #fff;
+  color: var(--black);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-family: var(--font-display);
+  font-size: 14px;
   font-weight: 700;
-  color: #fff;
+  box-shadow: 0 0 0 2px var(--black), 0 0 0 3px var(--accent);
 }
 
 .user-name {
   font-size: 13px;
-  color: #94a3b8;
+  color: rgba(255,255,255,.85);
+
+  @media (max-width: 480px) { display: none; }
 }
 
-.btn-logout {
-  background: transparent;
-  border: 1px solid #334155;
-  color: #64748b;
-  border-radius: 6px;
-  padding: 6px 16px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: border-color .2s, color .2s;
-
-  &:hover { border-color: #ef4444; color: #ef4444; }
-}
+.btn-logout { @include np.header-btn-accent; }
 
 .btn-tema {
-  background: transparent;
-  border: 1px solid #334155;
-  color: #94a3b8;
-  border-radius: 6px;
-  padding: 5px 9px;
+  @include np.header-btn;
   font-size: 15px;
-  cursor: pointer;
-  transition: border-color .2s, color .2s;
+  padding: 5px 11px;
   line-height: 1;
-
-  &:hover { border-color: #64748b; color: #e2e8f0; }
 }
 
 /* ── Página ─────────────────────────────────────────────── */
 .aguardando-page {
+  position: relative;
   min-height: 100vh;
-  background: #141b2d;
+  background: var(--bg);
+  color: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: var(--font-body);
   overflow: hidden;
-  padding-top: 56px;
+  padding-top: 64px;
+
+  /* Círculos decorativos */
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  &::before {
+    width: 480px;
+    height: 480px;
+    right: -180px;
+    bottom: -180px;
+    background: var(--accent);
+    opacity: .9;
+  }
+
+  &::after {
+    width: 180px;
+    height: 180px;
+    left: 8%;
+    top: 18%;
+    border: 2px solid var(--accent);
+  }
 }
 
 .content {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  padding: 40px 24px;
+  gap: 18px;
+  padding: 48px 40px;
+  margin: 24px 16px;
+  background: var(--surface);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  transition: opacity .3s;
 }
 
-/* ── Cena da xícara (flutuação suave, sem chute) ─────────── */
+/* ── Cena da xícara ──────────────────────────────────────── */
 .coffee-scene {
   position: relative;
   width: 160px;
@@ -148,23 +207,12 @@
   filter: blur(3px);
   opacity: 0;
   transform-origin: bottom center;
+  background: linear-gradient(to top, rgba(140,140,140,.6), transparent);
 }
 
-.w1 {
-  width: 8px; height: 55px;
-  background: linear-gradient(to top, rgba(148,163,184,.75), transparent);
-  animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite 0s;
-}
-.w2 {
-  width: 10px; height: 72px;
-  background: linear-gradient(to top, rgba(148,163,184,.65), transparent);
-  animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite .7s;
-}
-.w3 {
-  width: 8px; height: 50px;
-  background: linear-gradient(to top, rgba(148,163,184,.75), transparent);
-  animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite 1.4s;
-}
+.w1 { width: 8px;  height: 55px; animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite 0s; }
+.w2 { width: 10px; height: 72px; animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite .7s; }
+.w3 { width: 8px;  height: 50px; animation: vapor 2.6s cubic-bezier(.4,0,.2,1) infinite 1.4s; }
 
 @keyframes vapor {
   0%   { opacity: 0;   transform: translateY(0)     scaleX(1);   }
@@ -174,7 +222,7 @@
   100% { opacity: 0;   transform: translateY(-68px) scaleX(1.2); }
 }
 
-/* ── Xícara flutuando suavemente ─────────────────────────── */
+/* ── Xícara (preta com borda laranja) ────────────────────── */
 .cup-float {
   display: flex;
   flex-direction: column;
@@ -185,7 +233,7 @@
 
 @keyframes cup-bob {
   0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-10px); }
+  50%      { transform: translateY(-10px); }
 }
 
 .cup {
@@ -193,7 +241,7 @@
   width: 96px;
   height: 76px;
   clip-path: polygon(0% 0%, 100% 0%, 91% 100%, 9% 100%);
-  background: linear-gradient(160deg, #2d4060 0%, #1e293b 55%, #131e2e 100%);
+  background: linear-gradient(160deg, #2a2a2a 0%, #111 55%, #000 100%);
   border-radius: 0 0 10px 10px;
   overflow: visible;
 }
@@ -202,9 +250,8 @@
   position: absolute;
   top: 0; left: -4px; right: -4px;
   height: 8px;
-  background: linear-gradient(135deg, #3b5070, #253448);
+  background: var(--accent);
   border-radius: 4px 4px 0 0;
-  box-shadow: 0 2px 6px rgba(0,0,0,.4);
 }
 
 .coffee {
@@ -220,14 +267,14 @@
   top: 3px; left: 50%;
   transform: translateX(-50%);
   width: 52%; height: 5px;
-  background: rgba(140,80,30,.55);
+  background: rgba(255,138,61,.45);
   border-radius: 50%;
   animation: glare-pulse 2.6s ease-in-out infinite;
 }
 
 @keyframes glare-pulse {
   0%, 100% { opacity: .55; transform: translateX(-50%) scaleX(1);    }
-  50%       { opacity: .9;  transform: translateX(-50%) scaleX(1.15); }
+  50%      { opacity: .9;  transform: translateX(-50%) scaleX(1.15); }
 }
 
 .handle {
@@ -235,19 +282,18 @@
   right: -4px; top: 50%;
   transform: translateY(-40%);
   width: 26px; height: 40px;
-  border: 6px solid #253448;
+  border: 6px solid #1a1a1a;
   border-left: none;
   border-radius: 0 22px 22px 0;
   background: transparent;
-  box-shadow: 3px 0 8px rgba(0,0,0,.25);
 }
 
 .saucer {
   width: 128px; height: 14px;
-  background: linear-gradient(160deg, #2d4060 0%, #1e293b 100%);
+  background: linear-gradient(160deg, #2a2a2a 0%, #0a0a0a 100%);
   border-radius: 50%;
   margin-top: 3px;
-  box-shadow: 0 6px 20px rgba(0,0,0,.5), inset 0 2px 4px rgba(255,255,255,.06);
+  box-shadow: 0 6px 20px rgba(0,0,0,.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -255,17 +301,34 @@
 
 .saucer-inner {
   width: 60px; height: 5px;
-  background: rgba(255,255,255,.05);
+  background: rgba(255,255,255,.06);
   border-radius: 50%;
 }
 
+.tema-escuro {
+  .cup, .saucer { background: linear-gradient(160deg, #3a3a3a 0%, #1f1f1f 100%); }
+  .handle { border-color: #2e2e2e; }
+}
+
 /* ── Textos ──────────────────────────────────────────────── */
-.title {
-  font-size: 20px;
+.eyebrow {
+  margin-top: 8px;
+  font-size: 11px;
   font-weight: 700;
-  color: #f1f5f9;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 5vw, 40px);
+  font-weight: 600;
+  line-height: 1.05;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--ink);
   text-align: center;
-  letter-spacing: .3px;
 }
 
 .dots {
@@ -277,7 +340,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #3b82f6;
+    background: var(--accent);
     animation: dot-pulse 1.3s ease-in-out infinite;
 
     &:nth-child(2) { animation-delay: .22s; }
@@ -291,38 +354,9 @@
 }
 
 .subtitle {
-  font-size: 13px;
-  color: #64748b;
+  font-size: 14px;
+  color: var(--muted);
   text-align: center;
-  max-width: 260px;
+  max-width: 280px;
   line-height: 1.6;
-}
-
-/* ── Tema Claro ──────────────────────────────────────────── */
-.aguardando-page.tema-claro {
-  background: #f1f5f9;
-
-  .title    { color: #0f172a; }
-  .subtitle { color: #475569; }
-
-  .cup {
-    background: linear-gradient(160deg, #4b6b8a 0%, #2d4a6a 55%, #1e3550 100%);
-  }
-
-  .rim {
-    background: linear-gradient(135deg, #5a7a9a, #3a5a7a);
-  }
-
-  .handle {
-    border-color: #3a5a7a;
-  }
-
-  .saucer {
-    background: linear-gradient(160deg, #4b6b8a 0%, #2d4a6a 100%);
-    box-shadow: 0 6px 20px rgba(0,0,0,.2), inset 0 2px 4px rgba(255,255,255,.1);
-  }
-
-  .w1, .w2, .w3 {
-    background: linear-gradient(to top, rgba(71,85,105,.6), transparent);
-  }
 }

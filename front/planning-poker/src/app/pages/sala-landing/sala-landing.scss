@@ -1,59 +1,106 @@
+*, *::before, *::after { box-sizing: border-box; }
+
 .sala-landing-page {
   display: flex;
   min-height: 100vh;
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+
+  @media (max-width: 768px) { flex-direction: column; }
 }
 
+/* ─── Painel de marca ────────────────────────────────────── */
 .brand-panel {
   position: relative;
+  overflow: hidden;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #1c4f9c 0%, #327ACF 55%, #4a9ade 100%);
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 80px),
+    var(--black);
   padding: 60px 48px;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  &::before {
+    width: 400px;
+    height: 400px;
+    right: -140px;
+    top: -140px;
+    background: var(--accent);
+  }
+
+  &::after {
+    width: 140px;
+    height: 140px;
+    left: 10%;
+    bottom: -50px;
+    border: 2px solid var(--accent);
+  }
 
   @media (max-width: 768px) {
     flex: none;
-    min-height: 180px;
-    padding: 32px 28px;
+    min-height: 200px;
+    padding: 32px 24px;
+
+    &::before { width: 200px; height: 200px; right: -70px; top: -80px; }
   }
 }
 
 .brand-content {
+  position: relative;
+  z-index: 1;
   text-align: center;
   color: #fff;
 }
 
 .brand-logo {
-  font-size: 64px;
-  margin-bottom: 12px;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .brand-title {
-  font-size: 2.4rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 12px;
 }
 
 .brand-tagline {
-  font-size: 1rem;
-  opacity: 0.85;
+  font-size: 15px;
+  color: rgba(255,255,255,.6);
   margin: 0;
 }
 
+/* ─── Painel de formulário ───────────────────────────────── */
 .form-panel {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f7fa;
+  background: var(--bg);
   padding: 48px 40px;
 
-  @media (max-width: 768px) {
-    padding: 32px 20px;
-  }
+  @media (max-width: 768px) { padding: 32px 20px 48px; }
 }
 
 .form-inner {
@@ -64,145 +111,183 @@
 .loading-state,
 .ja-logado {
   text-align: center;
-  color: #555;
-  font-size: 1rem;
+  color: var(--muted);
+  font-size: 15px;
+
+  .spinner { border-color: var(--accent-soft); border-top-color: var(--accent); }
 }
 
-.erro-state {
-  text-align: center;
-}
+.erro-state { text-align: center; }
 
 .btn-voltar {
   display: inline-block;
-  margin-top: 12px;
-  color: #327ACF;
+  margin-top: 14px;
+  padding: 10px 22px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  color: var(--ink);
   text-decoration: none;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
+  transition: background .2s, color .2s;
 
-  &:hover { text-decoration: underline; }
+  &:hover { background: var(--ink); color: var(--surface); }
 }
 
+/* ─── Info da sala ───────────────────────────────────────── */
 .sala-info {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--line);
 }
 
 .sala-icon {
-  font-size: 48px;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sala-nome {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1a2e4a;
-  margin: 8px 0 4px;
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  line-height: 1.1;
+  color: var(--ink);
+  margin: 14px 0 6px;
+  overflow-wrap: anywhere;
 }
 
 .sala-subtitulo {
-  color: #666;
-  font-size: 0.9rem;
+  color: var(--muted);
+  font-size: 14px;
   margin: 0;
 }
 
-.form-header {
-  margin-bottom: 24px;
-}
+.form-header { margin-bottom: 24px; }
 
 .form-welcome {
-  font-size: 0.9rem;
-  color: #888;
-  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 8px;
 }
 
 .form-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #1a2e4a;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--ink);
   margin: 0;
 }
 
+/* ─── Campos ─────────────────────────────────────────────── */
 .field {
   margin-bottom: 16px;
 
   label {
     display: block;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #444;
-    margin-bottom: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 8px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1.5px;
   }
 }
 
 .input-wrap {
   display: flex;
   align-items: center;
-  background: #fff;
-  border: 1.5px solid #dde3ee;
-  border-radius: 10px;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
   overflow: hidden;
-  transition: border-color 0.2s;
+  transition: border-color .2s, box-shadow .2s;
 
-  &:focus-within { border-color: #327ACF; }
+  &:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
 
   .input-icon {
-    padding: 0 12px;
-    font-size: 16px;
-    color: #aaa;
+    padding: 0 12px 0 16px;
+    font-size: 14px;
     flex-shrink: 0;
   }
 
   input, select {
     flex: 1;
+    min-width: 0;
     border: none;
     outline: none;
-    padding: 12px 12px 12px 0;
-    font-size: 0.95rem;
+    padding: 13px 16px 13px 0;
+    font-family: var(--font-body);
+    font-size: 14px;
     background: transparent;
-    color: #1a2e4a;
+    color: var(--ink);
   }
 }
 
 .btn-entrar {
   width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #327ACF, #1c4f9c);
+  padding: 15px;
+  background: var(--accent);
   color: #fff;
   border: none;
-  border-radius: 10px;
-  font-size: 1rem;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 13px;
   font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
   cursor: pointer;
   margin-top: 8px;
-  transition: opacity 0.2s;
+  box-shadow: 0 8px 20px rgba(255,106,19,.3);
+  transition: background .2s, transform .15s;
 
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
-  &:not(:disabled):hover { opacity: 0.9; }
+  &:disabled { opacity: .6; cursor: not-allowed; }
+  &:not(:disabled):hover { background: var(--accent-2); transform: translateY(-2px); }
 }
 
 .erro {
-  color: #e53935;
-  font-size: 0.88rem;
-  margin-top: 10px;
-  text-align: center;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-left: 3px solid var(--danger);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-top: 12px;
 }
 
 .hint {
-  color: #999;
-  font-size: 0.82rem;
+  color: var(--muted);
+  font-size: 12px;
   text-align: center;
-  margin-top: 16px;
+  margin-top: 20px;
+  line-height: 1.6;
 }
 
 .spinner {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  border: 2px solid rgba(255,255,255,.4);
   border-top-color: #fff;
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin .7s linear infinite;
 }
 
 .spinner-row {
@@ -211,6 +296,4 @@
   gap: 8px;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }

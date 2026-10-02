@@ -30,17 +30,34 @@
     {{ mensagem }}
   </div>
 
-  <!-- ─── Stats ──────────────────────────────────────────── -->
+  <!-- ─── Hero ───────────────────────────────────────────── -->
+  <section class="hero">
+    <span class="hero-circle hero-circle-lg"></span>
+    <span class="hero-circle hero-circle-sm"></span>
+    <div class="hero-content">
+      <span class="hero-eyebrow">Painel do moderador</span>
+      <h1 class="hero-title">{{ nomeSala || 'Planning Poker' }}</h1>
+      <p class="hero-sub">
+        Importe o backlog, conduza a votação e acompanhe as estimativas em tempo real.
+        <span *ngIf="sprintAtual" class="hero-sprint">Sprint {{ sprintAtual }}</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ─── Stats (painéis numerados) ──────────────────────── -->
   <section class="stats-row">
     <div class="stat-card">
+      <span class="stat-index">01</span>
       <div class="stat-value">{{ tarefasFila.length }}</div>
       <div class="stat-label">Na Fila</div>
     </div>
     <div class="stat-card stat-active">
+      <span class="stat-index">02</span>
       <div class="stat-value">{{ tarefaEmVotacao ? 1 : 0 }}</div>
       <div class="stat-label">Em Votação</div>
     </div>
     <div class="stat-card stat-done">
+      <span class="stat-index">03</span>
       <div class="stat-value">{{ tarefasEstimadas.length }}</div>
       <div class="stat-label">Estimadas</div>
     </div>

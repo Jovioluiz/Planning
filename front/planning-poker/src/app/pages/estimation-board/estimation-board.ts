@@ -23,7 +23,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
   erro = '';
   estimativas: any[] = [];
   cartas = [1, 2, 3, 5, 8, 13, 21, CARTA_CAFE];
-  horas = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24];
+  horas = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   tarefa: any = null;
   estadoVotacao: 'pontos' | 'aguardando_horas' | 'horas' | 'finalizado' = 'pontos';
   pontoSelecionado: number | null = null;

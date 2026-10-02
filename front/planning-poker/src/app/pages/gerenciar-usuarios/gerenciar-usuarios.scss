@@ -1,273 +1,298 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
+@use '../../../styles/np' as np;
+
+*, *::before, *::after { box-sizing: border-box; }
 
 .su-page {
   min-height: 100vh;
-  background: #141b2d;
-  color: #e2e8f0;
-  font-family: 'Segoe UI', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
   display: flex;
   flex-direction: column;
 }
 
 /* ─── Header ─────────────────────────────────────────────── */
 .su-header {
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border-bottom: 1px solid #334155;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 28px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  @include np.header;
+  & {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
 }
 
 .su-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 
-  .su-brand-icon { font-size: 20px; }
-  .su-brand-title { font-size: 17px; font-weight: 700; color: #f1f5f9; }
+  .su-brand-icon  { @include np.brand-icon; }
+  .su-brand-title { @include np.brand-name; }
 }
+
+.su-badge { @include np.brand-role; }
 
 .su-user {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.su-badge {
-  background: rgba(168,85,247,.18);
-  border: 1px solid rgba(168,85,247,.35);
-  color: #c084fc;
-  border-radius: 20px;
-  padding: 3px 12px;
-  font-size: 12px;
-  font-weight: 600;
+  flex-wrap: wrap;
 }
 
 .su-username {
-  font-size: 14px;
-  color: #94a3b8;
-}
-
-.btn-logout {
-  background: transparent;
-  border: 1px solid #475569;
-  color: #94a3b8;
-  border-radius: 6px;
-  padding: 6px 14px;
   font-size: 13px;
-  cursor: pointer;
-  transition: all .2s;
-
-  &:hover { border-color: #ef4444; color: #ef4444; }
+  color: rgba(255,255,255,.85);
+  font-weight: 500;
 }
+
+.btn-header { @include np.header-btn; }
+.btn-header.btn-logout { @include np.header-btn-accent; }
+
+/* ─── Hero ───────────────────────────────────────────────── */
+.hero { @include np.hero(110px); }
+.hero-title { @include np.hero-title; }
 
 /* ─── Main ───────────────────────────────────────────────── */
 .su-main {
+  position: relative;
+  z-index: 1;
   flex: 1;
-  max-width: 720px;
+  max-width: 1600px;
   width: 100%;
-  margin: 0 auto;
-  padding: 36px 24px;
+  margin: -64px auto 0;
+  padding: 0 24px 56px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 24px;
 }
 
-.su-loading {
+.su-loading,
+.su-vazio {
+  @include np.card;
   text-align: center;
-  color: #64748b;
-  padding: 40px 0;
+  color: var(--muted);
+  padding: 40px 16px;
   font-size: 15px;
+  margin: 0;
 }
 
 .su-erro {
-  background: rgba(239,68,68,.12);
-  border: 1px solid rgba(239,68,68,.3);
-  color: #f87171;
-  border-radius: 8px;
+  background: var(--danger-soft);
+  border-left: 3px solid var(--danger);
+  color: var(--danger);
+  border-radius: 10px;
   padding: 12px 16px;
   font-size: 14px;
-}
-
-.su-vazio {
-  text-align: center;
-  color: #475569;
-  padding: 40px 0;
-  font-size: 15px;
+  margin: 0;
 }
 
 /* ─── Grupos ─────────────────────────────────────────────── */
 .su-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  @include np.card;
+  overflow: hidden;
 }
 
 .su-group-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 700;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #64748b;
-  margin-bottom: 4px;
+  color: var(--ink);
+  margin: 0;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
 }
 
 .su-group-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
 
-  &.dot-admin   { background: #818cf8; }
-  &.dot-jogador { background: #34d399; }
-  &.dot-obs     { background: #fbbf24; }
+  &.dot-admin   { background: var(--accent); }
+  &.dot-jogador { background: var(--ink); }
+  &.dot-obs     { background: var(--warn); }
 }
 
 /* ─── Itens ──────────────────────────────────────────────── */
 .su-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  margin: 0 -1px -1px 0; /* esconde as bordas da última linha/coluna */
 }
 
 .su-item {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 10px;
-  padding: 14px 16px;
+  padding: 14px 22px;
   display: flex;
   align-items: center;
   gap: 14px;
-  transition: border-color .15s;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  transition: background .15s;
 
-  &:hover { border-color: #475569; }
+  &:hover { background: var(--surface-2); }
 }
 
 .su-item-avatar {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #818cf8);
+  background: var(--ink);
+  color: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
   flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent);
 
-  &.avatar-jogador { background: linear-gradient(135deg, #059669, #34d399); }
-  &.avatar-obs     { background: linear-gradient(135deg, #d97706, #fbbf24); }
+  &.avatar-jogador { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--ink); }
+  &.avatar-obs     { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--warn); }
 }
 
 .su-item-name {
   flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .su-item-role {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 999px;
 
-  &.role-admin   { background: rgba(99,102,241,.15); color: #818cf8; border: 1px solid rgba(99,102,241,.3); }
-  &.role-jogador { background: rgba(52,211,153,.12); color: #34d399; border: 1px solid rgba(52,211,153,.25); }
-  &.role-obs     { background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.25); }
+  &.role-admin   { background: var(--accent-soft); color: var(--accent-ink); }
+  &.role-jogador { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+  &.role-obs     { background: var(--warn-soft);   color: var(--warn); }
+
+  @media (max-width: 480px) { display: none; }
 }
 
 .btn-excluir {
   background: transparent;
-  border: 1px solid rgba(239,68,68,.4);
-  color: #f87171;
-  border-radius: 6px;
+  border: 1.5px solid var(--line);
+  color: var(--muted);
+  border-radius: 999px;
   padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
   transition: all .2s;
   flex-shrink: 0;
 
-  &:hover { background: rgba(239,68,68,.12); border-color: #ef4444; }
+  &:hover { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
 }
 
 /* ─── Modal ──────────────────────────────────────────────── */
 .su-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.7);
+  background: rgba(0,0,0,.75);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px;
   z-index: 300;
 }
 
 .su-confirm-card {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 14px;
-  padding: 36px 40px;
-  max-width: 400px;
-  width: 90vw;
+  position: relative;
+  overflow: hidden;
+  background: var(--black);
+  color: #fff;
+  border-radius: 18px;
+  padding: 40px 36px 32px;
+  max-width: 420px;
+  width: 100%;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 14px;
 
-  .su-confirm-icon { font-size: 44px; }
+  &::before {
+    content: '';
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    right: -60px;
+    top: -60px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
 
-  h3 { font-size: 20px; font-weight: 700; color: #f1f5f9; }
+  > * { position: relative; }
+
+  .su-confirm-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  h3 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin: 0;
+  }
 
   p {
     font-size: 14px;
-    color: #94a3b8;
+    color: rgba(255,255,255,.65);
     line-height: 1.6;
+    margin: 0;
 
-    strong { color: #e2e8f0; }
+    strong { color: #fff; }
   }
 }
 
 .su-confirm-actions {
   display: flex;
-  gap: 12px;
-  margin-top: 6px;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .btn-cancelar {
-  background: transparent;
-  border: 1px solid #475569;
-  color: #94a3b8;
-  border-radius: 8px;
-  padding: 10px 24px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .2s;
+  @include np.header-btn;
+  padding: 11px 22px;
 
-  &:hover:not([disabled]) { border-color: #64748b; color: #e2e8f0; }
   &[disabled] { opacity: .5; cursor: not-allowed; }
 }
 
 .btn-confirmar {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  padding: 11px 22px;
+  background: #dc2626;
   border: none;
   color: #fff;
-  border-radius: 8px;
-  padding: 10px 24px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  transition: opacity .2s;
+  transition: background .2s;
 
-  &:hover:not([disabled]) { opacity: .85; }
+  &:hover:not([disabled]) { background: #ef4444; }
   &[disabled] { opacity: .5; cursor: not-allowed; }
 }

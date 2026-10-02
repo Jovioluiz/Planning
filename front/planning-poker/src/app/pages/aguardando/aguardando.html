@@ -1,10 +1,11 @@
-<div class="aguardando-page" [class.sala-encerrada-mode]="salaEncerrada" [class.tema-claro]="!temaEscuro">
+<div class="aguardando-page" [class.sala-encerrada-mode]="salaEncerrada" [class.tema-escuro]="temaEscuro">
 
   <!-- ── Header ──────────────────────────────────────── -->
   <header class="aguardando-header">
     <div class="header-brand">
       <span class="brand-icon">🦶</span>
       <span class="brand-name">Chutômetro</span>
+      <span class="brand-role">Sala de espera</span>
     </div>
     <div class="header-user">
       <span class="user-avatar">{{ (usuario || 'U')[0].toUpperCase() }}</span>
@@ -49,6 +50,7 @@
       </div>
     </div>
 
+    <span class="eyebrow">Pausa para o café</span>
     <h2 class="title">Aguardando próxima tarefa</h2>
 
     <div class="dots">

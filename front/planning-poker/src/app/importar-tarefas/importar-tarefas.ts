@@ -65,6 +65,10 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     return s || null;
   }
 
+  get nomeSala(): string | null {
+    return this.salaService.getSalaNome();
+  }
+
   get tarefasEstimadasDaSprintAtual(): any[] {
     if (!this.sprintAtual) return this.tarefasEstimadas;
     return this.tarefasEstimadas.filter(t => t.sprint === this.sprintAtual);
