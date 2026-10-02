@@ -85,6 +85,10 @@ export class Salas implements OnInit {
     });
   }
 
+  irParaEstatisticas(): void {
+    this.router.navigate(['/estatisticas']);
+  }
+
   logout(): void {
     this.auth.logout();
     this.router.navigate(['/login']);

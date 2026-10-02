@@ -1,5 +1,6 @@
 package com.planningapp.controller;
 
+import com.planningapp.dto.FinalizarTarefaDTO;
 import com.planningapp.dto.TaskDTO;
 import com.planningapp.entity.Task;
 import com.planningapp.notification.service.EstimationNotificationService;
@@ -106,9 +107,10 @@ public class TaskController {
     }
 
     @PostMapping("/{id}/finalizar")
-    public ResponseEntity<?> finalizarTarefa(@PathVariable Long id, Authentication auth) {
+    public ResponseEntity<?> finalizarTarefa(@PathVariable Long id,
+            @Valid @RequestBody(required = false) FinalizarTarefaDTO valores, Authentication auth) {
         if (!isAdmin(auth)) return forbidden();
-        boolean ok = taskService.finalizarTarefa(id);
+        boolean ok = taskService.finalizarTarefa(id, valores);
         if (ok) {
             notificationService.notificarTodos("TAREFA_FINALIZADA", id);
             return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa finalizada"));

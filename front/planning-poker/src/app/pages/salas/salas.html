@@ -7,6 +7,7 @@
     </div>
     <div class="header-user">
       <span class="user-name">{{ auth.getUsuario() }}</span>
+      <button class="btn-logout" (click)="irParaEstatisticas()">📊 Estatísticas</button>
       <button class="btn-logout" (click)="logout()">Sair</button>
     </div>
   </header>

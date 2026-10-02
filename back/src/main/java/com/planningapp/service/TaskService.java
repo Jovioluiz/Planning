@@ -1,5 +1,6 @@
 package com.planningapp.service;
 
+import com.planningapp.dto.FinalizarTarefaDTO;
 import com.planningapp.dto.TaskDTO;
 import com.planningapp.entity.Estimation;
 import com.planningapp.entity.Sala;
@@ -149,11 +150,14 @@ public class TaskService {
     }
 
     @Transactional
-    public boolean finalizarTarefa(Long id) {
+    public boolean finalizarTarefa(Long id, FinalizarTarefaDTO valores) {
         return taskRepository.findById(id).map(task -> {
             task.setEstimada(true);
             task.setLiberada(false);
             task.setEstimadaEm(Instant.now());
+            task.setPontosFinais(valores != null ? valores.getPontosFinais() : null);
+            task.setHorasFinais(valores != null ? valores.getHorasFinais() : null);
+            task.setHorasTesteFinais(valores != null ? valores.getHorasTesteFinais() : null);
             taskRepository.save(task);
             return true;
         }).orElse(false);
@@ -185,6 +189,9 @@ public class TaskService {
             task.setLiberada(false);
             task.setEstimada(true);
             task.setPulada(true);
+            task.setPontosFinais(null);
+            task.setHorasFinais(null);
+            task.setHorasTesteFinais(null);
             task.setPontosRevelados(false);
             task.setHorasReveladas(false);
             task.setHorasLiberadas(false);

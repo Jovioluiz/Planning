@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { TaskService, ITask } from '../services/task.service';
+import { TaskService, ITask, ValoresFinais } from '../services/task.service';
 import { EstimationService } from '../services/estimation.service';
 import { WebSocketService } from '../websocket/websocket.service';
 import { SalaService } from '../services/sala.service';
@@ -41,6 +41,8 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   temaEscuro = localStorage.getItem('tema') === 'escuro';
   horasFinaisPorTarefa = new Map<number, number>();
   linkCopiado = false;
+
+  finalizando = false;
 
   private pollInterval: any = null;
   private timerInterval: any = null;
@@ -453,6 +455,10 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   }
 
   private carregarHorasEstimadas(): void {
+    // Tarefas finalizadas com valor definido pelo moderador não precisam recalcular pelos votos
+    this.tarefasEstimadas
+      .filter(t => t.horasFinais !== null && t.horasFinais !== undefined)
+      .forEach(t => this.horasFinaisPorTarefa.set(t.id, t.horasFinais!));
     const semCache = this.tarefasEstimadas.filter(t => !this.horasFinaisPorTarefa.has(t.id));
     if (!semCache.length) return;
     forkJoin(semCache.map(t => this.estimationService.getResumoVotos(t.id.toString()))).subscribe({
@@ -591,12 +597,36 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     });
   }
 
+  /** Carta mais votada na rodada final (ignorando café); em empate, a maior. */
+  private sugerirCartaFinal(estimativas: any[]): number | null {
+    const maxRodada = estimativas.length > 0 ? Math.max(...estimativas.map(e => e.rodada ?? 1)) : 1;
+    const contagem = new Map<number, number>();
+    estimativas
+      .filter(e => (e.rodada ?? 1) === maxRodada && typeof e.pontos === 'number' && e.pontos > 0)
+      .forEach(e => contagem.set(e.pontos, (contagem.get(e.pontos) ?? 0) + 1));
+    let melhor: number | null = null;
+    contagem.forEach((qtd, carta) => {
+      const qtdMelhor = melhor === null ? -1 : contagem.get(melhor)!;
+      if (qtd > qtdMelhor || (qtd === qtdMelhor && carta > melhor!)) melhor = carta;
+    });
+    return melhor;
+  }
+
   finalizarVotacao(): void {
-    if (!this.tarefaEmVotacao) return;
+    if (!this.tarefaEmVotacao || this.finalizando) return;
+    // Valores finais derivados dos votos da rodada final
     const s = this.calcularEstatisticasTarefa(this.estimativas);
-    this.horasFinaisPorTarefa.set(this.tarefaEmVotacao.id, s.horasMedia ?? 0);
-    this.taskService.finalizarTarefaSala(this.tarefaEmVotacao.id.toString()).subscribe({
+    const valores: ValoresFinais = {
+      pontosFinais: this.sugerirCartaFinal(this.estimativas),
+      horasFinais: s.horasMedia,
+      horasTesteFinais: this.tarefaEmVotacao.horasTesteReveladas ? this.mediaHorasTeste : null
+    };
+    this.finalizando = true;
+    this.cdr.detectChanges();
+    this.horasFinaisPorTarefa.set(this.tarefaEmVotacao.id, valores.horasFinais ?? 0);
+    this.taskService.finalizarTarefaSala(this.tarefaEmVotacao.id.toString(), valores).subscribe({
       next: () => {
+        this.finalizando = false;
         this.tarefaEmVotacao = null;
         this.estimativas = [];
         this.estimativasTeste = [];
@@ -609,7 +639,10 @@ export class ImportarTarefas implements OnInit, OnDestroy {
         this.carregarListas();
         this.cdr.detectChanges();
       },
-      error: () => this.exibirMensagem('Erro ao finalizar tarefa.', 'erro')
+      error: () => {
+        this.finalizando = false;
+        this.exibirMensagem('Erro ao finalizar tarefa.', 'erro');
+      }
     });
   }
 
@@ -681,6 +714,9 @@ export class ImportarTarefas implements OnInit, OnDestroy {
             titulo: t.titulo,
             descricao: t.descricao ?? '',
             sprint: t.sprint ?? '',
+            pontos_finais: t.pontosFinais ?? '',
+            horas_finais: t.horasFinais ?? '',
+            horas_teste_finais: t.horasTesteFinais ?? '',
             pontos_mediana: s.pontoMediana ?? '',
             pontos_media: s.pontoMedia ?? '',
             horas_media: s.horasMedia ?? '',
@@ -806,6 +842,12 @@ export class ImportarTarefas implements OnInit, OnDestroy {
       this.cdr.detectChanges();
       setTimeout(() => { this.linkCopiado = false; this.cdr.detectChanges(); }, 2000);
     });
+  }
+
+  /** Abre as estatísticas já filtradas pela sala atual (se houver). */
+  irParaEstatisticas(): void {
+    const salaId = this.salaService.getSalaId();
+    this.router.navigate(['/estatisticas'], salaId ? { queryParams: { salaId } } : {});
   }
 
   logout(): void {

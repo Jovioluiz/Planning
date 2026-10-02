@@ -105,6 +105,10 @@ export class GerenciarUsuarios implements OnInit {
     return this.auth.getUsuario() ?? '';
   }
 
+  irParaEstatisticas(): void {
+    this.router.navigate(['/estatisticas']);
+  }
+
   logout(): void {
     this.auth.logout();
     this.router.navigate(['/login']);

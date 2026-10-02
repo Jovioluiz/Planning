@@ -25,4 +25,7 @@ public interface EstimationRepository extends JpaRepository<Estimation, Long> {
 
     @Query("SELECT e FROM Estimation e WHERE e.task.id = :taskId AND e.usuario.tipoPerfil = :perfil")
     List<Estimation> findByTaskIdAndPerfil(@Param("taskId") Long taskId, @Param("perfil") TipoPerfil perfil);
+
+    @Query("SELECT e FROM Estimation e JOIN FETCH e.usuario WHERE e.task.id IN :taskIds")
+    List<Estimation> findByTaskIdIn(@Param("taskIds") List<Long> taskIds);
 }

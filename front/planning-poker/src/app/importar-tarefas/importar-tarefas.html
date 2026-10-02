@@ -12,6 +12,9 @@
               [class.copiado]="linkCopiado" [title]="linkSala">
         {{ linkCopiado ? '✓ Copiado!' : '🔗 Copiar link' }}
       </button>
+      <button class="btn-copiar-link" (click)="irParaEstatisticas()" title="Estatísticas das votações">
+        📊 Estatísticas
+      </button>
       <button class="btn-tema" (click)="toggleTema()" [title]="temaEscuro ? 'Mudar para claro' : 'Mudar para escuro'">
         {{ temaEscuro ? '☀️' : '🌙' }}
       </button>
@@ -158,10 +161,10 @@
 
               <!-- Ações finais -->
               <div *ngIf="tarefaEmVotacao.pontosRevelados && tarefaEmVotacao.horasReveladas" class="final-actions">
-                <button class="btn btn-success btn-full" (click)="finalizarVotacao()">
-                  ✓ Finalizar Tarefa
+                <button class="btn btn-success btn-full" [disabled]="finalizando" (click)="finalizarVotacao()">
+                  {{ finalizando ? 'Finalizando...' : '✓ Finalizar Tarefa' }}
                 </button>
-                <button class="btn btn-warning btn-full" (click)="pularVotacao()">
+                <button class="btn btn-warning btn-full" [disabled]="finalizando" (click)="pularVotacao()">
                   ↷ Passar sem Estimar
                 </button>
               </div>
@@ -398,7 +401,8 @@
               <tr>
                 <th>Número</th>
                 <th *ngFor="let col of colunasExtras">{{ col }}</th>
-                <th class="col-horas-est">Horas (média)</th>
+                <th class="col-horas-est">Pontos</th>
+                <th class="col-horas-est">Horas</th>
               </tr>
             </thead>
             <tbody>
@@ -409,6 +413,10 @@
                   <span *ngIf="tarefa.pulada" class="badge-pulada">Sem estimativa</span>
                 </td>
                 <td *ngFor="let col of colunasExtras">{{ tarefa.dadosExtras?.[col] ?? '—' }}</td>
+                <td class="col-horas-est td-horas-est">
+                  <span *ngIf="!tarefa.pulada && tarefa.pontosFinais !== null && tarefa.pontosFinais !== undefined">{{ tarefa.pontosFinais }}</span>
+                  <span *ngIf="tarefa.pulada || tarefa.pontosFinais === null || tarefa.pontosFinais === undefined" class="td-sem-horas">—</span>
+                </td>
                 <td class="col-horas-est td-horas-est">
                   <span *ngIf="!tarefa.pulada && (horasFinaisPorTarefa.get(tarefa.id) ?? 0) > 0">
                     {{ horasFinaisPorTarefa.get(tarefa.id) }}h

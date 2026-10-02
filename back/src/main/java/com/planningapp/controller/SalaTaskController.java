@@ -1,5 +1,6 @@
 package com.planningapp.controller;
 
+import com.planningapp.dto.FinalizarTarefaDTO;
 import com.planningapp.dto.TaskDTO;
 import com.planningapp.entity.Sala;
 import com.planningapp.entity.Task;
@@ -123,9 +124,10 @@ public class SalaTaskController {
     public ResponseEntity<?> finalizar(
             @PathVariable Long salaId,
             @PathVariable Long id,
+            @Valid @RequestBody(required = false) FinalizarTarefaDTO valores,
             Authentication auth) {
         if (!isModerador(auth, salaId)) return forbidden();
-        boolean ok = taskService.finalizarTarefa(id);
+        boolean ok = taskService.finalizarTarefa(id, valores);
         if (ok) {
             notificationService.notificarSala(salaId, "TAREFA_FINALIZADA", id);
             return ResponseEntity.ok(Map.of("success", true, "message", "Tarefa finalizada"));

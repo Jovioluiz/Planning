@@ -1,0 +1,279 @@
+<div class="est-page">
+
+  <header class="est-header">
+    <div class="header-brand">
+      <button class="btn-voltar" (click)="voltar()" title="Voltar">←</button>
+      <span class="brand-icon">🦶</span>
+      <span class="brand-name">Chutômetro</span>
+    </div>
+    <div class="header-user">
+      <span class="user-name">{{ auth.getUsuario() }}</span>
+      <button class="btn-logout" (click)="logout()">Sair</button>
+    </div>
+  </header>
+
+  <div class="est-content">
+
+    <h1 class="page-title">Estatísticas das votações</h1>
+    <p class="page-sub">
+      Totais usam os valores finais definidos pelo moderador; tarefas antigas sem esse valor usam a média dos votos da rodada final.
+      A carta ☕ não entra nas médias.
+    </p>
+
+    <!-- Filtros -->
+    <div class="filtros-card">
+      <label class="filtro">
+        <span>Sala</span>
+        <select [(ngModel)]="filtro.salaId" (ngModelChange)="carregar()">
+          <option [ngValue]="null">Todas</option>
+          <option *ngFor="let s of dados?.salas" [ngValue]="s.id">{{ s.nome }}</option>
+        </select>
+      </label>
+      <label class="filtro">
+        <span>Sprint</span>
+        <select [(ngModel)]="filtro.sprint" (ngModelChange)="carregar()">
+          <option [ngValue]="null">Todas</option>
+          <option *ngFor="let s of dados?.sprints" [ngValue]="s">{{ s }}</option>
+        </select>
+      </label>
+      <label class="filtro">
+        <span>De</span>
+        <input type="date" [(ngModel)]="filtro.de" (change)="carregar()" />
+      </label>
+      <label class="filtro">
+        <span>Até</span>
+        <input type="date" [(ngModel)]="filtro.ate" (change)="carregar()" />
+      </label>
+      <button class="btn-limpar" *ngIf="temFiltro" (click)="limparFiltros()">Limpar filtros</button>
+    </div>
+
+    <p *ngIf="erro" class="erro">{{ erro }}</p>
+
+    <div *ngIf="carregando && !dados" class="loading-state">
+      <span class="spinner"></span> Carregando estatísticas...
+    </div>
+
+    <ng-container *ngIf="dados as d">
+      <div class="conteudo" [class.recarregando]="carregando">
+
+        <!-- KPIs -->
+        <div class="kpis">
+          <div class="kpi">
+            <span class="kpi-valor">{{ d.resumo.tarefasEstimadas }}</span>
+            <span class="kpi-rotulo">tarefas estimadas</span>
+            <span class="kpi-extra" *ngIf="d.resumo.tarefasPuladas">+ {{ d.resumo.tarefasPuladas }} pulada(s)</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-valor">{{ num(d.resumo.totalPontos) }}</span>
+            <span class="kpi-rotulo">pontos no total</span>
+            <span class="kpi-extra">média {{ num(d.resumo.mediaPontos) }} por tarefa</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-valor">{{ num(d.resumo.totalHoras) }}<small *ngIf="d.resumo.totalHoras !== null">h</small></span>
+            <span class="kpi-rotulo">horas estimadas</span>
+            <span class="kpi-extra">média {{ num(d.resumo.mediaHoras) }}h por tarefa</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-valor">{{ num(d.resumo.taxaConsenso, 0) }}<small *ngIf="d.resumo.taxaConsenso !== null">%</small></span>
+            <span class="kpi-rotulo">consenso nos pontos</span>
+            <span class="kpi-extra">{{ num(d.resumo.mediaRodadas) }} rodada(s) em média</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-valor">{{ d.resumo.totalVotos }}</span>
+            <span class="kpi-rotulo">votos</span>
+            <span class="kpi-extra">{{ d.resumo.participantes }} participante(s)</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-valor kpi-valor-sm">{{ formatarDuracao(d.resumo.duracaoMediaMinutos) }}</span>
+            <span class="kpi-rotulo">tempo médio por tarefa</span>
+            <span class="kpi-extra">da liberação à finalização</span>
+          </div>
+        </div>
+
+        <!-- Abas -->
+        <nav class="abas">
+          <button [class.ativa]="aba === 'geral'" (click)="aba = 'geral'">Visão geral</button>
+          <button [class.ativa]="aba === 'sprints'" (click)="aba = 'sprints'">Por sprint <span class="badge">{{ d.porSprint.length }}</span></button>
+          <button [class.ativa]="aba === 'usuarios'" (click)="aba = 'usuarios'">Por usuário <span class="badge">{{ d.porUsuario.length }}</span></button>
+          <button [class.ativa]="aba === 'tarefas'" (click)="aba = 'tarefas'">Tarefas <span class="badge">{{ d.tarefas.length }}</span></button>
+        </nav>
+
+        <div *ngIf="d.resumo.tarefasEstimadas === 0 && d.resumo.tarefasPuladas === 0" class="empty-state">
+          Nenhuma tarefa finalizada encontrada para os filtros selecionados.
+        </div>
+
+        <!-- Visão geral -->
+        <div *ngIf="aba === 'geral' && d.resumo.tarefasEstimadas > 0" class="graficos">
+          <section class="card">
+            <h2 class="card-titulo">Cartas mais votadas</h2>
+            <div class="barras-v">
+              <div *ngFor="let b of barrasPontos" class="barra-v" [title]="b.valor + ' voto(s)'">
+                <span class="barra-v-valor">{{ b.valor }}</span>
+                <div class="barra-v-trilho"><div class="barra-v-fill" [style.height.%]="b.pct"></div></div>
+                <span class="barra-v-rotulo">{{ b.rotulo }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" *ngIf="barrasHoras.length">
+            <h2 class="card-titulo">Horas mais votadas</h2>
+            <div class="barras-v">
+              <div *ngFor="let b of barrasHoras" class="barra-v" [title]="b.valor + ' voto(s)'">
+                <span class="barra-v-valor">{{ b.valor }}</span>
+                <div class="barra-v-trilho"><div class="barra-v-fill horas" [style.height.%]="b.pct"></div></div>
+                <span class="barra-v-rotulo">{{ b.rotulo }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card card-largo" *ngIf="barrasSprints.length">
+            <h2 class="card-titulo">Pontos por sprint</h2>
+            <div class="barras-h">
+              <div *ngFor="let b of barrasSprints" class="barra-h">
+                <span class="barra-h-rotulo" [title]="b.rotulo">{{ b.rotulo }}</span>
+                <div class="barra-h-trilho"><div class="barra-h-fill" [style.width.%]="b.pct"></div></div>
+                <span class="barra-h-valor">{{ num(b.valor) }}</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Por sprint -->
+        <section *ngIf="aba === 'sprints' && d.porSprint.length" class="card tabela-card">
+          <div class="tabela-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Sprint</th>
+                  <th class="num">Tarefas</th>
+                  <th class="num">Puladas</th>
+                  <th class="num">Total pontos</th>
+                  <th class="num">Média pontos</th>
+                  <th class="num">Total horas</th>
+                  <th class="num">Média horas</th>
+                  <th class="num">Rodadas (média)</th>
+                  <th class="num">Consenso</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of d.porSprint">
+                  <td class="destaque">{{ s.sprint }}</td>
+                  <td class="num">{{ s.tarefas }}</td>
+                  <td class="num">{{ s.puladas || '—' }}</td>
+                  <td class="num">{{ num(s.totalPontos) }}</td>
+                  <td class="num">{{ num(s.mediaPontos) }}</td>
+                  <td class="num">{{ num(s.totalHoras) }}</td>
+                  <td class="num">{{ num(s.mediaHoras) }}</td>
+                  <td class="num">{{ num(s.mediaRodadas) }}</td>
+                  <td class="num">
+                    <span class="pct-pill" *ngIf="s.taxaConsenso !== null"
+                          [class.alto]="s.taxaConsenso >= 60" [class.baixo]="s.taxaConsenso < 30">
+                      {{ num(s.taxaConsenso, 0) }}%
+                    </span>
+                    <span *ngIf="s.taxaConsenso === null">—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Por usuário -->
+        <section *ngIf="aba === 'usuarios' && d.porUsuario.length" class="card tabela-card">
+          <p class="legenda">
+            <strong>Tendência</strong>: diferença média entre o voto do usuário e a média do time na tarefa
+            (positivo = costuma estimar acima). <strong>Acerto</strong>: % de votos iguais aos pontos finais da tarefa.
+          </p>
+          <div class="tabela-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="ordenavel" (click)="ordenarUsuarios('usuario')">Usuário {{ seta(ordemUsuarios, 'usuario') }}</th>
+                  <th class="num ordenavel" (click)="ordenarUsuarios('tarefas')">Tarefas {{ seta(ordemUsuarios, 'tarefas') }}</th>
+                  <th class="num ordenavel" (click)="ordenarUsuarios('votosPontos')">Votos {{ seta(ordemUsuarios, 'votosPontos') }}</th>
+                  <th class="num ordenavel" (click)="ordenarUsuarios('cafes')">☕ {{ seta(ordemUsuarios, 'cafes') }}</th>
+                  <th class="num ordenavel" (click)="ordenarUsuarios('mediaPontos')">Média pontos {{ seta(ordemUsuarios, 'mediaPontos') }}</th>
+                  <th class="num ordenavel" (click)="ordenarUsuarios('mediaHoras')">Média horas {{ seta(ordemUsuarios, 'mediaHoras') }}</th>
+                  <th class="num ordenavel" (click)="ordenarUsuarios('mediaHorasTeste')">Horas teste {{ seta(ordemUsuarios, 'mediaHorasTeste') }}</th>
+                  <th class="num ordenavel" (click)="ordenarUsuarios('desvioMedioPontos')">Tendência {{ seta(ordemUsuarios, 'desvioMedioPontos') }}</th>
+                  <th class="num ordenavel" (click)="ordenarUsuarios('taxaAcertoModa')">Acerto {{ seta(ordemUsuarios, 'taxaAcertoModa') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let u of usuariosOrdenados">
+                  <td class="destaque">
+                    {{ u.usuario }}
+                    <span class="perfil" [attr.data-perfil]="u.perfil">{{ u.perfil }}</span>
+                  </td>
+                  <td class="num">{{ u.tarefas }}</td>
+                  <td class="num">{{ u.votosPontos }}</td>
+                  <td class="num">{{ u.cafes || '—' }}</td>
+                  <td class="num">{{ num(u.mediaPontos) }}</td>
+                  <td class="num">{{ num(u.mediaHoras) }}</td>
+                  <td class="num">{{ u.votosHorasTeste ? num(u.mediaHorasTeste) : '—' }}</td>
+                  <td class="num">
+                    <span *ngIf="u.desvioMedioPontos !== null" class="tendencia" [attr.data-t]="tendencia(u.desvioMedioPontos)">
+                      {{ u.desvioMedioPontos > 0 ? '+' : '' }}{{ num(u.desvioMedioPontos) }}
+                    </span>
+                    <span *ngIf="u.desvioMedioPontos === null">—</span>
+                  </td>
+                  <td class="num">{{ u.taxaAcertoModa !== null ? num(u.taxaAcertoModa, 0) + '%' : '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Tarefas -->
+        <section *ngIf="aba === 'tarefas' && d.tarefas.length" class="card tabela-card">
+          <input class="busca" type="search" [(ngModel)]="buscaTarefa" placeholder="Buscar por número ou título..." />
+          <div class="tabela-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="num ordenavel" (click)="ordenarTarefas('numero')"># {{ seta(ordemTarefas, 'numero') }}</th>
+                  <th class="ordenavel" (click)="ordenarTarefas('titulo')">Título {{ seta(ordemTarefas, 'titulo') }}</th>
+                  <th class="ordenavel" (click)="ordenarTarefas('sprint')">Sprint {{ seta(ordemTarefas, 'sprint') }}</th>
+                  <th class="num ordenavel" (click)="ordenarTarefas('pontos')">Pontos {{ seta(ordemTarefas, 'pontos') }}</th>
+                  <th class="num">Votos</th>
+                  <th class="num ordenavel" (click)="ordenarTarefas('horas')">Horas {{ seta(ordemTarefas, 'horas') }}</th>
+                  <th class="num ordenavel" (click)="ordenarTarefas('rodadas')">Rodadas {{ seta(ordemTarefas, 'rodadas') }}</th>
+                  <th class="num ordenavel" (click)="ordenarTarefas('duracaoMinutos')">Duração {{ seta(ordemTarefas, 'duracaoMinutos') }}</th>
+                  <th class="num ordenavel" (click)="ordenarTarefas('estimadaEm')">Finalizada {{ seta(ordemTarefas, 'estimadaEm') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let t of tarefasFiltradas">
+                  <td class="num">{{ t.numero }}</td>
+                  <td class="titulo" [title]="t.titulo">
+                    {{ t.titulo }}
+                    <span class="sala-tag" *ngIf="t.sala && filtro.salaId === null">{{ t.sala }}</span>
+                  </td>
+                  <td>{{ t.sprint }}</td>
+                  <td class="num">
+                    <span class="carta" [class.consenso]="t.consenso" [class.derivado]="!t.valorFinalDefinido"
+                          [title]="(t.valorFinalDefinido ? 'Definido pelo moderador' : 'Sem valor final — carta mais votada')
+                                   + (t.consenso ? ' · consenso' : '')">
+                      {{ t.pontos ?? '☕' }}
+                    </span>
+                  </td>
+                  <td class="num faixa" [title]="'Média dos votos: ' + num(t.mediaPontos)">
+                    {{ t.minPontos !== null ? (t.minPontos === t.maxPontos ? t.minPontos : t.minPontos + '–' + t.maxPontos) : '—' }}
+                  </td>
+                  <td class="num">{{ t.horas !== null ? num(t.horas) + 'h' : '—' }}</td>
+                  <td class="num">{{ t.rodadas }}</td>
+                  <td class="num">{{ formatarDuracao(t.duracaoMinutos) }}</td>
+                  <td class="num data">{{ t.estimadaEm ? (t.estimadaEm | date: 'dd/MM/yy HH:mm') : '—' }}</td>
+                </tr>
+                <tr *ngIf="tarefasFiltradas.length === 0">
+                  <td colspan="9" class="vazio">Nenhuma tarefa encontrada.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+    </ng-container>
+  </div>
+</div>

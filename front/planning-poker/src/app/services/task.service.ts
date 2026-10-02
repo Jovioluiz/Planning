@@ -21,7 +21,17 @@ export interface ITask {
   liberadaEm?: string;
   rodadaAtual?: number;
   pulada?: boolean;
+  pontosFinais?: number | null;
+  horasFinais?: number | null;
+  horasTesteFinais?: number | null;
   dadosExtras?: Record<string, any>;
+}
+
+/** Valores escolhidos pelo moderador ao finalizar a tarefa. */
+export interface ValoresFinais {
+  pontosFinais: number | null;
+  horasFinais: number | null;
+  horasTesteFinais: number | null;
 }
 
 @Injectable({
@@ -80,8 +90,8 @@ export class TaskService {
     return this.http.get<string[]>(`${this.url}/${taskId}/participantes`, this.authOptions);
   }
 
-  finalizarTarefa(id: string): Observable<any> {
-    return this.http.post(`${this.url}/${id}/finalizar`, {}, this.authOptions);
+  finalizarTarefa(id: string, valores?: ValoresFinais): Observable<any> {
+    return this.http.post(`${this.url}/${id}/finalizar`, valores ?? {}, this.authOptions);
   }
 
   pularTarefa(id: string): Observable<any> {
@@ -148,10 +158,10 @@ export class TaskService {
     return this.http.post(`${url}/${id}/liberar`, {}, this.authOptions);
   }
 
-  finalizarTarefaSala(id: string): Observable<any> {
+  finalizarTarefaSala(id: string, valores?: ValoresFinais): Observable<any> {
     const url = this.salaPrefix;
-    if (!url) return this.finalizarTarefa(id);
-    return this.http.post(`${url}/${id}/finalizar`, {}, this.authOptions);
+    if (!url) return this.finalizarTarefa(id, valores);
+    return this.http.post(`${url}/${id}/finalizar`, valores ?? {}, this.authOptions);
   }
 
   pularTarefaSala(id: string): Observable<any> {

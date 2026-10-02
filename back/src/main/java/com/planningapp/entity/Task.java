@@ -32,6 +32,11 @@ public class Task {
     private Instant estimadaEm;
     private Integer rodadaAtual = 1;
 
+    // Valores definidos pelo moderador ao finalizar (null em tarefas finalizadas antes desse recurso)
+    private Integer pontosFinais;
+    private Double horasFinais;
+    private Double horasTesteFinais;
+
     @Column(columnDefinition = "boolean default false")
     private boolean pulada = false;
 
@@ -98,6 +103,15 @@ public class Task {
 
     public Integer getRodadaAtual() { return rodadaAtual != null ? rodadaAtual : 1; }
     public void setRodadaAtual(Integer rodadaAtual) { this.rodadaAtual = rodadaAtual; }
+
+    public Integer getPontosFinais() { return pontosFinais; }
+    public void setPontosFinais(Integer pontosFinais) { this.pontosFinais = pontosFinais; }
+
+    public Double getHorasFinais() { return horasFinais; }
+    public void setHorasFinais(Double horasFinais) { this.horasFinais = horasFinais; }
+
+    public Double getHorasTesteFinais() { return horasTesteFinais; }
+    public void setHorasTesteFinais(Double horasTesteFinais) { this.horasTesteFinais = horasTesteFinais; }
 
     public boolean isPulada() { return pulada; }
     public void setPulada(boolean pulada) { this.pulada = pulada; }
