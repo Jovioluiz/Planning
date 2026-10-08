@@ -220,6 +220,13 @@
   flex-wrap: wrap;
   gap: 14px;
   justify-content: center;
+  padding-top: 12px;
+
+  /* 16 cartas de horas → 2 linhas de 8 (largura de 8 cartas + 7 gaps) */
+  &.horas-row {
+    max-width: calc(8 * 80px + 7 * 14px);
+    margin: 0 auto;
+  }
 }
 
 .poker-card {

@@ -28,7 +28,7 @@ public class TaskController {
 
     @GetMapping
     public List<Task> listarTarefas() {
-        return taskService.findAll();
+        return taskService.listarTarefasSemSala();
     }
 
     @GetMapping("/{id}")

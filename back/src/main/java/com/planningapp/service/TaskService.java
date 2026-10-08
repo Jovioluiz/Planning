@@ -49,8 +49,8 @@ public class TaskService {
     @Autowired
     private SalaMembroRepository salaMembroRepository;
 
-    public List<Task> findAll() {
-        return taskRepository.findAll();
+    public List<Task> listarTarefasSemSala() {
+        return taskRepository.findBySalaIsNullOrderByIdAsc();
     }
 
     @Transactional
@@ -119,7 +119,8 @@ public class TaskService {
     }
 
     public List<Task> listarTarefasLiberadasParaEstimativa() {
-        return taskRepository.findByEstimadaFalseAndLiberadaTrueOrderByIdAsc();
+        // Endpoint legado: só tarefas sem sala, para não vazar votações de salas para quem não entrou nelas
+        return taskRepository.findBySalaIsNullAndEstimadaFalseAndLiberadaTrueOrderByIdAsc();
     }
 
     @Transactional
@@ -142,11 +143,11 @@ public class TaskService {
     }
 
     public List<Task> findNaoEstimadasENaoLiberadas() {
-        return taskRepository.findByEstimadaFalseAndLiberadaFalseOrderByIdAsc();
+        return taskRepository.findBySalaIsNullAndEstimadaFalseAndLiberadaFalseOrderByIdAsc();
     }
 
     public List<Task> listarTarefasJaVotadas() {
-        return taskRepository.findByEstimadaTrue();
+        return taskRepository.findBySalaIsNullAndEstimadaTrue();
     }
 
     @Transactional
@@ -228,7 +229,8 @@ public class TaskService {
 
     @Transactional
     public void vincularJogadorATarefasAtivas(String participante) {
-        taskRepository.findAll().stream()
+        // Só tarefas legadas: em salas o vínculo é feito por SalaService.entrarNaSala
+        taskRepository.findBySalaIsNullOrderByIdAsc().stream()
                 .filter(t -> !t.getEstimada())
                 .forEach(t -> adicionarParticipante(t.getId(), participante));
     }

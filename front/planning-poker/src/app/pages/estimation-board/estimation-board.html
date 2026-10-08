@@ -114,7 +114,7 @@
   <!-- ─── Votação de Horas ─────────────────────────────────────── -->
   <section *ngIf="!isObservador && !isTeste && !foiSkipado && estadoVotacao === 'horas'" class="voting-section">
     <h2 class="voting-label">Quantas horas para concluir?</h2>
-    <div class="cards-row">
+    <div class="cards-row horas-row">
       <button
         *ngFor="let h of horas"
         class="poker-card hora-card"
@@ -150,7 +150,7 @@
   <!-- ─── Votação de Teste ─────────────────────────────────────── -->
   <section *ngIf="isTeste && tarefa?.horasTesteLiberadas && !jaVotouHorasTeste" class="voting-section">
     <h2 class="voting-label">🧪 Quantas horas para testar esta tarefa?</h2>
-    <div class="cards-row">
+    <div class="cards-row horas-row">
       <button
         *ngFor="let h of horas"
         class="poker-card hora-card"
