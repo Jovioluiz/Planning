@@ -4,19 +4,27 @@
     <div class="header-brand">
       <span class="brand-icon">🦶</span>
       <span class="brand-name">Chutômetro</span>
+      <span class="brand-role">Moderador</span>
     </div>
     <div class="header-user">
       <span class="user-name">{{ auth.getUsuario() }}</span>
-      <button class="btn-logout" (click)="irParaEstatisticas()">📊 Estatísticas</button>
-      <button class="btn-logout" (click)="logout()">Sair</button>
+      <button class="btn-header" (click)="irParaEstatisticas()">📊 Estatísticas</button>
+      <button class="btn-header btn-logout" (click)="logout()">Sair</button>
     </div>
   </header>
 
-  <div class="salas-content">
-
-    <div class="salas-title-row">
+  <!-- Hero -->
+  <section class="hero">
+    <span class="hero-circle hero-circle-lg"></span>
+    <span class="hero-circle hero-circle-sm"></span>
+    <div class="hero-content">
+      <span class="hero-eyebrow">Planning Poker</span>
       <h1 class="page-title">Minhas Salas</h1>
+      <p class="hero-sub">Crie uma sala, compartilhe o link com o time e conduza as estimativas.</p>
     </div>
+  </section>
+
+  <div class="salas-content">
 
     <!-- Formulário de criação -->
     <div class="criar-sala-card">
@@ -44,11 +52,13 @@
     </div>
 
     <div *ngIf="!carregando && salas.length === 0" class="empty-state">
+      <span class="empty-icon">🃏</span>
       <p>Você ainda não criou nenhuma sala. Crie a primeira acima!</p>
     </div>
 
     <div *ngIf="!carregando && salas.length > 0" class="salas-grid">
-      <div *ngFor="let sala of salas" class="sala-card">
+      <div *ngFor="let sala of salas; let i = index" class="sala-card">
+        <span class="sala-index">{{ (i + 1).toString().padStart(2, '0') }}</span>
         <div class="sala-card-top">
           <div class="sala-status" [class.ativa]="sala.ativa" [class.inativa]="!sala.ativa">
             {{ sala.ativa ? 'Ativa' : 'Inativa' }}

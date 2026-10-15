@@ -1,0 +1,289 @@
+/* ─── Mixins da identidade visual (preto + laranja) ──────────
+   Usado pelos componentes via:  @use '<relativo>/styles/np' as np;
+   Os tokens (--accent, --ink, ...) ficam em src/styles.scss. */
+
+/* Barra superior preta */
+@mixin header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 32px;
+  min-height: 64px;
+  background: var(--black);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  color: #fff;
+  position: relative;
+  z-index: 2;
+
+  @media (max-width: 900px) {
+    padding: 10px 16px;
+    flex-wrap: wrap;
+  }
+}
+
+/* Ícone da marca dentro de um círculo laranja */
+@mixin brand-icon {
+  font-size: 18px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+@mixin brand-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+@mixin brand-role {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 3px 10px;
+  border-radius: 999px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* Botão em pílula com contorno, para fundos pretos */
+@mixin header-btn {
+  padding: 7px 16px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 999px;
+  color: rgba(255,255,255,.9);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .2s, border-color .2s, color .2s;
+
+  &:hover { border-color: var(--accent); color: #fff; background: rgba(255,106,19,.12); }
+}
+
+/* Botão principal laranja */
+@mixin header-btn-accent {
+  @include header-btn;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+
+  &:hover { background: var(--accent-2); border-color: var(--accent-2); }
+}
+
+/* Faixa hero preta com círculos laranja (filhos .hero-circle-lg / -sm) */
+@mixin hero($pad-bottom: 96px) {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(255,255,255,.05), transparent 40%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 80px),
+    var(--black);
+  color: #fff;
+  padding: 56px 32px $pad-bottom;
+  text-align: center;
+
+  .hero-circle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .hero-circle-lg {
+    width: 360px;
+    height: 360px;
+    right: -90px;
+    top: -140px;
+    background: var(--accent);
+    opacity: .9;
+  }
+
+  .hero-circle-sm {
+    width: 120px;
+    height: 120px;
+    left: 6%;
+    bottom: -40px;
+    border: 2px solid var(--accent);
+  }
+
+  .hero-content {
+    position: relative;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .hero-eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  .hero-sub {
+    font-size: 15px;
+    line-height: 1.6;
+    color: rgba(255,255,255,.65);
+    margin: 0;
+  }
+
+  @media (max-width: 900px) {
+    padding: 40px 16px calc(#{$pad-bottom} - 12px);
+
+    .hero-circle-lg { width: 220px; height: 220px; right: -80px; top: -90px; }
+  }
+}
+
+/* Título condensado gigante do hero */
+@mixin hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 16px;
+  overflow-wrap: anywhere;
+}
+
+/* Card padrão */
+@mixin card {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+/* Título de card condensado com marcador laranja */
+@mixin card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--ink);
+  margin: 0;
+
+  &::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+}
+
+/* Rótulo pequeno em caixa alta */
+@mixin eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+/* Botão laranja em pílula */
+@mixin btn-accent {
+  padding: 12px 24px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(255,106,19,.28);
+  transition: background .2s, transform .15s, box-shadow .2s;
+
+  &:hover:not(:disabled) { background: var(--accent-2); transform: translateY(-2px); }
+  &:active:not(:disabled) { transform: translateY(0); }
+  &:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+}
+
+/* Botão preto (inverte no tema escuro) */
+@mixin btn-ink {
+  padding: 10px 20px;
+  background: var(--ink);
+  color: var(--surface);
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .2s, color .2s, transform .15s;
+
+  &:hover:not(:disabled) { background: var(--accent); color: #fff; transform: translateY(-1px); }
+  &:disabled { opacity: .45; cursor: not-allowed; }
+}
+
+/* Botão de contorno */
+@mixin btn-outline {
+  padding: 9px 18px;
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .2s, color .2s, background .2s;
+
+  &:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-ink); }
+  &:disabled { opacity: .45; cursor: not-allowed; }
+}
+
+/* Campo de texto em pílula */
+@mixin input {
+  padding: 12px 18px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+
+  &::placeholder { color: var(--faint); }
+  &:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  &:disabled { opacity: .6; background: var(--surface-2); cursor: not-allowed; }
+}
+
+/* Spinner (cor do traço configurável) */
+@mixin spinner($size: 14px, $track: rgba(255,255,255,.4), $head: #fff) {
+  display: inline-block;
+  width: $size;
+  height: $size;
+  border: 2px solid $track;
+  border-top-color: $head;
+  border-radius: 50%;
+  animation: np-spin .7s linear infinite;
+
+  @keyframes np-spin { to { transform: rotate(360deg); } }
+}

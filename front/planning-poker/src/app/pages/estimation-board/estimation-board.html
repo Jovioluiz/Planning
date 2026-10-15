@@ -1,10 +1,11 @@
-﻿<div class="board-page" [class.tema-claro]="!temaEscuro">
+﻿<div class="board-page" [class.tema-escuro]="temaEscuro" [class.modo-espectador]="isObservador || isTeste">
 
   <!-- ─── Header ──────────────────────────────────────────────── -->
   <header class="board-header">
     <div class="board-brand">
       <span class="brand-icon">🦶</span>
       <span class="brand-title">Chutômetro</span>
+      <span class="brand-role">Votação</span>
     </div>
     <div class="board-user">
       <span class="user-avatar">{{ (participante || 'U')[0].toUpperCase() }}</span>
@@ -39,6 +40,8 @@
 
   <!-- ─── Task Card ───────────────────────────────────────────── -->
   <section *ngIf="tarefa" class="task-banner">
+    <span class="hero-circle hero-circle-lg"></span>
+    <span class="hero-circle hero-circle-sm"></span>
     <div class="task-banner-inner">
       <div class="task-phase-badge" [class.phase-pontos]="estadoVotacao === 'pontos'"
            [class.phase-horas]="estadoVotacao === 'horas'"
@@ -46,24 +49,12 @@
         {{ estadoVotacao === 'pontos' ? 'Fase: Pontos' : estadoVotacao === 'horas' ? 'Fase: Horas' : '✓ Concluído' }}
       </div>
       <h1 class="task-title">{{ tarefa.titulo }}</h1>
-      <p class="task-desc">{{ tarefa.descricao }}</p>
       <div *ngIf="tarefa.liberadaEm" class="task-timer">
         <span class="timer-icon">⏱</span>
         <span class="timer-value">{{ tempoDecorrido }}</span>
       </div>
     </div>
   </section>
-
-  <!-- ─── Online bar ─────────────────────────────────────────── -->
-  <div *ngIf="usuariosOnline.length > 0" class="online-bar">
-    <span class="online-bar-label">Online:</span>
-    <div class="online-chips">
-      <span *ngFor="let u of usuariosOnline" class="online-chip" [title]="u">
-        <span class="dot-online-chip"></span>
-        <span class="online-chip-name">{{ u }}</span>
-      </span>
-    </div>
-  </div>
 
   <!-- ─── Observador ──────────────────────────────────────────── -->
   <div *ngIf="isObservador" class="observer-bar">
@@ -74,6 +65,10 @@
   <div *ngIf="isTeste" class="observer-bar tester-bar">
     <span>🧪 Modo Testador — acompanhe a votação e vote o tempo de teste quando liberado</span>
   </div>
+
+  <!-- ─── Conteúdo principal + painel lateral ─────────────────── -->
+  <div class="board-body">
+  <main class="board-main">
 
   <!-- ─── Skipado pelo moderador ──────────────────────────────── -->
   <section *ngIf="!isObservador && !isTeste && !isAdmin && foiSkipado" class="voting-section done-section skipped-section">
@@ -412,6 +407,27 @@
       <span class="teste-media-valor">{{ mediaHorasTeste }}h</span>
     </div>
   </section>
+
+  </main>
+
+  <!-- ─── Painel lateral: online agora (igual à tela do moderador) ─── -->
+  <aside class="board-side">
+    <div class="online-card">
+      <div class="online-card-header">
+        <h2 class="online-card-title">Online agora</h2>
+        <span class="online-count-badge">{{ usuariosOnline.length }}</span>
+      </div>
+      <div class="online-list">
+        <div *ngFor="let u of usuariosOnline" class="online-item">
+          <span class="dot-online"></span>
+          <span class="online-avatar">{{ u[0].toUpperCase() }}</span>
+          <span class="online-name">{{ u }}</span>
+        </div>
+        <p *ngIf="usuariosOnline.length === 0" class="online-empty">Nenhum usuário conectado</p>
+      </div>
+    </div>
+  </aside>
+  </div>
 
   <!-- ─── Erro ─────────────────────────────────────────────────── -->
   <div *ngIf="erro" class="error-toast">{{ erro }}</div>

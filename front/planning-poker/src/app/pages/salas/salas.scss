@@ -1,120 +1,85 @@
+@use '../../../styles/np' as np;
+
+*, *::before, *::after { box-sizing: border-box; }
+
 .salas-page {
   min-height: 100vh;
-  background: #f5f7fa;
-  font-family: 'Segoe UI', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
 }
 
-.salas-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 32px;
-  background: linear-gradient(135deg, #1c4f9c, #327ACF);
-  color: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
-}
+/* ─── Header ─────────────────────────────────────────────── */
+.salas-header { @include np.header; }
 
 .header-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 1.15rem;
-  font-weight: 700;
+  gap: 12px;
 }
 
-.brand-icon { font-size: 1.4rem; }
+.brand-icon { @include np.brand-icon; }
+.brand-name { @include np.brand-name; }
+.brand-role { @include np.brand-role; }
 
 .header-user {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.9rem;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.user-name { opacity: 0.9; }
-
-.btn-logout {
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
-  border-radius: 6px;
-  padding: 5px 12px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: background 0.2s;
-
-  &:hover { background: rgba(255, 255, 255, 0.28); }
+.user-name {
+  font-size: 13px;
+  color: rgba(255,255,255,.85);
+  font-weight: 500;
 }
 
+.btn-header { @include np.header-btn; }
+.btn-header.btn-logout { @include np.header-btn-accent; }
+
+/* ─── Hero ───────────────────────────────────────────────── */
+.hero { @include np.hero(110px); }
+.page-title { @include np.hero-title; }
+
+/* ─── Conteúdo ───────────────────────────────────────────── */
 .salas-content {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 40px 24px;
-}
-
-.salas-title-row {
-  margin-bottom: 24px;
-}
-
-.page-title {
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: #1a2e4a;
-  margin: 0;
+  position: relative;
+  z-index: 1;
+  max-width: 1800px;
+  margin: -64px auto 0;
+  padding: 0 24px 56px;
 }
 
 .criar-sala-card {
-  background: #fff;
-  border-radius: 14px;
-  padding: 24px 28px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  margin-bottom: 32px;
+  @include np.card;
+  padding: 26px 28px;
+  margin-bottom: 40px;
 }
 
 .criar-titulo {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1a2e4a;
-  margin: 0 0 16px;
+  @include np.card-title;
+  margin-bottom: 18px;
 }
 
 .criar-form {
   display: flex;
   gap: 12px;
+
+  @media (max-width: 560px) { flex-direction: column; }
 }
 
 .input-nome {
+  @include np.input;
   flex: 1;
-  padding: 11px 16px;
-  border: 1.5px solid #dde3ee;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  outline: none;
-  transition: border-color 0.2s;
-
-  &:focus { border-color: #327ACF; }
-  &:disabled { background: #f5f7fa; }
+  min-width: 0;
 }
 
-.btn-criar {
-  padding: 11px 22px;
-  background: linear-gradient(135deg, #327ACF, #1c4f9c);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: opacity 0.2s;
-
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
-  &:not(:disabled):hover { opacity: 0.88; }
-}
+.btn-criar { @include np.btn-accent; }
 
 .loading-state {
   text-align: center;
-  color: #666;
+  color: var(--muted);
   padding: 40px 0;
   display: flex;
   align-items: center;
@@ -124,67 +89,109 @@
 
 .empty-state {
   text-align: center;
-  color: #888;
+  color: var(--muted);
   padding: 48px 0;
-  font-size: 1rem;
+  font-size: 15px;
+
+  p { margin: 0; }
 }
 
+.empty-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  font-size: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── Grid de salas ──────────────────────────────────────── */
 .salas-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 20px;
 }
 
 .sala-card {
-  background: #fff;
-  border-radius: 14px;
-  padding: 20px 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  @include np.card;
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  border: 1.5px solid #eef1f7;
-  transition: box-shadow 0.2s;
+  gap: 18px;
+  border: 1px solid transparent;
+  transition: transform .2s, border-color .2s, box-shadow .2s;
 
-  &:hover { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); }
+  &:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow);
+  }
+}
+
+.sala-index {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  font-family: var(--font-display);
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--line);
+  pointer-events: none;
 }
 
 .sala-card-top {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  padding-right: 56px;
 }
 
 .sala-status {
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  border-radius: 20px;
-  padding: 2px 10px;
+  letter-spacing: 1.5px;
+  border-radius: 999px;
+  padding: 3px 10px;
   width: fit-content;
 
-  &.ativa {
-    background: #e8f5e9;
-    color: #2e7d32;
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
   }
 
-  &.inativa {
-    background: #fce4ec;
-    color: #c62828;
-  }
+  &.ativa   { background: var(--ok-soft);     color: var(--ok); }
+  &.inativa { background: var(--surface-2);   color: var(--muted); }
 }
 
 .sala-nome {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #1a2e4a;
-  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  line-height: 1.1;
+  color: var(--ink);
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
 }
 
 .sala-membros {
-  font-size: 0.82rem;
-  color: #888;
+  font-size: 13px;
+  color: var(--muted);
   margin: 0;
 }
 
@@ -195,78 +202,48 @@
 
 .link-input {
   flex: 1;
-  padding: 7px 10px;
-  border: 1.5px solid #dde3ee;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  color: #555;
-  background: #f9fafb;
-  outline: none;
   min-width: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface-2);
+  outline: none;
 }
 
 .btn-copiar {
-  padding: 7px 12px;
-  border: 1.5px solid #327ACF;
-  background: #fff;
-  color: #327ACF;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
+  @include np.btn-outline;
+  padding: 7px 14px;
+  font-size: 11px;
 
   &.copiado {
-    background: #e8f5e9;
-    border-color: #2e7d32;
-    color: #2e7d32;
+    border-color: var(--ok);
+    color: var(--ok);
+    background: var(--ok-soft);
   }
-
-  &:hover:not(.copiado) { background: #eef4fc; }
 }
 
 .btn-abrir {
-  padding: 10px;
-  background: linear-gradient(135deg, #327ACF, #1c4f9c);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.2s;
-
-  &:hover { opacity: 0.88; }
+  @include np.btn-ink;
+  padding: 13px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .erro {
-  color: #e53935;
-  font-size: 0.85rem;
-  margin-top: 8px;
+  color: var(--danger);
+  font-size: 13px;
+  margin: 12px 0 0;
 }
 
-.spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-.spinner-dark {
-  border-color: rgba(50, 122, 207, 0.25);
-  border-top-color: #327ACF;
-}
+.spinner { @include np.spinner; }
+.spinner-dark { border-color: var(--accent-soft); border-top-color: var(--accent); }
 
 .spinner-row {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }

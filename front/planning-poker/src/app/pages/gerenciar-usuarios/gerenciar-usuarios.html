@@ -3,16 +3,27 @@
   <!-- Header -->
   <header class="su-header">
     <div class="su-brand">
-      <span class="su-brand-icon">🛡️</span>
-      <span class="su-brand-title">Gerenciar Usuários</span>
+      <span class="su-brand-icon">🦶</span>
+      <span class="su-brand-title">Chutômetro</span>
+      <span class="su-badge">Super Usuário</span>
     </div>
     <div class="su-user">
-      <span class="su-badge">Super Usuário</span>
       <span class="su-username">{{ superUsuario }}</span>
-      <button class="btn-logout" (click)="irParaEstatisticas()">📊 Estatísticas</button>
-      <button class="btn-logout" (click)="logout()">Sair</button>
+      <button class="btn-header" (click)="irParaEstatisticas()">📊 Estatísticas</button>
+      <button class="btn-header btn-logout" (click)="logout()">Sair</button>
     </div>
   </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <span class="hero-circle hero-circle-lg"></span>
+    <span class="hero-circle hero-circle-sm"></span>
+    <div class="hero-content">
+      <span class="hero-eyebrow">Administração</span>
+      <h1 class="hero-title">Gerenciar Usuários</h1>
+      <p class="hero-sub">Moderadores, players e observadores cadastrados no Chutômetro.</p>
+    </div>
+  </section>
 
   <!-- Corpo -->
   <main class="su-main">
