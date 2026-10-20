@@ -321,7 +321,7 @@
     <!-- Fase 2: Horas -->
     <div *ngIf="estadoVotacao === 'aguardando_horas'" class="admin-phase">
       <span class="admin-phase-label">Fase Horas</span>
-      <button *ngIf="nivelDivergencia === 'divergente'" class="btn-nova-rodada" (click)="novaRodada()">
+      <button class="btn-nova-rodada" (click)="novaRodada()">
         🔄 Nova Rodada
       </button>
       <button class="btn-liberar-horas" (click)="liberarHorasVotacao()">

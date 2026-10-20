@@ -187,9 +187,9 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     return { media, mediana, min: valores[0], max: valores[valores.length - 1] };
   }
 
-  // Tópico global — recebe USUARIO_CONECTADO / USUARIO_DESCONECTADO
+  // Tópico global — recebe USUARIO_CONECTADO / USUARIO_DESCONECTADO (só sem sala)
   private readonly topicSessoes = '/topic/sessoes';
-  // Tópico de sala — recebe SALA_INATIVADA (só existe quando há salaId)
+  // Tópico de sala — recebe presença da sala e SALA_INATIVADA (só existe quando há salaId)
   private topicSalaEventos: string | null = null;
 
   ngOnInit(): void {
@@ -198,27 +198,28 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     const salaId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('salaId') : null;
     if (salaId) {
       this.topicSalaEventos = `/topic/sala/${salaId}/sessoes`;
+      this.taskService.registrarPresencaNaSala(salaId).subscribe({
+        next: () => this.carregarUsuariosOnline(),
+        error: () => {}
+      });
     }
 
     this.carregarListas();
     this.carregarTarefaEmVotacao();
     this.carregarUsuariosOnline();
 
-    // Eventos globais de presença (USUARIO_CONECTADO / USUARIO_DESCONECTADO)
-    this.wsService.subscribe(this.topicSessoes, (msg) => {
-      const data = JSON.parse(msg.body);
-      if (data.acao === 'USUARIO_CONECTADO' && !this.usuariosOnline.includes(data.usuario)) {
-        this.usuariosOnline = [...this.usuariosOnline, data.usuario];
-      } else if (data.acao === 'USUARIO_DESCONECTADO') {
-        this.usuariosOnline = this.usuariosOnline.filter(u => u !== data.usuario);
-      }
-      this.cdr.detectChanges();
-    });
+    // Presença global apenas para o backlog legado; com sala, a presença vem do tópico da sala
+    if (!this.topicSalaEventos) {
+      this.wsService.subscribe(this.topicSessoes, (msg) => {
+        this.atualizarPresenca(JSON.parse(msg.body));
+      });
+    }
 
-    // Eventos específicos da sala (SALA_INATIVADA)
+    // Eventos específicos da sala (presença e SALA_INATIVADA)
     if (this.topicSalaEventos) {
       this.wsService.subscribe(this.topicSalaEventos, (msg) => {
         const data = JSON.parse(msg.body);
+        this.atualizarPresenca(data);
         if (data.acao === 'SALA_INATIVADA') {
           if (typeof sessionStorage !== 'undefined') {
             sessionStorage.removeItem('salaId');
@@ -238,8 +239,17 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     }, 5000);
   }
 
+  private atualizarPresenca(data: any): void {
+    if (data.acao === 'USUARIO_CONECTADO' && !this.usuariosOnline.includes(data.usuario)) {
+      this.usuariosOnline = [...this.usuariosOnline, data.usuario];
+    } else if (data.acao === 'USUARIO_DESCONECTADO') {
+      this.usuariosOnline = this.usuariosOnline.filter(u => u !== data.usuario);
+    }
+    this.cdr.detectChanges();
+  }
+
   ngOnDestroy(): void {
-    this.wsService.unsubscribe(this.topicSessoes);
+    if (!this.topicSalaEventos) this.wsService.unsubscribe(this.topicSessoes);
     if (this.topicSalaEventos) this.wsService.unsubscribe(this.topicSalaEventos);
     if (this.pollInterval) clearInterval(this.pollInterval);
     if (this.timerInterval) clearInterval(this.timerInterval);

@@ -115,7 +115,7 @@
                   (click)="revelarPontos()">
                   {{ tarefaEmVotacao.pontosRevelados ? '✓ Pontos Revelados' : '👁 Revelar Pontos' }}
                 </button>
-                <button *ngIf="nivelDivergencia === 'divergente' && tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas"
+                <button *ngIf="tarefaEmVotacao.pontosRevelados && !tarefaEmVotacao.horasLiberadas"
                   class="btn btn-danger btn-full"
                   (click)="novaRodada()">
                   🔄 Nova Rodada

@@ -117,8 +117,16 @@ export class TaskService {
     );
   }
 
+  // Com sala ativa no contexto, retorna apenas os online daquela sala
   getUsuariosOnline(): Observable<string[]> {
-    return this.http.get<string[]>(`${environment.apiUrl}/api/sessoes/online`, this.authOptions);
+    const salaId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('salaId') : null;
+    const query = salaId ? `?salaId=${salaId}` : '';
+    return this.http.get<string[]>(`${environment.apiUrl}/api/sessoes/online${query}`, this.authOptions);
+  }
+
+  // Informa ao backend em qual sala o usuário está agora (presença por sala)
+  registrarPresencaNaSala(salaId: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/api/sessoes/sala/${salaId}`, {}, this.authOptions);
   }
 
   // ─── Métodos sala-scoped ──────────────────────────────────────

@@ -39,6 +39,8 @@ public class SessaoService {
     // username → Set<sessionId>  (permite múltiplas abas abertas)
     private final ConcurrentHashMap<String, Set<String>> usuarioSessoes = new ConcurrentHashMap<>();
 
+    // username → sala em que o usuário está atualmente. Mantido após desconexão para que,
+    // ao reconectar (refresh de página), o usuário volte a aparecer na mesma sala.
     private final ConcurrentHashMap<String, Long> usuarioSala = new ConcurrentHashMap<>();
 
     // Tarefas de inativação de sala agendadas — canceladas se o moderador reconectar
@@ -75,6 +77,8 @@ public class SessaoService {
         if (primeiraConexao) {
             messagingTemplate.convertAndSend("/topic/sessoes",
                     Map.of("acao", "USUARIO_CONECTADO", "usuario", username));
+            Long salaId = usuarioSala.get(username);
+            if (salaId != null) notificarSala(salaId, "USUARIO_CONECTADO", username);
             // Reativa salas inativas com tarefas em aberto ao reconectar
             salaService.reativarSalasComTarefasAbertas(username);
         }
@@ -96,10 +100,11 @@ public class SessaoService {
         if (semSessoes) {
             usuarioSessoes.remove(username);
             sessoes.remove(username);
-            usuarioSala.remove(username);
 
             messagingTemplate.convertAndSend("/topic/sessoes",
                     Map.of("acao", "USUARIO_DESCONECTADO", "usuario", username));
+            Long salaAtual = usuarioSala.get(username);
+            if (salaAtual != null) notificarSala(salaAtual, "USUARIO_DESCONECTADO", username);
 
             // Aguarda o período de graça antes de inativar a sala.
             // Se o moderador reconectar (ex.: refresh de página), a tarefa é cancelada em onConnect.
@@ -123,8 +128,31 @@ public class SessaoService {
         return new ArrayList<>(sessoes.keySet());
     }
 
+    /**
+     * Usuários online que estão nesta sala. Quem não tem sala registrada
+     * (ex.: sessões reconectadas após restart do backend) entra pelo vínculo
+     * de membro/moderador da sala.
+     */
+    public List<String> getUsuariosOnlineDaSala(Long salaId) {
+        Set<String> daSala = salaService.usuariosDaSala(salaId);
+        return sessoes.keySet().stream()
+                .filter(u -> {
+                    Long sala = usuarioSala.get(u);
+                    return sala != null ? sala.equals(salaId) : daSala.contains(u);
+                })
+                .toList();
+    }
+
     public void registrarSalaDoUsuario(String username, Long salaId) {
-        usuarioSala.put(username, salaId);
+        Long anterior = usuarioSala.put(username, salaId);
+        if (salaId.equals(anterior) || !sessoes.containsKey(username)) return;
+        if (anterior != null) notificarSala(anterior, "USUARIO_DESCONECTADO", username);
+        notificarSala(salaId, "USUARIO_CONECTADO", username);
+    }
+
+    private void notificarSala(Long salaId, String acao, String username) {
+        messagingTemplate.convertAndSend("/topic/sala/" + salaId + "/sessoes",
+                Map.of("acao", acao, "usuario", username));
     }
 
     @PreDestroy

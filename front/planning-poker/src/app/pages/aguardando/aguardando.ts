@@ -32,6 +32,7 @@ export class Aguardando implements OnInit, OnDestroy {
     const salaId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('salaId') : null;
     if (salaId) {
       this.topicSessoes = `/topic/sala/${salaId}/sessoes`;
+      this.taskService.registrarPresencaNaSala(salaId).subscribe({ error: () => {} });
     }
     this.wsService.subscribe(this.topicSessoes, (msg) => {
       const data = JSON.parse(msg.body);

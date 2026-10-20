@@ -85,6 +85,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
     if (salaId) {
       this.topicEstimativas = `/topic/sala/${salaId}/estimativas`;
       this.topicSessoes = `/topic/sala/${salaId}/sessoes`;
+      this.taskService.registrarPresencaNaSala(salaId).subscribe({ error: () => {} });
     }
 
     this.carregarTarefa();

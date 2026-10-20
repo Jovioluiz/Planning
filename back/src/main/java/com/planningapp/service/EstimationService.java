@@ -1,11 +1,14 @@
 package com.planningapp.service;
 
 import com.planningapp.entity.Estimation;
+import com.planningapp.entity.Sala;
+import com.planningapp.entity.Task;
 import com.planningapp.entity.TaskParticipant;
 import com.planningapp.entity.User;
 import com.planningapp.entity.enums.TipoPerfil;
 import com.planningapp.repository.EstimationRepository;
 import com.planningapp.repository.TaskParticipantRepository;
+import com.planningapp.repository.TaskRepository;
 import com.planningapp.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +34,12 @@ public class EstimationService {
 
     @Autowired
     private SessaoService sessaoService;
+
+    @Autowired
+    private TaskRepository taskRepository;
+
+    @Autowired
+    private SalaService salaService;
 
     public List<Estimation> findAll() {
         return estimationRepository.findAll();
@@ -98,8 +108,19 @@ public class EstimationService {
         return votaram >= participantesOnline.size();
     }
 
+    // Online relevantes para a tarefa: os da sala dela, ou todos se for tarefa legada
+    private List<String> usuariosOnlineDaTarefa(Long taskId) {
+        Long salaId = taskRepository.findById(taskId)
+                .map(Task::getSala)
+                .map(Sala::getId)
+                .orElse(null);
+        return salaId != null
+                ? sessaoService.getUsuariosOnlineDaSala(salaId)
+                : sessaoService.getUsuariosOnline();
+    }
+
     public List<String> participantesOnlineDaTarefa(Long taskId) {
-        List<String> online = sessaoService.getUsuariosOnline();
+        List<String> online = usuariosOnlineDaTarefa(taskId);
         List<TaskParticipant> participantes = participantRepository.findByTaskId(taskId);
 
         // Apenas JOGADORs são esperados para votar
@@ -116,7 +137,7 @@ public class EstimationService {
     }
 
     public boolean todosTesteVotaram(Long taskId, Integer rodada) {
-        List<String> testadoresOnline = participantesTesteOnline();
+        List<String> testadoresOnline = participantesTesteOnline(taskId);
         if (testadoresOnline.isEmpty()) return false;
         List<Estimation> estimativas = estimationRepository.findByTaskIdAndPerfil(taskId, TipoPerfil.TESTE);
         long votaram = estimativas.stream()
@@ -131,11 +152,15 @@ public class EstimationService {
         return val != null ? val : 1;
     }
 
-    public List<String> participantesTesteOnline() {
-        List<String> online = sessaoService.getUsuariosOnline();
+    public List<String> participantesTesteOnline(Long taskId) {
+        List<String> online = usuariosOnlineDaTarefa(taskId);
+        Sala sala = taskRepository.findById(taskId).map(Task::getSala).orElse(null);
+        // Em tarefas de sala, só contam os testadores membros da sala
+        Set<String> daSala = sala != null ? salaService.usuariosDaSala(sala.getId()) : null;
         List<User> testadores = userRepository.findByTipoPerfil(TipoPerfil.TESTE);
         List<String> nomes = testadores.stream()
                 .map(User::getUsuario)
+                .filter(u -> daSala == null || daSala.contains(u))
                 .collect(Collectors.toList());
         if (online.isEmpty()) return nomes;
         return nomes.stream().filter(online::contains).collect(Collectors.toList());

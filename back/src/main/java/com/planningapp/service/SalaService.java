@@ -11,8 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -64,6 +66,17 @@ public class SalaService {
         return salaRepository.findById(salaId)
                 .map(s -> s.getModerador().getUsuario().equals(username))
                 .orElse(false);
+    }
+
+    /** Usernames do moderador e de todos os membros da sala. */
+    public Set<String> usuariosDaSala(Long salaId) {
+        return salaRepository.findById(salaId).map(sala -> {
+            Set<String> nomes = new HashSet<>();
+            nomes.add(sala.getModerador().getUsuario());
+            salaMembroRepository.findBySala(sala)
+                    .forEach(m -> nomes.add(m.getUsuario().getUsuario()));
+            return nomes;
+        }).orElse(Set.of());
     }
 
     public Optional<Sala> findByCodigo(String codigo) {
