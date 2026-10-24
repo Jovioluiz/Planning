@@ -138,9 +138,9 @@ TarefaService (EJB)                 planning-web (qualquer nó)                 
     JmsXA (JCA, transacional) tentaria se alistar nela.
   - **Ordem:** um só produtor por nó (`synchronized`) e o MDB com `maxSession=1`. Com o paralelismo padrão do MDB,
     `VOTO_REGISTRADO` e `TODOS_VOTARAM` poderiam chegar invertidos (o `TempoRealIT` pega isso).
-- **Limite atual — presença por nó:** `PresencaSala` (quem está online) continua em memória de cada nó. Num cluster,
-  o `PRESENCA` só mostra quem está no mesmo nó, e o "todos votaram" considera só os participantes conectados no nó
-  que recebeu o voto (pode avisar cedo demais). Resolver pede estado distribuído (ver próximos passos).
+- **Presença distribuída:** `PresencaSala` (quem está online) fica num cache do Infinispan configurado no servidor
+  (`cache-container=planning`, cache `presenca`), então o `PRESENCA` e o "todos votaram" enxergam as conexões de
+  todos os nós. Detalhes em "Todos votaram".
 - **Token na query string:** a API de WebSocket do navegador não permite headers. O token é validado no
   `@OnOpen`, e uma conexão inválida é fechada com o código **1008**. URLs podem ir parar em logs de proxy;
   se isso importar, use um "ticket" de uso único emitido por um endpoint REST.
@@ -229,6 +229,11 @@ Testado com dois WildFly na mesma máquina; um voto feito pelo nó A chegou aos 
   /subsystem=jgroups/stack=tcp/protocol=TCPPING:add(add-index=0, socket-bindings=[no-a, no-b])
   /subsystem=jgroups/channel=ee:write-attribute(name=stack, value=tcp)
   ```
+- Cache da presença **replicado** em todos os nós (no lugar do `local-cache` do `configurar-wildfly.cli`):
+  ```
+  /subsystem=infinispan/cache-container=planning/transport=jgroups:add()
+  /subsystem=infinispan/cache-container=planning/replicated-cache=presenca:add()
+  ```
 - Suba **um nó primeiro**: o Liquibase protege as migrations com lock, mas a criação do SUPER (`CriacaoSuperUsuario`)
   não — dois nós subindo juntos num banco vazio tentariam criá-lo ao mesmo tempo, e um falharia o deploy.
 - Um balanceador na frente (com suporte a WebSocket) distribui as conexões; não precisa de sessão "grudada", já que
@@ -252,7 +257,10 @@ Testado com dois WildFly na mesma máquina; um voto feito pelo nó A chegou aos 
 | POST | `/api/salas` | ADMIN | Cria sala `{ "nome": "Sprint 42" }`; quem cria vira o moderador |
 | GET | `/api/salas/codigo/{codigo}` | público | Busca sala pelo código (UUID) |
 | POST | `/api/salas/codigo/{codigo}/entrar` | logado | Entra na sala; JOGADOR vira participante das tarefas não estimadas |
+| GET | `/api/salas/minhas` | ADMIN | Salas que modera, ativas e inativas, com os membros; reativa as inativas que ainda têm tarefas pendentes |
+| GET | `/api/salas/{salaId}/online` | logado | Quem está conectado no WebSocket da sala (em qualquer nó) |
 | DELETE | `/api/salas/{salaId}` | moderador | Desativa sala |
+| POST | `/api/salas/{salaId}/reativar` | moderador | Reativa uma sala desativada |
 | GET | `/api/salas/{salaId}/tarefas` | logado | Lista tarefas da sala |
 | POST | `/api/salas/{salaId}/tarefas` | moderador | Cria tarefa `{ "numero", "titulo", "descricao", "sprint" }` |
 | POST | `/api/salas/{salaId}/tarefas/importar` | moderador | Importa várias: lista JSON ou CSV (`Content-Type: text/csv`) |
@@ -324,6 +332,12 @@ Cruza **quem está conectado no WebSocket da sala** com quem já votou na fase a
 - Quem votou e saiu continua contando. Quem nunca entrou não trava a rodada. É preciso pelo menos um voto.
 - A presença fica em `PresencaSala` (camada service, `@ApplicationScoped`) porque o EJB precisa dela.
   O WAR só informa entradas e saídas. Várias abas do mesmo usuário contam como uma.
+- Os dados ficam no cache `presenca` do Infinispan (`cache-container=planning`, criado pelo
+  `docker/configurar-wildfly.cli`): `local-cache` num nó só, `replicated-cache` em cluster. O código é o mesmo.
+  - Chave `sala|usuario|nó`, valor `papeis;conexoes`: cada nó só escreve as próprias chaves, sem disputa entre nós.
+  - Um nó que cai sem avisar não deixa ninguém "online" para sempre: toda leitura ignora (e apaga) as entradas de
+    nós que não estão mais no cluster.
+  - O módulo do Infinispan é liberado para o `planning-service` no `jboss-deployment-structure.xml` do EAR.
 - É só um aviso: o moderador continua decidindo quando revelar.
 - O cálculo fica em `AcompanhamentoVotacao`, um bean CDI comum (não EJB) usado pelo `VotacaoService` e pelo
   `ParticipanteService`; ele roda na transação de quem chama.
@@ -546,21 +560,22 @@ por fora é suficiente e não amarra os testes à versão do WildFly. Testcontai
 
 ## Próximos passos sugeridos
 
-- **Presença distribuída:** os eventos já escalam por JMS, mas `PresencaSala` continua por nó (o "todos votaram"
-  pode avisar cedo num cluster). Um cache replicado do Infinispan (que vem no `standalone-full-ha.xml`), com as
-  entradas por nó e limpeza quando um nó sai do cluster, deixaria presença e "todos votaram" corretos no cluster todo.
 - **Testes de integração com Postgres:** hoje o `planning-it` usa o H2 do WildFly. Com Docker, um Testcontainers
   de Postgres no lugar do H2 testaria também a migration 002 (só Postgres) e os tipos reais.
 - **Estatísticas no banco:** hoje as tarefas encerradas do escopo são carregadas e agregadas em memória (como no
   original). Com muito histórico, filtros e agregações iriam para o JPQL (`GROUP BY`) ou para uma view.
-  
-  
-  
- ##Compilar
- 
- .\implantar.ps1
- 
- ##Iniciar
- 
- IniciarServidor.bat
+
+## Compilar
+
+Na hospedagem local, dentro de `hospedagem-local/` (detalhes no [HOSPEDAGEM-LOCAL.md](HOSPEDAGEM-LOCAL.md)):
+
+```powershell
+.\implantar.ps1
+```
+
+## Iniciar
+
+```powershell
+.\IniciarServidor.bat
+```
  
