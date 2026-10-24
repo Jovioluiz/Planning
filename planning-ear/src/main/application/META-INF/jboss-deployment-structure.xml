@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Módulos do WildFly que a aplicação usa diretamente. Por padrão o WildFly só expõe as APIs do Jakarta EE;
+    qualquer outra biblioteca do servidor precisa ser pedida aqui.
+
+    planning-service.jar: Infinispan, para a presença distribuída (PresencaSala). O cache é do servidor
+    (cache-container=planning), a aplicação só o acessa via JNDI.
+-->
+<jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.2">
+    <sub-deployment name="planning-service.jar">
+        <dependencies>
+            <module name="org.infinispan.core"/>
+            <module name="org.infinispan.commons"/>
+        </dependencies>
+    </sub-deployment>
+</jboss-deployment-structure>

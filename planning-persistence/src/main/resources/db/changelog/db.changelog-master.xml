@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Changelog principal, executado no deploy pelo EJB MigracaoBanco (planning-service).
+
+    Regras:
+    - Um arquivo por mudança, numerado, incluído aqui na ordem.
+    - Changeset aplicado NUNCA é editado (o Liquibase guarda o checksum e falha no próximo deploy).
+      Para corrigir, crie um changeset novo.
+    - Toda mudança em entidade precisa de uma migration: o MigracoesTest (planning-persistence) aplica o
+      changelog num H2 e valida o schema contra as entidades, e quebra o build se faltar alguma.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Texto sem limite (Tarefa.descricao, columnDefinition = "TEXT"). No Postgres, TEXT é um VARCHAR; no H2 o
+        Liquibase traduziria TEXT para CLOB, e o Hibernate recusa (o MigracoesTest pegou isso). Vale o primeiro
+        que casar com o banco.
+    -->
+    <property name="tipo.texto" value="TEXT" dbms="postgresql"/>
+    <property name="tipo.texto" value="VARCHAR(1000000)" dbms="h2"/>
+    <property name="tipo.texto" value="TEXT"/>
+
+    <include file="changes/001-esquema-inicial.xml" relativeToChangelogFile="true"/>
+    <include file="changes/002-remover-checks-do-hibernate.xml" relativeToChangelogFile="true"/>
+    <include file="changes/003-checks-dos-enums.xml" relativeToChangelogFile="true"/>
+    <include file="changes/004-dados-extras-e-horas-liberadas-em.xml" relativeToChangelogFile="true"/>
+</databaseChangeLog>

@@ -1,0 +1,6 @@
+**/target
+.git
+.idea
+.vscode
+# O frontend tem o próprio Dockerfile (serviço "frontend" do docker-compose)
+frontend

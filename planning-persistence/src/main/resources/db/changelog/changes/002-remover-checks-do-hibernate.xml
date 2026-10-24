@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Só para bancos Postgres criados antes pelo hibernate.hbm2ddl.auto: o Hibernate 6+ cria um CHECK com os
+    valores de cada enum, com nome gerado pelo Postgres (<tabela>_<coluna>_check), e o "update" nunca o altera.
+    Foi o que impediu gravar o status PULADA nesses bancos. Aqui eles saem; o 003 cria os checks com nome,
+    controlados por migration. Em banco novo os IF EXISTS não fazem nada.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="002-remover-checks-do-hibernate" author="planning-jakarta" dbms="postgresql">
+        <sql>
+            ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_perfil_check;
+            ALTER TABLE tarefas DROP CONSTRAINT IF EXISTS tarefas_status_check;
+            ALTER TABLE tarefas DROP CONSTRAINT IF EXISTS tarefas_fase_check;
+            ALTER TABLE tarefas DROP CONSTRAINT IF EXISTS tarefas_fase_horas_teste_check;
+        </sql>
+    </changeSet>
+</databaseChangeLog>

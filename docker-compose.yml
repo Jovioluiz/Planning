@@ -1,54 +1,62 @@
+# Banco e backend em portas diferentes do Planning original (5433/8081), para a migração poder ler o banco antigo
+# com os dois de pé. O frontend usa a 4200, como o original (ele o substitui).
 services:
 
   db:
     image: postgres:16-alpine
-    container_name: planning-db
+    container_name: planning-jakarta-db
     environment:
-      POSTGRES_DB: planningdb
+      POSTGRES_DB: planningjakarta
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - planning-jakarta-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  backend:
-    build:
-      context: ./back
-      dockerfile: Dockerfile
-    container_name: planning-backend
+  wildfly:
+    build: .
+    container_name: planning-jakarta-wildfly
     depends_on:
       db:
         condition: service_healthy
     environment:
-      PORT: 8081
-      DB_URL: jdbc:postgresql://db:5432/planningdb
+      DB_URL: jdbc:postgresql://db:5432/planningjakarta
       DB_USER: postgres
       DB_PASS: postgres
-      JWT_SECRET: planning-poker-local-secret-change-in-prod
-      ALLOWED_ORIGINS: http://localhost:4200,http://192.168.0.103:4200,http://100.99.136.57:4200,https://chutometro.dev.br
+      # As mesmas origens do Planning original, mais o front no Render
+      ALLOWED_ORIGINS: http://localhost:4200,http://192.168.0.103:4200,http://100.99.136.57:4200,https://chutometro.dev.br,https://planning-poker-front.onrender.com
+      JWT_SECRET: planning-jakarta-local-secret-troque-em-producao
+      JWT_VALIDADE_MINUTOS: 480
+      # Cria o SUPER no primeiro deploy (se não houver nenhum). Use uma senha sua: SUPER_SENHA=... docker compose up
+      SUPER_USUARIO: super
+      SUPER_SENHA: ${SUPER_SENHA:-}
+      # Inativa a sala 15 s depois que o moderador sai (como o original); 0 desliga
+      SALA_INATIVACAO_SEGUNDOS: 15
     ports:
-      - "8081:8081"
+      - "8082:8080"   # aplicação: http://localhost:8082/planning/api
+      - "9991:9990"   # console de administração do WildFly
 
+  # O frontend migrado do Planning original (Angular SSR). Usa a mesma porta do original: os dois não rodam juntos.
   frontend:
     build:
-      context: ./front/planning-poker
-      dockerfile: Dockerfile
+      context: ./frontend
       args:
-        # O browser acessa o backend pelo host, não pela rede interna do Docker
-        API_URL: https://api.chutometro.dev.br
-    container_name: planning-frontend
+        # O navegador acessa o backend pelo host. Como no original, pelo domínio do Cloudflare Tunnel;
+        # para usar tudo local: API_URL=http://localhost:8082/planning docker compose build frontend
+        API_URL: ${API_URL:-https://api.chutometro.dev.br/planning}
+    container_name: planning-jakarta-frontend
     depends_on:
-      - backend
+      - wildfly
     environment:
       PORT: 4200
     ports:
       - "4200:4200"
 
 volumes:
-  postgres-data:
+  planning-jakarta-data:

@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Esquema completo até a introdução do Liquibase.
+
+    Bancos criados antes pelo hibernate.hbm2ddl.auto=update já têm essas tabelas: a precondição marca o
+    changeset como aplicado (MARK_RAN) sem executar, e as próximas migrations seguem normalmente.
+    Isso vale para bancos criados com a última versão antes do Liquibase.
+
+    Tipos: Instant -> TIMESTAMP WITH TIME ZONE e LocalDateTime -> TIMESTAMP, como o Hibernate mapeia.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-esquema-inicial" author="planning-jakarta">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="usuarios"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="usuarios">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_usuarios"/>
+            </column>
+            <column name="usuario" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_usuarios_usuario"/>
+            </column>
+            <column name="senha_hash" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="perfil" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="criado_em" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ativo" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="salas">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_salas"/>
+            </column>
+            <column name="nome" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="codigo" type="VARCHAR(36)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_salas_codigo"/>
+            </column>
+            <column name="ativa" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="criada_em" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="id_moderador" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_salas_moderador" references="usuarios(id)"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="tarefas">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_tarefas"/>
+            </column>
+            <column name="numero" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="titulo" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="descricao" type="${tipo.texto}"/>
+            <column name="sprint" type="VARCHAR(50)"/>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fase" type="VARCHAR(20)"/>
+            <column name="fase_horas_teste" type="VARCHAR(20)"/>
+            <column name="rodada_atual" type="INT" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pontos_finais" type="INT"/>
+            <column name="horas_finais" type="INT"/>
+            <column name="horas_teste_finais" type="INT"/>
+            <column name="liberada_em" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="encerrada_em" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="id_sala" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_tarefas_sala" references="salas(id)"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="tarefas" columnNames="id_sala, numero" constraintName="uk_tarefa_sala_numero"/>
+
+        <createTable tableName="estimativas">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_estimativas"/>
+            </column>
+            <column name="id_tarefa" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_estimativas_tarefa" references="tarefas(id)"/>
+            </column>
+            <column name="id_usuario" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_estimativas_usuario" references="usuarios(id)"/>
+            </column>
+            <column name="rodada" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pontos" type="INT"/>
+            <column name="horas" type="INT"/>
+            <column name="horas_teste" type="INT"/>
+            <column name="votado_em_pontos" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="votado_em_horas" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="votado_em_horas_teste" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+        <addUniqueConstraint tableName="estimativas" columnNames="id_tarefa, id_usuario, rodada"
+                             constraintName="uk_estimativa_tarefa_usuario_rodada"/>
+
+        <createTable tableName="sala_membros">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_sala_membros"/>
+            </column>
+            <column name="id_sala" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_sala_membros_sala" references="salas(id)"/>
+            </column>
+            <column name="id_usuario" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_sala_membros_usuario" references="usuarios(id)"/>
+            </column>
+            <column name="entrou_em" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="sala_membros" columnNames="id_sala, id_usuario" constraintName="uk_sala_membro"/>
+
+        <createTable tableName="participantes_tarefa">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_participantes_tarefa"/>
+            </column>
+            <column name="id_tarefa" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_participantes_tarefa" references="tarefas(id)"/>
+            </column>
+            <column name="id_usuario" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_participantes_usuario" references="usuarios(id)"/>
+            </column>
+            <column name="removido_em" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+        <addUniqueConstraint tableName="participantes_tarefa" columnNames="id_tarefa, id_usuario"
+                             constraintName="uk_participante_tarefa"/>
+
+        <!-- As consultas de votos sempre filtram por tarefa e rodada -->
+        <createIndex tableName="estimativas" indexName="ix_estimativas_tarefa_rodada">
+            <column name="id_tarefa"/>
+            <column name="rodada"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

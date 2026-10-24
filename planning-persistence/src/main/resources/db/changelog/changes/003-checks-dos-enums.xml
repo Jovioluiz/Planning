@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Valores aceitos em cada coluna de enum (EnumType.STRING). Com nome, para a próxima migration poder trocá-los:
+    um valor novo num enum (como foi o PULADA) exige um changeset que faça DROP + ADD do check correspondente.
+    Em <sql> porque o addCheckConstraint do Liquibase é só da versão paga.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="003-checks-dos-enums" author="planning-jakarta">
+        <sql>
+            ALTER TABLE usuarios ADD CONSTRAINT ck_usuarios_perfil
+                CHECK (perfil IN ('JOGADOR', 'OBSERVADOR', 'ADMIN', 'SUPER', 'TESTE'));
+            ALTER TABLE tarefas ADD CONSTRAINT ck_tarefas_status
+                CHECK (status IN ('FILA', 'LIBERADA', 'ESTIMADA', 'PULADA'));
+            ALTER TABLE tarefas ADD CONSTRAINT ck_tarefas_fase
+                CHECK (fase IN ('PONTOS', 'PONTOS_REVELADOS', 'HORAS', 'HORAS_REVELADAS'));
+            ALTER TABLE tarefas ADD CONSTRAINT ck_tarefas_fase_horas_teste
+                CHECK (fase_horas_teste IN ('VOTACAO', 'REVELADA'));
+        </sql>
+    </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.planningapp</groupId>
+        <artifactId>planning-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>planning-migracao</artifactId>
+    <name>Planning Jakarta :: Migração do Planning original</name>
+    <description>
+        Ferramenta de linha de comando (fora do EAR) que copia os dados do banco do Planning original (Spring Boot)
+        para o banco desta versão. Gera target/planning-migracao.jar, executável com java -jar.
+    </description>
+
+    <dependencies>
+        <!-- O changelog do Liquibase e a classe Migracoes: o destino recebe o schema antes dos dados -->
+        <dependency>
+            <groupId>com.planningapp</groupId>
+            <artifactId>planning-persistence</artifactId>
+            <exclusions>
+                <!-- Só as entidades e o Jakarta EE (provided) não fazem falta numa ferramenta JDBC -->
+                <exclusion>
+                    <groupId>com.planningapp</groupId>
+                    <artifactId>planning-model</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
+        </dependency>
+        <!-- Para mesclar prioridade/status antigos no JSON de dados_extras -->
+        <dependency>
+            <groupId>jakarta.json</groupId>
+            <artifactId>jakarta.json-api</artifactId>
+            <version>2.1.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.parsson</groupId>
+            <artifactId>parsson</artifactId>
+            <version>${parsson.version}</version>
+            <!-- O pai declara como test (para os testes dos outros módulos); aqui é usado em tempo de execução -->
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Testes: origem e destino em H2 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>planning-migracao</finalName>
+        <plugins>
+            <!-- Jar único com as dependências: java -jar planning-migracao/target/planning-migracao.jar -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <!-- O Liquibase e o driver JDBC se registram via ServiceLoader -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.planningapp.migracao.MigrarPlanningOriginal</mainClass>
+                                </transformer>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

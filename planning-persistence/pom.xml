@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.planningapp</groupId>
+        <artifactId>planning-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>planning-persistence</artifactId>
+    <packaging>jar</packaging>
+    <name>Planning Jakarta :: Persistence</name>
+    <description>Persistence unit e repositórios com EntityManager. Único módulo que fala com o banco.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.planningapp</groupId>
+            <artifactId>planning-model</artifactId>
+        </dependency>
+        <!-- Vai para o lib/ do EAR junto com este jar; o changelog fica em src/main/resources/db/changelog -->
+        <dependency>
+            <groupId>org.liquibase</groupId>
+            <artifactId>liquibase-core</artifactId>
+            <exclusions>
+                <!-- API javax.* antiga (Java EE 8); o changelog em XML não precisa dela e ela não tem lugar num EAR Jakarta EE 11 -->
+                <exclusion>
+                    <groupId>javax.xml.bind</groupId>
+                    <artifactId>jaxb-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- MigracoesTest: aplica o changelog num H2 e valida o schema com o Hibernate, fora do servidor -->
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+        </dependency>
+        <!-- O Hibernate acha a API do JSON-B no classpath e liga a integração JSON; no WildFly, o provedor é o Yasson -->
+        <dependency>
+            <groupId>org.eclipse</groupId>
+            <artifactId>yasson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.parsson</groupId>
+            <artifactId>parsson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+    </dependencies>
+</project>
