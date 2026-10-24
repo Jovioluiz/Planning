@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.planningapp</groupId>
+    <artifactId>planning-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Planning Jakarta :: Parent</name>
+
+    <!-- Dependências sempre em uma direção: web -> service -> persistence -> model (security é usado por service e web) -->
+    <modules>
+        <module>planning-model</module>
+        <module>planning-dto</module>
+        <module>planning-security</module>
+        <module>planning-persistence</module>
+        <module>planning-service</module>
+        <module>planning-web</module>
+        <module>planning-ear</module>
+        <module>planning-migracao</module>
+    </modules>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <jakartaee.version>11.0.0</jakartaee.version>
+        <junit.version>5.10.2</junit.version>
+        <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
+        <!-- Só para conferir as senhas BCrypt migradas do Planning original (licença ISC, uma classe, sem dependências) -->
+        <jbcrypt.version>0.4</jbcrypt.version>
+        <!-- Mesmas versões que o WildFly 41 traz (modules/.../yasson-3.0.4.jar), só para testes -->
+        <yasson.version>3.0.4</yasson.version>
+        <parsson.version>1.1.9</parsson.version>
+        <!-- 4.33 é a última da linha 4.x (Apache 2.0). A 5.0 anunciou troca de licença: confira antes de subir -->
+        <liquibase.version>4.33.0</liquibase.version>
+        <!-- Mesmas versões do WildFly 41, para o MigracoesTest validar o schema como o servidor validaria -->
+        <hibernate.version>7.4.5.Final</hibernate.version>
+        <h2.version>2.4.240</h2.version>
+        <wildfly.version>41.0.1.Final</wildfly.version>
+        <!-- O mesmo driver que o Dockerfile instala no WildFly -->
+        <postgresql.version>42.7.14</postgresql.version>
+        <!-- A versão que o WildFly 41 traz (modules/.../org/infinispan/core); "provided": o jar vem do servidor -->
+        <infinispan.version>16.0.13</infinispan.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- API do Jakarta EE: "provided" porque o WildFly já fornece a implementação -->
+            <dependency>
+                <groupId>jakarta.platform</groupId>
+                <artifactId>jakarta.jakartaee-api</artifactId>
+                <version>${jakartaee.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- Módulos internos -->
+            <dependency>
+                <groupId>com.planningapp</groupId>
+                <artifactId>planning-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.planningapp</groupId>
+                <artifactId>planning-dto</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.planningapp</groupId>
+                <artifactId>planning-security</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.planningapp</groupId>
+                <artifactId>planning-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.planningapp</groupId>
+                <artifactId>planning-service</artifactId>
+                <version>${project.version}</version>
+                <type>ejb</type>
+            </dependency>
+            <dependency>
+                <groupId>com.planningapp</groupId>
+                <artifactId>planning-web</artifactId>
+                <version>${project.version}</version>
+                <type>war</type>
+            </dependency>
+
+            <!-- JWT: jar único, sem dependências obrigatórias (não conflita com o Jackson do WildFly) -->
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${nimbus-jose-jwt.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-core</artifactId>
+                <version>${infinispan.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mindrot</groupId>
+                <artifactId>jbcrypt</artifactId>
+                <version>${jbcrypt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.liquibase</groupId>
+                <artifactId>liquibase-core</artifactId>
+                <version>${liquibase.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.orm</groupId>
+                <artifactId>hibernate-core</artifactId>
+                <version>${hibernate.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <version>${h2.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse</groupId>
+                <artifactId>yasson</artifactId>
+                <version>${yasson.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.parsson</groupId>
+                <artifactId>parsson</artifactId>
+                <version>${parsson.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.5</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-ejb-plugin</artifactId>
+                    <version>3.2.1</version>
+                    <configuration>
+                        <ejbVersion>4.0</ejbVersion>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-war-plugin</artifactId>
+                    <version>3.4.0</version>
+                    <configuration>
+                        <failOnMissingWebXml>false</failOnMissingWebXml>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-ear-plugin</artifactId>
+                    <version>3.4.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>3.2.5</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.8.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>3.6.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.wildfly.plugins</groupId>
+                    <artifactId>wildfly-maven-plugin</artifactId>
+                    <version>5.1.5.Final</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <profiles>
+        <!--
+            Testes de integração (módulo planning-it): sobe um WildFly 41 descartável com o EAR e roda os *IT.
+            mvn verify -Pintegracao
+        -->
+        <profile>
+            <id>integracao</id>
+            <modules>
+                <module>planning-it</module>
+            </modules>
+        </profile>
+    </profiles>
+</project>

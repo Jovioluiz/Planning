@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.planningapp</groupId>
+        <artifactId>planning-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>planning-web</artifactId>
+    <packaging>war</packaging>
+    <name>Planning Jakarta :: Web</name>
+    <description>Camada REST (JAX-RS). Só conversa com o service e os DTOs, nunca com o EntityManager.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+        </dependency>
+
+        <!--
+            "provided": no EAR essas classes já estão no módulo EJB e em /lib,
+            então não devem ser copiadas de novo para WEB-INF/lib do WAR.
+        -->
+        <dependency>
+            <groupId>com.planningapp</groupId>
+            <artifactId>planning-dto</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.planningapp</groupId>
+            <artifactId>planning-security</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.planningapp</groupId>
+            <artifactId>planning-service</artifactId>
+            <type>ejb</type>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

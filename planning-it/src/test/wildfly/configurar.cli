@@ -1,0 +1,20 @@
+# Prepara o WildFly descartável dos testes de integração (o equivalente de docker/configurar-wildfly.cli,
+# trocando o Postgres pelo H2 que já vem no WildFly). Idempotente: pode rodar de novo no mesmo servidor.
+embed-server --server-config=standalone-full.xml --std-out=discard
+
+if (outcome != success) of /subsystem=datasources/data-source=PlanningDS:read-resource
+    data-source add --name=PlanningDS --jndi-name=java:jboss/datasources/PlanningDS --driver-name=h2 --connection-url="jdbc:h2:mem:planning-it;DB_CLOSE_DELAY=-1" --user-name=sa --password=sa
+end-if
+
+# Necessário para o mecanismo JWT do Jakarta Security (ver README, "Autenticação e autorização")
+/subsystem=undertow/application-security-domain=other:write-attribute(name=integrated-jaspi, value=false)
+
+# Cache da presença (PresencaSala), local porque aqui é um nó só
+if (outcome != success) of /subsystem=infinispan/cache-container=planning:read-resource
+    # O default-cache só pode apontar para um cache que já existe
+    /subsystem=infinispan/cache-container=planning:add(marshaller=PROTOSTREAM)
+    /subsystem=infinispan/cache-container=planning/local-cache=presenca:add()
+    /subsystem=infinispan/cache-container=planning:write-attribute(name=default-cache, value=presenca)
+end-if
+
+stop-embedded-server

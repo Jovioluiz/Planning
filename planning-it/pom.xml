@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.planningapp</groupId>
+        <artifactId>planning-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>planning-it</artifactId>
+    <name>Planning Jakarta :: Testes de integração</name>
+    <description>
+        Testes de caixa preta (HTTP e WebSocket) contra o planning.ear rodando num WildFly de verdade.
+        Só entra no build com o profile "integracao": mvn verify -Pintegracao
+    </description>
+
+    <properties>
+        <!-- Portas com offset 300 para não brigar com um WildFly local na 8080 -->
+        <it.offset>300</it.offset>
+        <it.http.porta>8380</it.http.porta>
+        <it.gerencia.porta>10290</it.gerencia.porta>
+        <it.wildfly.home>${project.build.directory}/wildfly-${wildfly.version}</it.wildfly.home>
+        <it.super.usuario>super-it</it.super.usuario>
+        <it.super.senha>senha-do-super-it</it.super.senha>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+    </properties>
+
+    <dependencies>
+        <!-- Garante que o reactor monte o EAR antes; o deploy-artifact abaixo implanta exatamente este -->
+        <dependency>
+            <groupId>com.planningapp</groupId>
+            <artifactId>planning-ear</artifactId>
+            <version>${project.version}</version>
+            <type>ear</type>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JSON-P para ler as respostas; o resto é java.net.http (HTTP e WebSocket) -->
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.parsson</groupId>
+            <artifactId>parsson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- 1. Baixa e descompacta o WildFly (só na primeira vez: o marcador evita refazer) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>descompactar-wildfly</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.wildfly</groupId>
+                                    <artifactId>wildfly-dist</artifactId>
+                                    <version>${wildfly.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.wildfly.plugins</groupId>
+                <artifactId>wildfly-maven-plugin</artifactId>
+                <configuration>
+                    <jbossHome>${it.wildfly.home}</jbossHome>
+                    <port>${it.gerencia.porta}</port>
+                </configuration>
+                <executions>
+                    <!-- 2. Datasource H2 e integrated-jaspi=false, com o servidor desligado (embed-server) -->
+                    <execution>
+                        <id>configurar-wildfly</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>execute-commands</goal>
+                        </goals>
+                        <configuration>
+                            <offline>true</offline>
+                            <scripts>
+                                <script>${project.basedir}/src/test/wildfly/configurar.cli</script>
+                            </scripts>
+                        </configuration>
+                    </execution>
+                    <!-- 3. Sobe o servidor com as mesmas variáveis de ambiente da produção -->
+                    <execution>
+                        <id>subir-wildfly</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>start</goal>
+                        </goals>
+                        <configuration>
+                            <serverConfig>standalone-full.xml</serverConfig>
+                            <serverArgs>
+                                <serverArg>-Djboss.socket.binding.port-offset=${it.offset}</serverArg>
+                            </serverArgs>
+                            <env>
+                                <SUPER_USUARIO>${it.super.usuario}</SUPER_USUARIO>
+                                <SUPER_SENHA>${it.super.senha}</SUPER_SENHA>
+                                <ALLOWED_ORIGINS>http://localhost:4200</ALLOWED_ORIGINS>
+                                <JWT_SECRET>segredo-dos-testes-de-integracao-com-32-bytes-ou-mais</JWT_SECRET>
+                                <!-- Inativação automática da sala em 2 s (o padrão é 15), para o teste não esperar -->
+                                <SALA_INATIVACAO_SEGUNDOS>2</SALA_INATIVACAO_SEGUNDOS>
+                            </env>
+                            <startupTimeout>180</startupTimeout>
+                        </configuration>
+                    </execution>
+                    <!-- 4. Implanta o planning.ear e espera o deploy terminar (falha se o deploy falhar) -->
+                    <execution>
+                        <id>implantar-ear</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>deploy-artifact</goal>
+                        </goals>
+                        <configuration>
+                            <groupId>com.planningapp</groupId>
+                            <artifactId>planning-ear</artifactId>
+                            <name>planning.ear</name>
+                        </configuration>
+                    </execution>
+                    <!-- 6. Desliga, mesmo com teste falhando (o failsafe só reprova o build no verify) -->
+                    <execution>
+                        <id>desligar-wildfly</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>shutdown</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 5. Roda os *IT.java -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <it.url>http://localhost:${it.http.porta}/planning</it.url>
+                        <it.super.usuario>${it.super.usuario}</it.super.usuario>
+                        <it.super.senha>${it.super.senha}</it.super.senha>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

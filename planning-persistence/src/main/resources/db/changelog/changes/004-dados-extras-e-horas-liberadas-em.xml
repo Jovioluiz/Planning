@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Para a migração do Planning original:
+    - dados_extras: as colunas do CSV importado que não são campos próprios da tarefa, em JSON (o front as mostra
+      como colunas dinâmicas). No original: tarefas.dados_extras.
+    - horas_liberadas_em: quando a votação de horas foi aberta, para medir quanto cada um levou para votar.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="004-dados-extras-e-horas-liberadas-em" author="planning-jakarta">
+        <addColumn tableName="tarefas">
+            <column name="dados_extras" type="${tipo.texto}"/>
+            <column name="horas_liberadas_em" type="TIMESTAMP WITH TIME ZONE"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

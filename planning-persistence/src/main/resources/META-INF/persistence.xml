@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_2.xsd"
+             version="3.2">
+
+    <persistence-unit name="planningPU" transaction-type="JTA">
+        <!-- Datasource configurado no WildFly (ver docker/configurar-wildfly.cli) -->
+        <jta-data-source>java:jboss/datasources/PlanningDS</jta-data-source>
+
+        <!-- As entidades ficam em outro jar (planning-model), por isso são listadas explicitamente -->
+        <class>com.planningapp.model.Usuario</class>
+        <class>com.planningapp.model.Sala</class>
+        <class>com.planningapp.model.Tarefa</class>
+        <class>com.planningapp.model.Estimativa</class>
+        <class>com.planningapp.model.MembroSala</class>
+        <class>com.planningapp.model.Participante</class>
+        <exclude-unlisted-classes>true</exclude-unlisted-classes>
+
+        <properties>
+            <!-- O schema é do Liquibase (db/changelog, executado no deploy pelo MigracaoBanco); o Hibernate não mexe nele.
+                 Não use "validate" aqui: o Hibernate valida ao subir o PU, antes de a migration rodar. A validação
+                 é feita no build, pelo MigracoesTest. -->
+            <property name="hibernate.hbm2ddl.auto" value="none"/>
+            <property name="hibernate.show_sql" value="false"/>
+        </properties>
+    </persistence-unit>
+</persistence>

@@ -1,0 +1,39 @@
+# Configura o WildFly sem ele estar rodando ("embed-server"): driver do PostgreSQL + datasource.
+# Os valores ${env.X:padrao} são expressões resolvidas pelo WildFly na hora de subir,
+# então dá para trocar banco/usuário/senha só com variável de ambiente.
+
+# standalone-full.xml: o perfil com mensageria (ActiveMQ Artemis), necessário para o tópico JMS dos eventos das salas
+embed-server --std-out=echo --server-config=standalone-full.xml
+
+module add --name=org.postgresql --resources=/tmp/postgresql.jar --dependencies=jakarta.transaction.api
+
+/subsystem=datasources/jdbc-driver=postgresql:add(driver-name=postgresql, driver-module-name=org.postgresql, driver-xa-datasource-class-name=org.postgresql.xa.PGXADataSource)
+
+data-source add \
+    --name=PlanningDS \
+    --jndi-name=java:jboss/datasources/PlanningDS \
+    --driver-name=postgresql \
+    --connection-url="${env.DB_URL:jdbc:postgresql://db:5432/planningjakarta}" \
+    --user-name="${env.DB_USER:postgres}" \
+    --password="${env.DB_PASS:postgres}" \
+    --min-pool-size=2 \
+    --max-pool-size=20 \
+    --validate-on-match=true \
+    --check-valid-connection-sql="SELECT 1"
+
+# Autenticação JWT (Jakarta Security): os usuários ficam no banco da aplicação, não no ApplicationDomain do WildFly.
+# Com integrated-jaspi=true (padrão), o WildFly tentaria achar o usuário do token no próprio realm
+# e recusaria a requisição com "ELY01177: Authorization failed".
+/subsystem=undertow/application-security-domain=other:write-attribute(name=integrated-jaspi, value=false)
+
+# Presença dos usuários nas salas (PresencaSala). Num nó só, um cache local basta; em cluster, troque por
+#   /subsystem=infinispan/cache-container=planning/transport=jgroups:add()
+#   /subsystem=infinispan/cache-container=planning/replicated-cache=presenca:add()
+# no lugar do local-cache abaixo
+# (com o perfil standalone-full-ha.xml; ver README, "Rodar em cluster").
+# O default-cache só pode apontar para um cache que já existe
+/subsystem=infinispan/cache-container=planning:add(marshaller=PROTOSTREAM)
+/subsystem=infinispan/cache-container=planning/local-cache=presenca:add()
+/subsystem=infinispan/cache-container=planning:write-attribute(name=default-cache, value=presenca)
+
+stop-embedded-server

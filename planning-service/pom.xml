@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.planningapp</groupId>
+        <artifactId>planning-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>planning-service</artifactId>
+    <packaging>ejb</packaging>
+    <name>Planning Jakarta :: Service</name>
+    <description>Regras de negócio em EJBs (@Stateless), com transação gerenciada pelo container.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.planningapp</groupId>
+            <artifactId>planning-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.planningapp</groupId>
+            <artifactId>planning-dto</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.planningapp</groupId>
+            <artifactId>planning-persistence</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.planningapp</groupId>
+            <artifactId>planning-security</artifactId>
+        </dependency>
+        <!-- Presença distribuída (PresencaSala). O módulo do WildFly é liberado no jboss-deployment-structure.xml do EAR -->
+        <dependency>
+            <groupId>org.infinispan</groupId>
+            <artifactId>infinispan-core</artifactId>
+        </dependency>
+
+        <!-- Provedor de JSON-P nos testes (no WildFly, o Parsson vem do servidor) -->
+        <dependency>
+            <groupId>org.eclipse.parsson</groupId>
+            <artifactId>parsson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-ejb-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
