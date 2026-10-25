@@ -42,6 +42,9 @@ export class EstimationBoard implements OnInit, OnDestroy {
   todosTestadoresVotaram = false;
   private pollInterval: any = null;
   private timerInterval: any = null;
+  private redirecionamentoInterval: any = null;
+  /** Contagem regressiva até ir sozinho para /aguardando depois que a tarefa é finalizada ou pulada. */
+  segundosParaAguardando = 0;
   private wasLiberated = false;
 
   constructor(
@@ -168,13 +171,9 @@ export class EstimationBoard implements OnInit, OnDestroy {
           }
           if (this.isAdmin) this.checkTodosVotaram();
         } else if (data.acao === 'TAREFA_FINALIZADA') {
-          this.sessionEnded = 'finalizada';
-          if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
-          this.cdr.detectChanges();
+          this.encerrarSessao('finalizada');
         } else if (data.acao === 'TAREFA_PULADA') {
-          this.sessionEnded = 'pulada';
-          if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
-          this.cdr.detectChanges();
+          this.encerrarSessao('pulada');
         }
       }
     });
@@ -194,6 +193,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
     this.wsService.unsubscribe(this.topicSessoes);
     if (this.pollInterval) clearInterval(this.pollInterval);
     if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.redirecionamentoInterval) clearInterval(this.redirecionamentoInterval);
   }
 
   private carregarUsuariosOnline(): void {
@@ -217,7 +217,25 @@ export class EstimationBoard implements OnInit, OnDestroy {
   }
 
   irParaAguardando(): void {
+    if (this.redirecionamentoInterval) { clearInterval(this.redirecionamentoInterval); this.redirecionamentoInterval = null; }
     this.router.navigate(['/aguardando']);
+  }
+
+  /** Mostra o aviso de tarefa encerrada e, se o usuário não clicar em 10s, vai sozinho para /aguardando. */
+  private encerrarSessao(tipo: 'finalizada' | 'pulada'): void {
+    this.sessionEnded = tipo;
+    if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
+    if (!this.redirecionamentoInterval) {
+      this.segundosParaAguardando = 10;
+      this.redirecionamentoInterval = setInterval(() => {
+        this.segundosParaAguardando--;
+        if (this.segundosParaAguardando <= 0) {
+          this.irParaAguardando();
+        }
+        this.cdr.detectChanges();
+      }, 1000);
+    }
+    this.cdr.detectChanges();
   }
 
   private iniciarTimer(liberadaEm: string): void {
@@ -254,9 +272,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
 
     // Tarefa marcada como estimada → admin finalizou
     if (tarefa.estimada) {
-      this.sessionEnded = 'finalizada';
-      if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
-      this.cdr.detectChanges();
+      this.encerrarSessao('finalizada');
       return;
     }
 
@@ -265,9 +281,7 @@ export class EstimationBoard implements OnInit, OnDestroy {
       this.wasLiberated = true;
     } else if (this.wasLiberated && !tarefa.estimada) {
       // Estava liberada, agora não está mais e não foi estimada → admin pulou
-      this.sessionEnded = 'pulada';
-      if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
-      this.cdr.detectChanges();
+      this.encerrarSessao('pulada');
       return;
     }
 

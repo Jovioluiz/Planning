@@ -34,7 +34,7 @@
       <p>{{ sessionEnded === 'finalizada'
         ? 'Esta tarefa foi estimada e concluída pelo moderador.'
         : 'O moderador decidiu passar esta tarefa para frente sem estimar.' }}</p>
-      <button class="btn-back" (click)="irParaAguardando()">Aguardar Próxima Tarefa</button>
+      <button class="btn-back" (click)="irParaAguardando()">Aguardar Próxima Tarefa ({{ segundosParaAguardando }}s)</button>
     </div>
   </div>
 
