@@ -79,9 +79,16 @@ function Iniciar-Janela($cfg, [string] $titulo, [string] $comando, [string] $pas
     $env:JANELA_TITULO = $titulo
     $env:JANELA_COMANDO = $comando
     $env:JANELA_ERROS = Join-Path $cfg.Logs $arquivoErros
+    $env:JANELA_PARADA = Marcador-Parada $cfg $arquivoErros
     $script = Join-Path $PSScriptRoot 'janela-log.ps1'
     Start-Process (Join-Path $PSHOME 'powershell.exe') -WorkingDirectory $pasta `
         -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$script`"" | Out-Null
+}
+
+# Arquivo que o parar.ps1 cria antes de desligar um servidor. A janela-log.ps1 o procura quando o servidor termina:
+# se não existe, a parada foi inesperada (ex.: o boot do WildFly falhou) e a janela fica aberta para ler o erro.
+function Marcador-Parada($cfg, [string] $arquivoErros) {
+    return Join-Path $cfg.Logs ($arquivoErros -replace '^erros-', 'parada-' -replace '\.log$', '.marcador')
 }
 
 # Fecha a janela de um servidor: os ancestrais cmd/powershell do processo, até a janela-log.ps1

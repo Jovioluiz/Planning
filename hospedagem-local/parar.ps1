@@ -20,6 +20,8 @@ if ($front -and $front.ProcessName -eq 'node') {
 if ($SoFront) { return }
 
 if (Porta-Ocupada $cfg.PortaGerencia) {
+    # Avisa a janela do WildFly que a parada é pedida: sem isso, ela fica aberta esperando o Enter
+    New-Item -ItemType File -Force -Path (Marcador-Parada $cfg 'erros-backend.log') | Out-Null
     & (Join-Path $cfg.WildFly 'bin\jboss-cli.bat') --connect "--controller=127.0.0.1:$($cfg.PortaGerencia)" `
         --command=:shutdown | Out-Null
     $limite = (Get-Date).AddSeconds(60)

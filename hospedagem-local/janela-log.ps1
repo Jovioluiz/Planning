@@ -9,7 +9,10 @@
 $Titulo = $env:JANELA_TITULO
 $Comando = $env:JANELA_COMANDO
 $ArquivoErros = $env:JANELA_ERROS
+$MarcadorParada = $env:JANELA_PARADA
 $Host.UI.RawUI.WindowTitle = $Titulo
+# Marcador de uma parada anterior que sobrou: só vale o que o parar.ps1 criar a partir de agora
+if ($MarcadorParada) { Remove-Item $MarcadorParada -Force -ErrorAction SilentlyContinue }
 # O java (-Dstdout.encoding=UTF-8) e o node escrevem em UTF-8
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 
@@ -80,8 +83,16 @@ function Gravar-Bloco {
 Gravar-Bloco
 
 $codigo = $LASTEXITCODE
-if ($codigo -ne 0) {
+# Parada pedida pelo parar.ps1: fecha sozinha. Qualquer outra (inclusive com código 0: o standalone.bat devolve 0
+# quando o boot do WildFly falha e ele encerra) fica aberta para dar tempo de ler o erro.
+$paradaPedida = $MarcadorParada -and (Test-Path $MarcadorParada)
+if ($paradaPedida) { Remove-Item $MarcadorParada -Force -ErrorAction SilentlyContinue }
+if ($codigo -ne 0 -or -not $paradaPedida) {
     Write-Host ''
-    Write-Host "$Titulo terminou com erro (código $codigo). Para copiar os erros: .\erros.ps1" -ForegroundColor Red
+    $motivo = if ($codigo -ne 0) { "terminou com erro (código $codigo)" } else { 'parou sem o parar.ps1 (provavelmente um erro na inicialização)' }
+    Write-Host "$Titulo $motivo. Veja as linhas em vermelho acima; para copiar os erros: .\erros.ps1" -ForegroundColor Red
+    if ($Titulo -like '*WildFly*') {
+        Write-Host 'Log completo: wildfly-*\standalone\log\server.log' -ForegroundColor DarkGray
+    }
     Read-Host 'Enter para fechar'
 }
