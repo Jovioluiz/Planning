@@ -4,6 +4,7 @@ import com.planningapp.dto.RegistrarUsuarioRequest;
 import com.planningapp.dto.UsuarioGestaoDTO;
 import com.planningapp.model.Perfil;
 import com.planningapp.model.Usuario;
+import com.planningapp.persistence.ConfiguracaoRedmineRepository;
 import com.planningapp.persistence.EstimativaRepository;
 import com.planningapp.persistence.MembroSalaRepository;
 import com.planningapp.persistence.ParticipanteRepository;
@@ -46,6 +47,9 @@ public class UsuarioService {
 
     @Inject
     private ParticipanteRepository participanteRepository;
+
+    @Inject
+    private ConfiguracaoRedmineRepository configuracaoRedmineRepository;
 
     @Inject
     private Pbkdf2PasswordHash passwordHash;
@@ -109,6 +113,7 @@ public class UsuarioService {
         }
         participanteRepository.removerDoUsuario(usuario.getId());
         membroSalaRepository.removerDoUsuario(usuario.getId());
+        configuracaoRedmineRepository.removerDoUsuario(usuario.getId());
         usuarioRepository.remover(usuario);
     }
 

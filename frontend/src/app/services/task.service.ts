@@ -104,6 +104,14 @@ export class TaskService {
     );
   }
 
+  /** Chamados da consulta do Redmine configurada em /redmine (o backend busca com a chave de lá). */
+  importarRedmine(): Observable<any> {
+    if (!this.salaId) return this.semSala();
+    return this.http.post<any>(this.tarefas('/importar-redmine'), {}, this.authOptions).pipe(
+      map(res => ({ ...res, message: res?.mensagem }))
+    );
+  }
+
   liberarTarefaSala(id: string): Observable<any> {
     return this.http.post(this.tarefas(`/${id}/liberar`), {}, this.authOptions);
   }

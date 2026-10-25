@@ -9,6 +9,7 @@ import { TaskService, ITask, ValoresFinais } from '../services/task.service';
 import { EstimationService } from '../services/estimation.service';
 import { WebSocketService } from '../websocket/websocket.service';
 import { SalaService } from '../services/sala.service';
+import { mensagemDeErro } from '../services/api-jakarta';
 
 @Component({
   selector: 'app-importar-tarefas',
@@ -41,6 +42,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   temaEscuro = localStorage.getItem('tema') === 'escuro';
   horasFinaisPorTarefa = new Map<number, number>();
   linkCopiado = false;
+  importandoRedmine = false;
 
   finalizando = false;
 
@@ -862,6 +864,31 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   irParaEstatisticas(): void {
     const salaId = this.salaService.getSalaId();
     this.router.navigate(['/estatisticas'], salaId ? { queryParams: { salaId } } : {});
+  }
+
+  irParaRedmine(): void {
+    this.router.navigate(['/redmine']);
+  }
+
+  /** Importa os chamados da consulta configurada em /redmine; o backend busca com o acesso de lá. */
+  importarDoRedmine(): void {
+    if (this.importandoRedmine) return;
+    this.importandoRedmine = true;
+    this.cdr.detectChanges();
+    this.taskService.importarRedmine().subscribe({
+      next: (res: any) => {
+        this.exibirMensagem(res?.message ?? 'Chamados importados.', 'sucesso');
+        this.tarefaSelecionadaId = null;
+        this.importandoRedmine = false;
+        this.carregarListas();
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        this.exibirMensagem(mensagemDeErro(err?.error) ?? `Erro ${err?.status ?? ''}: falha ao importar do Redmine.`, 'erro');
+        this.importandoRedmine = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   logout(): void {

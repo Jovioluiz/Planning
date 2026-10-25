@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Acesso ao Redmine de cada moderador (URL, projeto e chave da API), para importar chamados de uma consulta.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="005-configuracoes-redmine" author="planning-jakarta">
+        <createTable tableName="configuracoes_redmine">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_configuracoes_redmine"/>
+            </column>
+            <column name="id_usuario" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_configuracao_redmine_usuario"
+                             foreignKeyName="fk_configuracoes_redmine_usuario" references="usuarios(id)"/>
+            </column>
+            <column name="url" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="projeto" type="VARCHAR(100)"/>
+            <column name="chave_api" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="atualizada_em" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

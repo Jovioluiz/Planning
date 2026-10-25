@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    configuracoes_redmine.url passou a guardar o link da consulta (com os filtros), não só o endereço do Redmine:
+    links com muitos filtros passam de 500 caracteres.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="006-url-da-consulta-redmine" author="planning-jakarta">
+        <modifyDataType tableName="configuracoes_redmine" columnName="url" newDataType="VARCHAR(4000)"/>
+    </changeSet>
+</databaseChangeLog>

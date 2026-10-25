@@ -1,0 +1,80 @@
+<div class="rm-page" [class.tema-escuro]="temaEscuro">
+
+  <header class="rm-header">
+    <div class="header-brand">
+      <button class="btn-voltar" (click)="voltar()" title="Voltar">←</button>
+      <span class="brand-icon">🦶</span>
+      <span class="brand-name">Chutômetro</span>
+    </div>
+    <div class="header-user">
+      <span class="user-name">{{ auth.getUsuario() }}</span>
+      <button class="btn-logout" (click)="logout()">Sair</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <span class="hero-circle hero-circle-lg"></span>
+    <span class="hero-circle hero-circle-sm"></span>
+    <div class="hero-content">
+      <span class="hero-eyebrow">Integração</span>
+      <h1 class="page-title">Redmine</h1>
+      <p class="hero-sub">A consulta do Redmine cujos chamados vão para a fila de estimativas, e o acesso para buscá-los.</p>
+    </div>
+  </section>
+
+  <main class="rm-content">
+    <div class="card">
+      <h2 class="card-titulo">Acesso</h2>
+
+      <p *ngIf="carregando" class="rm-carregando">Carregando...</p>
+
+      <form *ngIf="!carregando" class="rm-form" (ngSubmit)="salvar()">
+        <label class="campo">
+          <span class="campo-rotulo">Link da consulta</span>
+          <input class="campo-input" name="url" [(ngModel)]="url"
+                 placeholder="https://redmine.empresa.com.br/projects/erp/issues?query_id=123"
+                 autocomplete="url" [disabled]="salvando" />
+          <span class="campo-ajuda">
+            Abra no Redmine a lista com os chamados a estimar (uma consulta salva ou os filtros aplicados) e copie o
+            link do navegador. O botão "Importar do Redmine" da sala traz os chamados dessa lista.
+          </span>
+        </label>
+
+        <label class="campo">
+          <span class="campo-rotulo">Projeto <em>(opcional)</em></span>
+          <input class="campo-input" name="projeto" [(ngModel)]="projeto" placeholder="erp" [disabled]="salvando" />
+          <span class="campo-ajuda">
+            Identificador que aparece em <code>/projects/<b>erp</b></code>. Só é usado quando o link da consulta não é de um projeto.
+          </span>
+        </label>
+
+        <label class="campo">
+          <span class="campo-rotulo">Chave da API</span>
+          <input class="campo-input" name="chaveApi" type="password" [(ngModel)]="chaveApi" autocomplete="off"
+                 [placeholder]="configuracao?.configurada ? 'Gravada: ••••' + configuracao?.finalChave + ' (em branco mantém)' : 'Cole a chave aqui'"
+                 [disabled]="salvando" />
+          <span class="campo-ajuda">
+            No Redmine: <b>Minha conta</b> → <b>Chave de acesso à API</b> → <b>Mostrar</b>.
+            A chave fica só no servidor e não é exibida de novo.
+          </span>
+        </label>
+
+        <div *ngIf="mensagem" class="rm-mensagem" [class.sucesso]="mensagemTipo === 'sucesso'"
+             [class.erro]="mensagemTipo === 'erro'">
+          {{ mensagem }}
+        </div>
+
+        <div class="rm-acoes">
+          <button type="submit" class="btn-salvar" [disabled]="salvando || testando">
+            {{ salvando ? 'Salvando...' : 'Salvar' }}
+          </button>
+          <button type="button" class="btn-testar" (click)="testar()"
+                  [disabled]="!configuracao?.configurada || salvando || testando"
+                  [title]="configuracao?.configurada ? 'Conferir a chave e o projeto no Redmine' : 'Salve a configuração primeiro'">
+            {{ testando ? 'Testando...' : 'Testar conexão' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>

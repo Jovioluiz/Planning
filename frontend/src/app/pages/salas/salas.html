@@ -9,6 +9,7 @@
     <div class="header-user">
       <span class="user-name">{{ auth.getUsuario() }}</span>
       <button class="btn-header" (click)="irParaEstatisticas()">📊 Estatísticas</button>
+      <button class="btn-header" (click)="irParaRedmine()" title="Acesso ao Redmine para importar chamados">⚙ Redmine</button>
       <button class="btn-header btn-logout" (click)="logout()">Sair</button>
     </div>
   </header>

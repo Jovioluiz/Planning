@@ -264,6 +264,9 @@ Testado com dois WildFly na mesma máquina; um voto feito pelo nó A chegou aos 
 | GET | `/api/salas/{salaId}/tarefas` | logado | Lista tarefas da sala |
 | POST | `/api/salas/{salaId}/tarefas` | moderador | Cria tarefa `{ "numero", "titulo", "descricao", "sprint" }` |
 | POST | `/api/salas/{salaId}/tarefas/importar` | moderador | Importa várias: lista JSON ou CSV (`Content-Type: text/csv`) |
+| POST | `/api/salas/{salaId}/tarefas/importar-redmine` | moderador | Importa os chamados da consulta do Redmine configurada (sem corpo) |
+| GET / PUT | `/api/redmine/configuracao` | ADMIN | Consulta e acesso ao Redmine de quem está logado `{ "url": "<link da consulta>", "projeto", "chaveApi" }` (a chave nunca volta) |
+| POST | `/api/redmine/configuracao/testar` | ADMIN | Confere a chave, o projeto e quantos chamados a consulta traz |
 | POST | `/api/salas/{salaId}/tarefas/{id}/liberar` | moderador | Libera para votação (uma por vez por sala); aceita tarefas na fila ou puladas |
 | POST | `/api/salas/{salaId}/tarefas/{id}/pular` | moderador | Encerra sem estimativa (`PULADA`), da fila ou em votação |
 | POST | `/api/salas/{salaId}/tarefas/{id}/finalizar` | moderador | Finaliza `{ "pontosFinais": 5, "horasFinais": 6, "horasTesteFinais": 4 }` (horas opcionais) |
@@ -408,6 +411,27 @@ PP-2;Relatório de vendas;"Filtros: data; vendedor";S1
   em `ignoradas`. Resposta: `{ mensagem, importadas: [TarefaDTO], ignoradas: ["PP-1"] }`.
 - As tarefas entram na fila e os JOGADORes que já entraram na sala viram participantes, como no original.
 - A sala recebe **um** `TAREFAS_IMPORTADAS`, e não um evento por tarefa.
+
+### Importar do Redmine
+
+Cada ADMIN configura na tela `/redmine` (botão "⚙ Redmine" em Minhas salas, ou o link no card de importação) o
+link da consulta com os chamados a estimar, o projeto (opcional) e a chave da API (*Minha conta → Chave de acesso à
+API*). Na tela da sala, o botão "Importar do Redmine" traz os chamados dessa consulta.
+
+- **O link:** o da lista de chamados como aparece no navegador, `https://redmine/projects/{projeto}/issues?...` ou
+  `https://redmine/issues?...`, com os filtros ou o `query_id` de uma consulta salva (o link do `.csv` também vale).
+  É conferido ao salvar. O endereço do Redmine é o que vem antes de `/projects` ou `/issues`. O `ConsultaRedmine`
+  troca por `/issues.json`, tira a paginação do link (`page`, `per_page`...) e busca de 100 em 100. No link sem
+  projeto, o projeto configurado entra como `project_id`.
+- **Mapeamento:** número = id do chamado, título = assunto, descrição = descrição, sprint = versão (cortada em 50
+  caracteres). As colunas da fila (`dadosExtras`) usam os nomes da exportação CSV do Redmine: Título, Tipo, Situação,
+  Prioridade, Atribuído para, Versão e Tempo estimado.
+- **Regras:** as mesmas da importação por arquivo (tudo ou nada, duplicadas ignoradas, máximo de 500). Consulta com
+  mais de 500 chamados → 422 antes de buscar o resto.
+- **Chave:** gravada no banco (`configuracoes_redmine`, uma por usuário) e nunca devolvida ao cliente, só os 4
+  últimos caracteres. Em branco ao salvar, mantém a atual. O Redmine aplica as permissões de quem gerou a chave.
+- "Testar conexão" mostra o dono da chave, o projeto e quantos chamados a consulta traz hoje.
+- Erros do Redmine viram 422 com o motivo (chave recusada, sem permissão, link não encontrado, servidor fora do ar).
 
 ## Estatísticas
 

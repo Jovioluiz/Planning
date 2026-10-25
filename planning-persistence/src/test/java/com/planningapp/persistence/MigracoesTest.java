@@ -40,6 +40,8 @@ class MigracoesTest {
     private static final List<String> COLUNAS_POSTERIORES_AO_LIQUIBASE = List.of(
             "tarefas.dados_extras", "tarefas.horas_liberadas_em");
 
+    private static final List<String> TABELAS_POSTERIORES_AO_LIQUIBASE = List.of("configuracoes_redmine");
+
     @Test
     void changelogCriaOSchemaQueAsEntidadesEsperam() throws Exception {
         String url = novoBanco();
@@ -90,6 +92,9 @@ class MigracoesTest {
             try (Statement sql = conexao.createStatement()) {
                 for (String coluna : COLUNAS_POSTERIORES_AO_LIQUIBASE) {
                     sql.execute("ALTER TABLE " + coluna.replace(".", " DROP COLUMN "));
+                }
+                for (String tabela : TABELAS_POSTERIORES_AO_LIQUIBASE) {
+                    sql.execute("DROP TABLE " + tabela);
                 }
             }
             Migracoes.aplicar(conexao, CLASSLOADER);

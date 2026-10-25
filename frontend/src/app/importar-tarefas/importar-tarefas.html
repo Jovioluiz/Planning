@@ -83,6 +83,16 @@
             <input type="file" (change)="onFileSelected($event)" accept=".csv" [disabled]="importando" hidden />
           </label>
           <p class="file-hint">Colunas obrigatórias: <code>numero</code>, <code>titulo</code></p>
+
+          <div class="redmine-import">
+            <span class="redmine-separador">ou do Redmine</span>
+            <button type="button" class="btn btn-primary" (click)="importarDoRedmine()"
+                    [disabled]="importandoRedmine || importando">
+              <span *ngIf="!importandoRedmine">⬇ Importar do Redmine</span>
+              <span *ngIf="importandoRedmine" class="importing-row"><span class="spinner-sm"></span> Buscando chamados...</span>
+            </button>
+            <button type="button" class="redmine-config" (click)="irParaRedmine()">⚙ Configurar consulta do Redmine</button>
+          </div>
         </div>
       </div>
 

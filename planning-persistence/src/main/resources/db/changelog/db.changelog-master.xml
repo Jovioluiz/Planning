@@ -28,4 +28,6 @@
     <include file="changes/002-remover-checks-do-hibernate.xml" relativeToChangelogFile="true"/>
     <include file="changes/003-checks-dos-enums.xml" relativeToChangelogFile="true"/>
     <include file="changes/004-dados-extras-e-horas-liberadas-em.xml" relativeToChangelogFile="true"/>
+    <include file="changes/005-configuracoes-redmine.xml" relativeToChangelogFile="true"/>
+    <include file="changes/006-url-da-consulta-redmine.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

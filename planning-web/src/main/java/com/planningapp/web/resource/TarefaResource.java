@@ -59,6 +59,13 @@ public class TarefaResource {
         return tarefaService.importarCsv(salaId, csv);
     }
 
+    /** Os chamados da consulta do Redmine configurada pelo moderador ({@code /redmine/configuracao}). Sem corpo. */
+    @POST
+    @Path("/importar-redmine")
+    public ResultadoImportacaoDTO importarRedmine(@PathParam("salaId") Long salaId) {
+        return tarefaService.importarRedmine(salaId);
+    }
+
     @GET
     @Path("/{id}")
     public TarefaDTO buscar(@PathParam("salaId") Long salaId, @PathParam("id") Long id) {

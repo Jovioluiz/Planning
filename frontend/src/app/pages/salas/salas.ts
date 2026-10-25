@@ -89,6 +89,10 @@ export class Salas implements OnInit {
     this.router.navigate(['/estatisticas']);
   }
 
+  irParaRedmine(): void {
+    this.router.navigate(['/redmine']);
+  }
+
   logout(): void {
     this.auth.logout();
     this.router.navigate(['/login']);

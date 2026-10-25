@@ -1,0 +1,142 @@
+@use '../../../styles/np' as np;
+
+*, *::before, *::after { box-sizing: border-box; }
+
+.rm-page {
+  min-height: 100vh;
+  background: var(--bg);
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+/* ─── Header ─────────────────────────────────────────────── */
+.rm-header { @include np.header; }
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon { @include np.brand-icon; }
+.brand-name { @include np.brand-name; }
+
+.btn-voltar {
+  @include np.header-btn;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: 15px;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-name {
+  font-size: 13px;
+  color: rgba(255,255,255,.85);
+  font-weight: 500;
+}
+
+.btn-logout { @include np.header-btn-accent; }
+
+/* ─── Hero ───────────────────────────────────────────────── */
+.hero { @include np.hero(110px); }
+.page-title { @include np.hero-title; }
+
+/* ─── Conteúdo ───────────────────────────────────────────── */
+.rm-content {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: -64px auto 0;
+  padding: 0 16px 56px;
+}
+
+.card {
+  @include np.card;
+  padding: 22px 24px;
+}
+
+.card-titulo {
+  @include np.card-title;
+  margin-bottom: 20px;
+}
+
+.rm-carregando {
+  color: var(--muted);
+  margin: 0;
+}
+
+.rm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo-rotulo {
+  @include np.eyebrow;
+
+  em {
+    font-style: normal;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+}
+
+.campo-input {
+  @include np.input;
+  width: 100%;
+}
+
+.campo-ajuda {
+  font-size: 12px;
+  color: var(--muted);
+  padding-left: 18px;
+  line-height: 1.5;
+
+  code {
+    font-size: 12px;
+    background: var(--surface-2);
+    padding: 1px 6px;
+    border-radius: 6px;
+  }
+}
+
+.rm-mensagem {
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+
+  &.sucesso {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    color: var(--accent-ink);
+  }
+
+  &.erro {
+    background: var(--danger-soft);
+    border-left: 3px solid var(--danger);
+    color: var(--danger);
+  }
+}
+
+.rm-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.btn-salvar { @include np.btn-accent; }
+.btn-testar { @include np.btn-outline; }

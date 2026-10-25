@@ -33,6 +33,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'redmine',
+    loadComponent: () => import('./pages/configurar-redmine/configurar-redmine').then(m => m.ConfigurarRedmine),
+    canActivate: [authGuard]
+  },
+  {
     path: 'aguardando',
     component: Aguardando,
     canActivate: [authGuard]

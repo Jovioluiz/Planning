@@ -58,6 +58,9 @@ public class TarefaService {
     @Inject
     private ParticipanteRepository participanteRepository;
 
+    @Inject
+    private RedmineService redmineService;
+
     @Resource
     private SessionContext sessionContext;
 
@@ -103,6 +106,12 @@ public class TarefaService {
     @RolesAllowed(Papeis.ADMIN)
     public ResultadoImportacaoDTO importarCsv(Long salaId, String csv) {
         return importar(salaId, () -> ImportacaoTarefas.deCsv(csv));
+    }
+
+    /** Os chamados da consulta do Redmine configurada pelo moderador ({@link RedmineService}). */
+    @RolesAllowed(Papeis.ADMIN)
+    public ResultadoImportacaoDTO importarRedmine(Long salaId) {
+        return importar(salaId, () -> ImportacaoTarefas.deJson(redmineService.buscarChamados()));
     }
 
     /**
