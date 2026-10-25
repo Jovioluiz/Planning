@@ -11,6 +11,12 @@ import { WebSocketService } from '../websocket/websocket.service';
 import { SalaService } from '../services/sala.service';
 import { mensagemDeErro } from '../services/api-jakarta';
 
+/** Colunas extras que repetem campos da tarefa (o CSV guarda "titulo"; o Redmine, "Título"). */
+const COLUNAS_PROPRIAS = new Set(['titulo', 'descricao']);
+
+const normalizarColuna = (coluna: string) =>
+  coluna.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
 @Component({
   selector: 'app-importar-tarefas',
   standalone: true,
@@ -328,10 +334,19 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     }, 5000);
   }
 
+  /**
+   * Colunas extras de todas as tarefas, na ordem em que aparecem: a sala pode misturar tarefas de CSVs com
+   * cabeçalhos diferentes e do Redmine. Título e descrição ficam de fora: o título tem coluna própria (do campo
+   * da tarefa) e a descrição só aparece na votação.
+   */
   get colunasExtras(): string[] {
-    const primeira = [...this.tarefasFila, ...this.tarefasEstimadas]
-      .find(t => t.dadosExtras && Object.keys(t.dadosExtras).length > 0);
-    return primeira?.dadosExtras ? Object.keys(primeira.dadosExtras) : [];
+    const colunas = new Set<string>();
+    for (const t of [...this.tarefasFila, ...this.tarefasEstimadas]) {
+      Object.keys(t.dadosExtras ?? {})
+        .filter(c => !COLUNAS_PROPRIAS.has(normalizarColuna(c)))
+        .forEach(c => colunas.add(c));
+    }
+    return [...colunas];
   }
 
   onFileSelected(event: Event): void {

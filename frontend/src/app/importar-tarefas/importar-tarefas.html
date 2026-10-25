@@ -116,7 +116,6 @@
             <div class="voting-left">
               <div class="voting-task">
                 <h3 class="voting-title">{{ tarefaEmVotacao.titulo }}</h3>
-                <p class="voting-desc">{{ tarefaEmVotacao.descricao }}</p>
               </div>
 
               <div class="reveal-actions">
@@ -371,6 +370,7 @@
                 <tr>
                   <th class="col-check"></th>
                   <th>Número</th>
+                  <th>Título</th>
                   <th *ngFor="let col of colunasExtras">{{ col }}</th>
                 </tr>
               </thead>
@@ -385,6 +385,7 @@
                       (click)="$event.stopPropagation()" />
                   </td>
                   <td><span class="badge-num">#{{ t.numero }}</span></td>
+                  <td>{{ t.titulo }}</td>
                   <td *ngFor="let col of colunasExtras">{{ t.dadosExtras?.[col] ?? '—' }}</td>
                 </tr>
               </tbody>
@@ -427,6 +428,7 @@
             <thead>
               <tr>
                 <th>Número</th>
+                <th>Título</th>
                 <th *ngFor="let col of colunasExtras">{{ col }}</th>
                 <th class="col-horas-est">Pontos</th>
                 <th class="col-horas-est">Horas</th>
@@ -439,6 +441,7 @@
                   <span class="badge-num">#{{ tarefa.numero }}</span>
                   <span *ngIf="tarefa.pulada" class="badge-pulada">Sem estimativa</span>
                 </td>
+                <td>{{ tarefa.titulo }}</td>
                 <td *ngFor="let col of colunasExtras">{{ tarefa.dadosExtras?.[col] ?? '—' }}</td>
                 <td class="col-horas-est td-horas-est">
                   <span *ngIf="!tarefa.pulada && tarefa.pontosFinais !== null && tarefa.pontosFinais !== undefined">{{ tarefa.pontosFinais }}</span>
