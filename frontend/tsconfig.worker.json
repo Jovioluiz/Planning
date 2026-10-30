@@ -1,0 +1,16 @@
+/* Web workers (src/**/*.worker.ts): sem o DOM, com as APIs de worker. */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/worker",
+    "lib": [
+      "es2022",
+      "webworker"
+    ],
+    "types": []
+  },
+  "include": [
+    "src/**/*.worker.ts",
+    "src/textile-js.d.ts"
+  ]
+}

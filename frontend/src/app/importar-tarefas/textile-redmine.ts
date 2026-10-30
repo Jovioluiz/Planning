@@ -1,14 +1,40 @@
+/** Acima disso a conversão é abandonada e o painel mostra o texto puro. */
+const LIMITE_CONVERSAO_MS = 3000;
+
 /**
  * Descrição dos chamados do Redmine, que vem em Textile (h2., *negrito*, # listas, |tabelas|), em HTML para o
  * painel de detalhe. Quem mostra usa [innerHTML], que o Angular sanitiza (scripts e eventos não passam).
- * A biblioteca é carregada sob demanda: só o painel de uma tarefa do Redmine a usa.
+ * Rejeita quando não converte a tempo: quem chama mostra o texto puro.
  *
  * @param carregarAnexo endereço (blob:) da imagem anexada ao chamado com esse nome; nulo se não deu para baixar
  */
 export async function textileParaHtml(texto: string,
                                       carregarAnexo: (nome: string) => Promise<string | null>): Promise<string> {
-  const textile = (await import('textile-js')).default;
-  return ajustarLinksEImagens(textile.convert(semMacros(texto)), carregarAnexo);
+  // O Redmine grava as quebras de linha como \r\n, e com elas o textile-js entra em loop
+  const html = await converter(semMacros(texto.replace(/\r\n?/g, '\n')));
+  return ajustarLinksEImagens(html, carregarAnexo);
+}
+
+/**
+ * Num worker, com tempo limite: se o textile-js travar com algum texto, só o worker trava (e é encerrado). Na
+ * thread da tela, a aba congelava e o WebSocket do moderador caía por falta de resposta.
+ */
+function converter(texto: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (typeof Worker === 'undefined') {
+      reject(new Error('Sem suporte a Web Worker'));
+      return;
+    }
+    const worker = new Worker(new URL('./textile.worker', import.meta.url), { type: 'module' });
+    const encerrar = () => { clearTimeout(limite); worker.terminate(); };
+    const limite = setTimeout(() => {
+      worker.terminate();
+      reject(new Error(`A conversão do Textile passou de ${LIMITE_CONVERSAO_MS} ms`));
+    }, LIMITE_CONVERSAO_MS);
+    worker.onmessage = ({ data }: MessageEvent<string>) => { encerrar(); resolve(data); };
+    worker.onerror = (erro) => { encerrar(); reject(erro); };
+    worker.postMessage(texto);
+  });
 }
 
 /** {{collapse(Título) ... }} vira o título em negrito seguido do conteúdo; {{toc}} e as demais macros somem. */
