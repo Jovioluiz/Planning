@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { API, TarefaDTO, paraITask } from './api-jakarta';
+import { API, EnvioRedmineDTO, TarefaDTO, paraITask } from './api-jakarta';
 
 /** Formato que os componentes usam (o do backend antigo); vem de {@link paraITask}. */
 export interface ITask {
@@ -26,6 +26,7 @@ export interface ITask {
   horasFinais?: number | null;
   horasTesteFinais?: number | null;
   dadosExtras?: Record<string, any>;
+  doRedmine?: boolean;
 }
 
 /** Valores escolhidos pelo moderador ao finalizar a tarefa. */
@@ -125,6 +126,22 @@ export class TaskService {
       horasTesteFinais: inteiro(valores?.horasTesteFinais)
     };
     return this.http.post(this.tarefas(`/${id}/finalizar`), corpo, this.authOptions);
+  }
+
+  /** Grava a estimativa final no chamado do Redmine; só para tarefas com doRedmine. */
+  enviarRedmineSala(id: string): Observable<EnvioRedmineDTO> {
+    return this.http.post<EnvioRedmineDTO>(this.tarefas(`/${id}/enviar-redmine`), {}, this.authOptions);
+  }
+
+  /** Relê o chamado no Redmine e grava na tarefa o título, a descrição e os campos como estão agora. */
+  atualizarRedmineSala(id: string): Observable<ITask> {
+    return this.http.post<TarefaDTO>(this.tarefas(`/${id}/atualizar-redmine`), {}, this.authOptions).pipe(map(paraITask));
+  }
+
+  /** Imagem anexada ao chamado, pelo nome do arquivo; o backend baixa do Redmine com a chave do moderador. */
+  anexoRedmineSala(id: string, nome: string): Observable<Blob> {
+    return this.http.get(this.tarefas(`/${id}/anexos-redmine/${encodeURIComponent(nome)}`),
+      { ...this.authOptions, responseType: 'blob' });
   }
 
   pularTarefaSala(id: string): Observable<any> {

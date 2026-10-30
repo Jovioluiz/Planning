@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Ao enviar a estimativa ao Redmine, o chamado muda de situação (ex.: "Produto Backlog" → "Aguardando
+    Desenvolvimento"). Pelo nome, como aparece no Redmine: o id é procurado em /issue_statuses.json.
+    - situacao_origem: só muda se o chamado estiver nela (vazio: em qualquer uma), para não fazer voltar um chamado
+      que já andou no fluxo.
+    - situacao_destino: para onde vai; vazio: não muda a situação.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="010-situacao-apos-estimar" author="planning-jakarta">
+        <addColumn tableName="configuracoes_redmine">
+            <column name="situacao_origem" type="VARCHAR(100)"/>
+            <column name="situacao_destino" type="VARCHAR(100)"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

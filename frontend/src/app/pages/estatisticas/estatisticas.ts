@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Inject, Input, OnInit, Output, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -34,6 +34,14 @@ interface Barra {
   styleUrls: ['./estatisticas.scss']
 })
 export class Estatisticas implements OnInit {
+  /**
+   * Aberta num painel da tela da sala, sem cabeçalho nem hero: sair da sala fecha o WebSocket do moderador e o
+   * backend inativa a sala em poucos segundos. A sala vem por aqui, e não pela query string.
+   */
+  @Input() embutido = false;
+  @Input() salaId: number | null = null;
+  @Output() fechar = new EventEmitter<void>();
+
   dados: EstatisticasData | null = null;
   carregando = true;
   erro = '';
@@ -65,7 +73,7 @@ export class Estatisticas implements OnInit {
       this.router.navigate(['/login']);
       return;
     }
-    const salaId = Number(this.route.snapshot.queryParamMap.get('salaId'));
+    const salaId = this.embutido ? Number(this.salaId) : Number(this.route.snapshot.queryParamMap.get('salaId'));
     if (Number.isFinite(salaId) && salaId > 0) this.filtro.salaId = salaId;
     this.carregar();
   }
@@ -188,6 +196,10 @@ export class Estatisticas implements OnInit {
   }
 
   voltar(): void {
+    if (this.embutido) {
+      this.fechar.emit();
+      return;
+    }
     // Aberta a partir da tela de uma sala (importar) → volta para ela
     if (this.route.snapshot.queryParamMap.has('salaId') && this.auth.isAdmin()) {
       this.router.navigate(['/importar']);

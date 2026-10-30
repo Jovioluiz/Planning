@@ -61,6 +61,16 @@
   padding: 22px 24px;
 }
 
+/* Embutido no painel da sala: herda fundo e tema de quem o abriu */
+.rm-embutido {
+  min-height: 0;
+  background: transparent;
+
+  .rm-content { max-width: none; margin: 0; padding: 0; }
+  .card { box-shadow: none; padding: 0; background: transparent; }
+  .card-titulo { display: none; }
+}
+
 .card-titulo {
   @include np.card-title;
   margin-bottom: 20px;

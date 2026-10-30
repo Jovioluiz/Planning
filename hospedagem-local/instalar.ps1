@@ -10,11 +10,15 @@
 # --- 1. Configuração --------------------------------------------------------------------------------------------
 $config = Arquivo-Config
 if (-not (Test-Path $config)) {
-    Etapa 'Criando config.ps1 a partir do config.exemplo.ps1 (com um JWT_SECRET aleatório)'
+    Etapa 'Criando config.ps1 a partir do config.exemplo.ps1 (com JWT_SECRET e REDMINE_SEGREDO aleatórios)'
+    $gerador = [Security.Cryptography.RandomNumberGenerator]::Create()
     $bytes = New-Object byte[] 48
-    [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    $gerador.GetBytes($bytes)
     $segredo = [Convert]::ToBase64String($bytes)
+    $gerador.GetBytes($bytes)
+    $segredoRedmine = [Convert]::ToBase64String($bytes)
     $texto = (Get-Content (Join-Path $PSScriptRoot 'config.exemplo.ps1') -Raw -Encoding UTF8) `
+        -replace '__GERADO_NO_INSTALAR_REDMINE__', $segredoRedmine `
         -replace '__GERADO_NO_INSTALAR__', $segredo
     [IO.File]::WriteAllText($config, $texto, (New-Object Text.UTF8Encoding $true))
     Write-Host "Criado: $config"

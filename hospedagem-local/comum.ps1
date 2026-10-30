@@ -61,6 +61,8 @@ function Definir-Ambiente($cfg) {
     $env:ALLOWED_ORIGINS          = $cfg.AllowedOrigins
     $env:JWT_SECRET               = $cfg.JwtSegredo
     $env:JWT_VALIDADE_MINUTOS     = "$($cfg.JwtValidadeMin)"
+    # Sem RedmineSegredo (config.ps1 anterior a ele) a aplicação cifra com o JWT_SECRET
+    if ($cfg.RedmineSegredo) { $env:REDMINE_SEGREDO = $cfg.RedmineSegredo }
     $env:SUPER_USUARIO            = $cfg.SuperUsuario
     $env:SUPER_SENHA              = $cfg.SuperSenha
     $env:SALA_INATIVACAO_SEGUNDOS = "$($cfg.SalaInativacaoSeg)"

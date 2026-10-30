@@ -33,6 +33,8 @@ services:
       ALLOWED_ORIGINS: http://localhost:4200,http://192.168.0.103:4200,http://100.99.136.57:4200,https://chutometro.dev.br,https://planning-poker-front.onrender.com
       JWT_SECRET: planning-jakarta-local-secret-troque-em-producao
       JWT_VALIDADE_MINUTOS: 480
+      # Cifra a chave da API do Redmine no banco (sem ela, usa o JWT_SECRET)
+      REDMINE_SEGREDO: planning-jakarta-local-redmine-troque-em-producao
       # Cria o SUPER no primeiro deploy (se não houver nenhum). Use uma senha sua: SUPER_SENHA=... docker compose up
       SUPER_USUARIO: super
       SUPER_SENHA: ${SUPER_SENHA:-}

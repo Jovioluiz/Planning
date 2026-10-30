@@ -28,6 +28,15 @@ export interface TarefaDTO {
   encerradaEm: string | null;
   horasLiberadasEm: string | null;
   dadosExtras: Record<string, string> | null;
+  /** Importada do Redmine: ao finalizar, a estimativa é enviada ao chamado. */
+  doRedmine: boolean;
+}
+
+/** Resultado do POST .../tarefas/{id}/enviar-redmine (conferido relendo o chamado). */
+export interface EnvioRedmineDTO {
+  chamado: string;
+  gravados: string[];
+  avisos: string[];
 }
 
 export interface VotoDTO {
@@ -105,7 +114,8 @@ export function paraITask(t: TarefaDTO): any {
     horasTesteFinais: t.horasTesteFinais ?? null,
     liberadaEm: t.liberadaEm ?? null,
     estimadaEm: t.encerradaEm ?? null,
-    dadosExtras: t.dadosExtras ?? undefined
+    dadosExtras: t.dadosExtras ?? undefined,
+    doRedmine: t.doRedmine ?? false
   };
 }
 

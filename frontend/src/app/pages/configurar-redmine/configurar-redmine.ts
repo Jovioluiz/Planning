@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit, PLATFORM_ID, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, PLATFORM_ID, inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -6,7 +6,11 @@ import { AuthService } from '../../services/auth.service';
 import { ConfiguracaoRedmine, RedmineService } from '../../services/redmine.service';
 import { mensagemDeErro } from '../../services/api-jakarta';
 
-/** Acesso ao Redmine do moderador: link da consulta, projeto e chave da API, usados na importação de chamados. */
+/**
+ * Acesso ao Redmine do moderador: link da consulta, projeto e chave da API, usados na importação de chamados.
+ * Na tela da sala abre embutido (sem cabeçalho, num painel): sair da sala fecha o WebSocket do moderador e o
+ * backend inativa a sala depois de alguns segundos (InativacaoAutomatica).
+ */
 @Component({
   selector: 'app-configurar-redmine',
   standalone: true,
@@ -15,6 +19,10 @@ import { mensagemDeErro } from '../../services/api-jakarta';
   styleUrls: ['./configurar-redmine.scss']
 })
 export class ConfigurarRedmine implements OnInit {
+  /** Sem cabeçalho nem hero; "voltar" só avisa quem o abriu. */
+  @Input() embutido = false;
+  @Output() fechar = new EventEmitter<void>();
+
   url = '';
   projeto = '';
   chaveApi = '';
@@ -98,6 +106,10 @@ export class ConfigurarRedmine implements OnInit {
   }
 
   voltar(): void {
+    if (this.embutido) {
+      this.fechar.emit();
+      return;
+    }
     const temSala = typeof sessionStorage !== 'undefined' && !!sessionStorage.getItem('salaId');
     this.router.navigate([temSala ? '/importar' : '/salas']);
   }

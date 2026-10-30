@@ -1,6 +1,7 @@
 package com.planningapp.service;
 
 import com.planningapp.dto.CriarTarefaRequest;
+import com.planningapp.dto.EnvioRedmineDTO;
 import com.planningapp.dto.EventoSala;
 import com.planningapp.dto.ResultadoImportacaoDTO;
 import com.planningapp.dto.TarefaDTO;
@@ -22,6 +23,7 @@ import com.planningapp.service.exception.RecursoNaoEncontradoException;
 import com.planningapp.service.importacao.ImportacaoTarefas;
 import com.planningapp.service.mapper.DadosExtras;
 import com.planningapp.service.mapper.PlanningMapper;
+import com.planningapp.service.redmine.ConsultaRedmine;
 import jakarta.annotation.Resource;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.ejb.SessionContext;
@@ -92,40 +94,97 @@ public class TarefaService {
             throw new NegocioException("Já existe a tarefa " + numero + " nesta sala");
         }
         Tarefa tarefa = incluir(sala, numero, request.titulo(), request.descricao(), request.sprint(),
-                request.dadosExtras(), membroSalaRepository.listarJogadores(salaId));
+                request.dadosExtras(), membroSalaRepository.listarJogadores(salaId), false, null);
         return notificar(TipoEventoSala.TAREFA_CRIADA, PlanningMapper.toDTO(tarefa));
     }
 
     /** Lista JSON no mesmo formato do cadastro unitário, como o {@code /importar} do original. */
     @RolesAllowed(Papeis.ADMIN)
     public ResultadoImportacaoDTO importar(Long salaId, List<CriarTarefaRequest> itens) {
-        return importar(salaId, () -> ImportacaoTarefas.deJson(itens));
+        return importar(salaId, () -> new Leitura(ImportacaoTarefas.deJson(itens), null));
     }
 
     /** CSV com cabeçalho {@code numero;titulo;descricao} (o mesmo arquivo que o front do original lia com PapaParse). */
     @RolesAllowed(Papeis.ADMIN)
     public ResultadoImportacaoDTO importarCsv(Long salaId, String csv) {
-        return importar(salaId, () -> ImportacaoTarefas.deCsv(csv));
+        return importar(salaId, () -> new Leitura(ImportacaoTarefas.deCsv(csv), null));
     }
 
-    /** Os chamados da consulta do Redmine configurada pelo moderador ({@link RedmineService}). */
+    /**
+     * Os chamados da consulta do Redmine configurada pelo moderador ({@link RedmineService}). Cada tarefa guarda o
+     * JSON do chamado como veio do Redmine ({@code tarefas.json_redmine}).
+     */
     @RolesAllowed(Papeis.ADMIN)
     public ResultadoImportacaoDTO importarRedmine(Long salaId) {
-        return importar(salaId, () -> ImportacaoTarefas.deJson(redmineService.buscarChamados()));
+        return importar(salaId, () -> {
+            ConsultaRedmine.Pagina chamados = redmineService.buscarChamados();
+            return new Leitura(ImportacaoTarefas.deJson(chamados.chamados()), chamados.json());
+        });
+    }
+
+    /** {@code jsonRedmine} nulo: não veio do Redmine (CSV ou JSON). */
+    private record Leitura(List<ImportacaoTarefas.Linha> linhas, Map<String, String> jsonRedmine) {
+    }
+
+    /**
+     * Grava a estimativa final no chamado do Redmine (ver {@link RedmineService#enviarEstimativa}). O front chama
+     * logo depois de finalizar; separado da finalização para uma falha do Redmine nunca a desfazer. Só para
+     * tarefas importadas do Redmine: o número de uma tarefa de CSV pode não ser um chamado.
+     */
+    @RolesAllowed(Papeis.ADMIN)
+    public EnvioRedmineDTO enviarAoRedmine(Long salaId, Long tarefaId) {
+        Tarefa tarefa = buscarTarefaDoModerador(salaId, tarefaId);
+        if (!tarefa.isDoRedmine()) {
+            throw new NegocioException("A tarefa " + tarefa.getNumero() + " não foi importada do Redmine");
+        }
+        if (tarefa.getStatus() != StatusTarefa.ESTIMADA) {
+            throw new NegocioException("Apenas tarefas estimadas são enviadas ao Redmine");
+        }
+        return redmineService.enviarEstimativa(tarefa.getNumero(), tarefa.getPontosFinais(), tarefa.getHorasFinais(),
+                tarefa.getHorasTesteFinais());
+    }
+
+    /**
+     * Relê o chamado no Redmine e grava na tarefa o título, a descrição e os campos como estão agora, para o painel
+     * de detalhe de uma tarefa já estimada mostrar o chamado atualizado (ex.: a situação depois do envio).
+     */
+    @RolesAllowed(Papeis.ADMIN)
+    public TarefaDTO atualizarDoRedmine(Long salaId, Long tarefaId) {
+        Tarefa tarefa = buscarTarefaDoModerador(salaId, tarefaId);
+        if (!tarefa.isDoRedmine()) {
+            throw new NegocioException("A tarefa " + tarefa.getNumero() + " não foi importada do Redmine");
+        }
+        ConsultaRedmine.ChamadoLido lido = redmineService.buscarChamado(tarefa.getNumero());
+        String titulo = lido.tarefa().titulo() == null ? "" : lido.tarefa().titulo().trim();
+        tarefa.atualizarDoRedmine(titulo.isEmpty() ? tarefa.getTitulo() : titulo.substring(0, Math.min(255, titulo.length())),
+                lido.tarefa().descricao(), DadosExtras.paraJson(lido.tarefa().dadosExtras()), lido.json());
+        return PlanningMapper.toDTO(tarefa);
+    }
+
+    /** Imagem anexada ao chamado da tarefa, para o painel de detalhe (ver {@link RedmineService#baixarAnexo}). */
+    @RolesAllowed(Papeis.ADMIN)
+    public RedmineService.Arquivo baixarAnexoRedmine(Long salaId, Long tarefaId, String nome) {
+        Tarefa tarefa = buscarTarefaDoModerador(salaId, tarefaId);
+        if (!tarefa.isDoRedmine()) {
+            throw new NegocioException("A tarefa " + tarefa.getNumero() + " não foi importada do Redmine");
+        }
+        return redmineService.baixarAnexo(tarefa.getNumero(), nome);
     }
 
     /**
      * Tudo ou nada: se alguma linha for inválida, nada é importado e a resposta traz todos os erros.
      * Números que já existem na sala (ou se repetem no arquivo) são ignorados, como no original.
      */
-    private ResultadoImportacaoDTO importar(Long salaId, Supplier<List<ImportacaoTarefas.Linha>> leitura) {
+    private ResultadoImportacaoDTO importar(Long salaId, Supplier<Leitura> leitura) {
         Sala sala = buscarSalaParaIncluir(salaId);
-        List<ImportacaoTarefas.Linha> linhas;
+        Leitura lida;
         try {
-            linhas = leitura.get();
+            lida = leitura.get();
         } catch (IllegalArgumentException e) {
             throw new DadosInvalidosException("Arquivo inválido", List.of(e.getMessage()));
         }
+        List<ImportacaoTarefas.Linha> linhas = lida.linhas();
+        boolean doRedmine = lida.jsonRedmine() != null;
         List<String> erros = ImportacaoTarefas.validar(linhas);
         if (!erros.isEmpty()) {
             throw new DadosInvalidosException("Nenhuma tarefa foi importada: corrija os erros e envie de novo", erros);
@@ -142,7 +201,7 @@ public class TarefaService {
                 continue;
             }
             importadas.add(PlanningMapper.toDTO(incluir(sala, numero, linha.titulo(), linha.descricao(), linha.sprint(),
-                    linha.dadosExtras(), jogadores)));
+                    linha.dadosExtras(), jogadores, doRedmine, doRedmine ? lida.jsonRedmine().get(linha.numero()) : null)));
         }
 
         if (!importadas.isEmpty()) {
@@ -155,9 +214,13 @@ public class TarefaService {
 
     /** Cria na fila e vincula os JOGADORes que já entraram na sala, como participantes. */
     private Tarefa incluir(Sala sala, String numero, String titulo, String descricao, String sprint,
-                           Map<String, String> dadosExtras, List<Usuario> jogadores) {
+                           Map<String, String> dadosExtras, List<Usuario> jogadores, boolean doRedmine,
+                           String jsonRedmine) {
         Tarefa tarefa = new Tarefa(numero, titulo.trim(), semBrancos(descricao), semBrancos(sprint));
         tarefa.definirDadosExtras(DadosExtras.paraJson(dadosExtras));
+        if (doRedmine) {
+            tarefa.marcarComoDoRedmine(jsonRedmine);
+        }
         sala.adicionarTarefa(tarefa);
         tarefaRepository.salvar(tarefa);
         jogadores.forEach(j -> participanteRepository.salvar(new Participante(tarefa, j)));

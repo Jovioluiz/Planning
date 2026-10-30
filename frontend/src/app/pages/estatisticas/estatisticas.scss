@@ -56,6 +56,14 @@
   padding: 0 24px 56px;
 }
 
+/* Embutida no painel da sala: herda o fundo e o tema de quem a abriu */
+.est-embutido {
+  min-height: 0;
+  background: transparent;
+
+  .est-content { max-width: none; margin: 0; padding: 0; }
+}
+
 .card {
   @include np.card;
   padding: 22px 24px;

@@ -30,4 +30,9 @@
     <include file="changes/004-dados-extras-e-horas-liberadas-em.xml" relativeToChangelogFile="true"/>
     <include file="changes/005-configuracoes-redmine.xml" relativeToChangelogFile="true"/>
     <include file="changes/006-url-da-consulta-redmine.xml" relativeToChangelogFile="true"/>
+    <include file="changes/007-chave-api-redmine-cifrada.xml" relativeToChangelogFile="true"/>
+    <include file="changes/008-envio-estimativa-redmine.xml" relativeToChangelogFile="true"/>
+    <include file="changes/009-json-redmine-da-tarefa.xml" relativeToChangelogFile="true"/>
+    <include file="changes/010-situacao-apos-estimar.xml" relativeToChangelogFile="true"/>
+    <include file="changes/011-envio-redmine-sem-configuracao.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

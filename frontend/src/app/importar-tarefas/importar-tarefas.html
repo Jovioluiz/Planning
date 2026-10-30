@@ -15,6 +15,9 @@
       <button class="btn-copiar-link" (click)="irParaEstatisticas()" title="Estatísticas das votações">
         📊 Estatísticas
       </button>
+      <button class="btn-copiar-link" (click)="irParaRedmine()" title="Sua consulta e chave de acesso ao Redmine (valem para todas as suas salas)">
+        ⚙ Redmine
+      </button>
       <button class="btn-tema" (click)="toggleTema()" [title]="temaEscuro ? 'Mudar para claro' : 'Mudar para escuro'">
         {{ temaEscuro ? '☀️' : '🌙' }}
       </button>
@@ -91,7 +94,6 @@
               <span *ngIf="!importandoRedmine">⬇ Importar do Redmine</span>
               <span *ngIf="importandoRedmine" class="importing-row"><span class="spinner-sm"></span> Buscando chamados...</span>
             </button>
-            <button type="button" class="redmine-config" (click)="irParaRedmine()">⚙ Configurar consulta do Redmine</button>
           </div>
         </div>
       </div>
@@ -371,26 +373,26 @@
                   <th class="col-check"></th>
                   <th>Número</th>
                   <th>Título</th>
-                  <th *ngFor="let col of colunasExtras">{{ col }}</th>
+                  <th *ngFor="let col of colunasTabela" class="col-extra">{{ col }}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let t of tarefasFila"
                     [class.row-selected]="tarefaSelecionadaId === t.id"
-                    (click)="selecionarTarefa(t.id)">
-                  <td class="col-check">
+                    (click)="abrirDetalhe(t)">
+                  <td class="col-check" (click)="$event.stopPropagation()">
                     <input type="checkbox"
                       [checked]="tarefaSelecionadaId === t.id"
                       (change)="selecionarTarefa(t.id)"
                       (click)="$event.stopPropagation()" />
                   </td>
                   <td><span class="badge-num">#{{ t.numero }}</span></td>
-                  <td>{{ t.titulo }}</td>
-                  <td *ngFor="let col of colunasExtras">{{ t.dadosExtras?.[col] ?? '—' }}</td>
+                  <td class="td-title">{{ t.titulo }}</td>
+                  <td *ngFor="let col of colunasTabela" class="col-extra" [title]="t.dadosExtras?.[col] ?? ''">{{ t.dadosExtras?.[col] || '—' }}</td>
                 </tr>
               </tbody>
             </table>
-            <p *ngIf="tarefaSelecionadaId === null" class="select-hint">Clique em uma linha para selecionar a tarefa</p>
+            <p *ngIf="tarefaSelecionadaId === null" class="select-hint">Marque uma tarefa para selecioná-la · clique na linha para ver os detalhes</p>
             <p *ngIf="tarefaEmVotacao !== null && tarefaSelecionadaId !== null" class="select-hint warn">
               Finalize a votação atual antes de iniciar outra
             </p>
@@ -429,20 +431,21 @@
               <tr>
                 <th>Número</th>
                 <th>Título</th>
-                <th *ngFor="let col of colunasExtras">{{ col }}</th>
+                <th *ngFor="let col of colunasTabela" class="col-extra">{{ col }}</th>
                 <th class="col-horas-est">Pontos</th>
                 <th class="col-horas-est">Horas</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let tarefa of tarefasEstimadasDaSprintAtual"
-                  [class.row-pulada]="tarefa.pulada">
+                  [class.row-pulada]="tarefa.pulada"
+                  (click)="abrirDetalhe(tarefa)">
                 <td>
                   <span class="badge-num">#{{ tarefa.numero }}</span>
                   <span *ngIf="tarefa.pulada" class="badge-pulada">Sem estimativa</span>
                 </td>
-                <td>{{ tarefa.titulo }}</td>
-                <td *ngFor="let col of colunasExtras">{{ tarefa.dadosExtras?.[col] ?? '—' }}</td>
+                <td class="td-title">{{ tarefa.titulo }}</td>
+                <td *ngFor="let col of colunasTabela" class="col-extra" [title]="tarefa.dadosExtras?.[col] ?? ''">{{ tarefa.dadosExtras?.[col] || '—' }}</td>
                 <td class="col-horas-est td-horas-est">
                   <span *ngIf="!tarefa.pulada && tarefa.pontosFinais !== null && tarefa.pontosFinais !== undefined">{{ tarefa.pontosFinais }}</span>
                   <span *ngIf="tarefa.pulada || tarefa.pontosFinais === null || tarefa.pontosFinais === undefined" class="td-sem-horas">—</span>
@@ -492,4 +495,117 @@
     </aside>
 
   </div>
+
+  <!-- ─── Detalhe da tarefa (bottom sheet) ───────────────── -->
+  <ng-container *ngIf="tarefaDetalhe as d">
+    <div class="sheet-backdrop" (click)="fecharDetalhe()"></div>
+    <section class="sheet" role="dialog" aria-modal="true" [attr.aria-label]="'Tarefa #' + d.numero">
+      <div class="sheet-handle" (click)="fecharDetalhe()"></div>
+
+      <header class="sheet-header">
+        <div class="sheet-header-info">
+          <div class="sheet-tags">
+            <span class="badge-num">#{{ d.numero }}</span>
+            <span *ngIf="d.sprint" class="badge-sprint">Sprint {{ d.sprint }}</span>
+            <span *ngIf="d.pulada" class="badge-pulada">Sem estimativa</span>
+          </div>
+          <h2 class="sheet-title">{{ tituloDetalhe || 'Sem título' }}</h2>
+        </div>
+        <button class="sheet-close" (click)="fecharDetalhe()" title="Fechar (Esc)">✕</button>
+      </header>
+
+      <div class="sheet-body">
+        <p *ngIf="atualizandoDetalhe" class="sheet-desc-vazia">Atualizando do Redmine...</p>
+        <p *ngIf="erroAtualizacaoDetalhe" class="select-hint warn">{{ erroAtualizacaoDetalhe }}</p>
+
+        <dl *ngIf="camposDetalhe.length > 0" class="sheet-campos">
+          <div *ngFor="let c of camposDetalhe" class="sheet-campo">
+            <dt>{{ c.chave }}</dt>
+            <dd [class.sheet-desc-vazia]="!c.valor">{{ c.valor || '—' }}</dd>
+          </div>
+        </dl>
+
+        <div *ngIf="d.estimada && !d.pulada" class="sheet-estimativa">
+          <div class="sheet-estimativa-item">
+            <span class="sheet-label">Pontos</span>
+            <span class="sheet-estimativa-valor">{{ d.pontosFinais ?? '—' }}</span>
+          </div>
+          <div class="sheet-estimativa-item">
+            <span class="sheet-label">Horas</span>
+            <span class="sheet-estimativa-valor">{{ (horasFinaisPorTarefa.get(d.id) ?? 0) > 0 ? horasFinaisPorTarefa.get(d.id) + 'h' : '—' }}</span>
+          </div>
+          <div class="sheet-estimativa-item">
+            <span class="sheet-label">Horas teste</span>
+            <span class="sheet-estimativa-valor">{{ d.horasTesteFinais != null ? d.horasTesteFinais + 'h' : '—' }}</span>
+          </div>
+        </div>
+
+        <div class="sheet-section">
+          <h3 class="sheet-label">Descrição</h3>
+          <div *ngIf="descricaoHtml" class="sheet-desc textile" [innerHTML]="descricaoHtml"></div>
+          <p *ngIf="descricaoDetalhe && !descricaoHtml" class="sheet-desc">{{ descricaoDetalhe }}</p>
+          <p *ngIf="!descricaoDetalhe" class="sheet-desc sheet-desc-vazia">Sem descrição.</p>
+        </div>
+      </div>
+
+      <footer *ngIf="detalheNaFila" class="sheet-footer">
+        <span *ngIf="tarefaEmVotacao" class="select-hint warn">Finalize a votação atual antes de iniciar outra</span>
+        <button class="btn btn-primary" [disabled]="tarefaEmVotacao !== null" (click)="iniciarVotacaoDetalhe()">
+          ▶ Iniciar Votação
+        </button>
+      </footer>
+    </section>
+  </ng-container>
+
+  <!-- ─── Configuração do Redmine (sem sair da sala) ────── -->
+  <ng-container *ngIf="configurandoRedmine">
+    <div class="sheet-backdrop" (click)="configurandoRedmine = false"></div>
+    <section class="sheet sheet-compacto" role="dialog" aria-modal="true" aria-label="Configurar consulta do Redmine">
+      <div class="sheet-handle" (click)="configurandoRedmine = false"></div>
+
+      <header class="sheet-header">
+        <div class="sheet-header-info">
+          <h2 class="sheet-title">Consulta do Redmine</h2>
+          <p class="sheet-subtitulo">Sua configuração: vale para todas as salas que você modera.</p>
+        </div>
+        <button class="sheet-close" (click)="configurandoRedmine = false" title="Fechar (Esc)">✕</button>
+      </header>
+
+      <div class="sheet-body">
+        @defer {
+          <app-configurar-redmine [embutido]="true" (fechar)="configurandoRedmine = false"></app-configurar-redmine>
+        } @loading (minimum 200ms) {
+          <p class="select-hint">Carregando...</p>
+        }
+      </div>
+    </section>
+  </ng-container>
+
+  <!-- ─── Estatísticas (sem sair da sala) ───────────────── -->
+  <ng-container *ngIf="vendoEstatisticas">
+    <div class="sheet-backdrop" (click)="vendoEstatisticas = false"></div>
+    <section class="sheet sheet-largo" role="dialog" aria-modal="true" aria-label="Estatísticas das votações">
+      <div class="sheet-handle" (click)="vendoEstatisticas = false"></div>
+
+      <header class="sheet-header">
+        <div class="sheet-header-info">
+          <h2 class="sheet-title">Estatísticas das votações</h2>
+          <p class="sheet-subtitulo">
+            Totais usam os valores finais definidos pelo moderador; tarefas antigas sem esse valor usam a média dos
+            votos da rodada final. A carta ☕ não entra nas médias.
+          </p>
+        </div>
+        <button class="sheet-close" (click)="vendoEstatisticas = false" title="Fechar (Esc)">✕</button>
+      </header>
+
+      <div class="sheet-body">
+        <!-- @defer: as estatísticas (e seus gráficos) só são baixadas quando o painel abre -->
+        @defer {
+          <app-estatisticas [embutido]="true" [salaId]="salaIdNumero" (fechar)="vendoEstatisticas = false"></app-estatisticas>
+        } @loading (minimum 200ms) {
+          <p class="select-hint">Carregando...</p>
+        }
+      </div>
+    </section>
+  </ng-container>
 </div>

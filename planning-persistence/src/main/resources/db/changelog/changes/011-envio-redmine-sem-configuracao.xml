@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    O envio da estimativa ao Redmine deixa de ser configurável: os campos (Planning 27, EstimativaTeste 66) e a
+    situação (Produto Backlog 55 → Aguardando Desenvolvimento 8) ficam fixos no RedmineService, pelo id.
+    Remove as colunas criadas em 008 e 010.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="011-envio-redmine-sem-configuracao" author="planning-jakarta">
+        <dropColumn tableName="configuracoes_redmine">
+            <column name="campo_pontos"/>
+            <column name="campo_horas_teste"/>
+            <column name="situacao_origem"/>
+            <column name="situacao_destino"/>
+        </dropColumn>
+    </changeSet>
+</databaseChangeLog>

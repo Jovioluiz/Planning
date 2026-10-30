@@ -82,6 +82,17 @@ public class Tarefa {
     @Column(name = "dados_extras", columnDefinition = "TEXT")
     private String dadosExtras;
 
+    /**
+     * Importada do Redmine: o número é o do chamado, e a estimativa volta para ele ao finalizar. As de CSV ficam
+     * de fora, porque o número pode não ser um chamado.
+     */
+    @Column(name = "do_redmine", nullable = false)
+    private boolean doRedmine;
+
+    /** O objeto do chamado como veio do {@code /issues.json} do Redmine na importação, sem alteração. */
+    @Column(name = "json_redmine", columnDefinition = "TEXT")
+    private String jsonRedmine;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_sala", nullable = false)
     private Sala sala;
@@ -191,6 +202,27 @@ public class Tarefa {
 
     public String getDadosExtras() {
         return dadosExtras;
+    }
+
+    public void marcarComoDoRedmine(String jsonDoChamado) {
+        doRedmine = true;
+        jsonRedmine = jsonDoChamado;
+    }
+
+    /** O chamado mudou no Redmine depois da importação. A estimativa não muda. */
+    public void atualizarDoRedmine(String titulo, String descricao, String dadosExtras, String jsonDoChamado) {
+        this.titulo = titulo;
+        this.descricao = descricao;
+        this.dadosExtras = dadosExtras;
+        this.jsonRedmine = jsonDoChamado;
+    }
+
+    public boolean isDoRedmine() {
+        return doRedmine;
+    }
+
+    public String getJsonRedmine() {
+        return jsonRedmine;
     }
 
     public String getTitulo() {

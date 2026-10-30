@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Envio da estimativa ao Redmine ao finalizar a tarefa:
+    - tarefas.do_redmine: só as importadas do Redmine são enviadas (o número de uma tarefa de CSV pode não ser um
+      chamado). As que já existem ficam false: não se sabe a origem.
+    - configuracoes_redmine.campo_pontos / campo_horas_teste: nome dos campos personalizados do Redmine que
+      recebem os pontos e as horas de teste (as horas vão no "Tempo estimado", que é padrão). Vazio: não envia.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="008-envio-estimativa-redmine" author="planning-jakarta">
+        <addColumn tableName="tarefas">
+            <column name="do_redmine" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <addColumn tableName="configuracoes_redmine">
+            <column name="campo_pontos" type="VARCHAR(100)"/>
+            <column name="campo_horas_teste" type="VARCHAR(100)"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

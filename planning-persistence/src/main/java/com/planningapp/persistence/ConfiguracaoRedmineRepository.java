@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
+import java.util.List;
 import java.util.Optional;
 
 @ApplicationScoped
@@ -15,6 +16,13 @@ public class ConfiguracaoRedmineRepository {
 
     public void salvar(ConfiguracaoRedmine configuracao) {
         em.persist(configuracao);
+    }
+
+    /** As que ainda têm a chave da API em texto puro (gravadas antes da cifragem, sem o prefixo "v1:"). */
+    public List<ConfiguracaoRedmine> listarComChaveEmTextoPuro() {
+        return em.createQuery("SELECT c FROM ConfiguracaoRedmine c WHERE c.chaveApi NOT LIKE 'v1:%'",
+                        ConfiguracaoRedmine.class)
+                .getResultList();
     }
 
     public Optional<ConfiguracaoRedmine> buscarDoUsuario(Long usuarioId) {

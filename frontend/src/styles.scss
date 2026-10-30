@@ -104,3 +104,56 @@ body {
   height: 14px;
   flex-shrink: 0;
 }
+
+/* ─── Descrição dos chamados do Redmine (Textile → HTML) ─────
+   Global porque o conteúdo vem por [innerHTML], fora do encapsulamento do componente. */
+.textile {
+  > :first-child { margin-top: 0; }
+  > :last-child { margin-bottom: 0; }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin: 1.2em 0 .5em;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  h1 { font-size: 1.5em; }
+  h2 { font-size: 1.3em; padding-bottom: .25em; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 1.15em; }
+  h4, h5, h6 { font-size: 1em; }
+
+  p, ul, ol, pre, table, blockquote { margin: 0 0 .8em; }
+  ul, ol { padding-left: 1.6em; }
+  li { margin: .15em 0; }
+
+  a { color: var(--accent-ink); }
+  img { max-width: 100%; height: auto; }
+
+  code, pre {
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: .9em;
+    background: var(--surface-2);
+    border-radius: 4px;
+  }
+  code { padding: .1em .35em; }
+  pre {
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    white-space: pre-wrap;
+    overflow-x: auto;
+    code { padding: 0; background: none; }
+  }
+
+  blockquote {
+    padding: .2em 1em;
+    border-left: 3px solid var(--line);
+    color: var(--muted);
+  }
+
+  table { border-collapse: collapse; max-width: 100%; display: block; overflow-x: auto; }
+  th, td { padding: 5px 10px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: var(--surface-2); }
+
+  .textile-anexo { color: var(--faint); font-style: italic; }
+}

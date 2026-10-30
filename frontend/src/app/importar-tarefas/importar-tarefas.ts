@@ -1,6 +1,6 @@
 ﻿import * as Papa from 'papaparse';
-import { forkJoin } from 'rxjs';
-import { ChangeDetectorRef, Component, EnvironmentInjector, OnDestroy, OnInit, runInInjectionContext } from '@angular/core';
+import { firstValueFrom, forkJoin } from 'rxjs';
+import { ChangeDetectorRef, Component, EnvironmentInjector, HostListener, OnDestroy, OnInit, runInInjectionContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -10,9 +10,19 @@ import { EstimationService } from '../services/estimation.service';
 import { WebSocketService } from '../websocket/websocket.service';
 import { SalaService } from '../services/sala.service';
 import { mensagemDeErro } from '../services/api-jakarta';
+import { ConfigurarRedmine } from '../pages/configurar-redmine/configurar-redmine';
+import { Estatisticas } from '../pages/estatisticas/estatisticas';
+import { textileParaHtml } from './textile-redmine';
 
 /** Colunas extras que repetem campos da tarefa (o CSV guarda "titulo"; o Redmine, "Título"). */
 const COLUNAS_PROPRIAS = new Set(['titulo', 'descricao']);
+
+/**
+ * Colunas extras mostradas nas tabelas, nesta ordem, quando existem (nomes normalizados). O resto aparece só no
+ * painel de detalhe: o Redmine traz dezenas de campos e a tabela ganharia barra de rolagem.
+ */
+const COLUNAS_TABELA = ['tipo', 'situacao', 'prioridade', 'atribuido para'];
+const MAXIMO_COLUNAS_TABELA = COLUNAS_TABELA.length;
 
 const normalizarColuna = (coluna: string) =>
   coluna.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -20,7 +30,7 @@ const normalizarColuna = (coluna: string) =>
 @Component({
   selector: 'app-importar-tarefas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfigurarRedmine, Estatisticas],
   templateUrl: './importar-tarefas.html',
   styleUrls: ['./importar-tarefas.scss']
 })
@@ -38,6 +48,13 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   todosTestadoresVotaram = false;
   importando = false;
   tarefaSelecionadaId: number | null = null;
+  tarefaDetalhe: ITask | null = null;
+  atualizandoDetalhe = false;
+  erroAtualizacaoDetalhe = '';
+  /** Descrição Textile do chamado já em HTML; vazia enquanto converte ou se a tarefa não veio do Redmine. */
+  descricaoHtml = '';
+  configurandoRedmine = false;
+  vendoEstatisticas = false;
 
   mensagem = '';
   mensagemTipo: 'sucesso' | 'erro' | '' = '';
@@ -53,6 +70,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   finalizando = false;
 
   private pollInterval: any = null;
+  private mensagemTimer: any = null;
   private timerInterval: any = null;
 
   constructor(
@@ -257,6 +275,7 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.liberarAnexos();
     if (!this.topicSalaEventos) this.wsService.unsubscribe(this.topicSessoes);
     if (this.topicSalaEventos) this.wsService.unsubscribe(this.topicSalaEventos);
     if (this.pollInterval) clearInterval(this.pollInterval);
@@ -323,15 +342,18 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   }
 
   // ChangeDetectorRef.detectChanges() garante que a view atualize no modo zoneless
-  private exibirMensagem(texto: string, tipo: 'sucesso' | 'erro'): void {
+  // O timer da mensagem anterior é cancelado: senão ele apagaria a nova antes da hora
+  private exibirMensagem(texto: string, tipo: 'sucesso' | 'erro', duracaoMs = 5000): void {
     this.mensagem = texto;
     this.mensagemTipo = tipo;
     this.cdr.detectChanges();
-    setTimeout(() => {
+    if (this.mensagemTimer) clearTimeout(this.mensagemTimer);
+    this.mensagemTimer = setTimeout(() => {
       this.mensagem = '';
       this.mensagemTipo = '';
+      this.mensagemTimer = null;
       this.cdr.detectChanges();
-    }, 5000);
+    }, duracaoMs);
   }
 
   /**
@@ -347,6 +369,18 @@ export class ImportarTarefas implements OnInit, OnDestroy {
         .forEach(c => colunas.add(c));
     }
     return [...colunas];
+  }
+
+  /**
+   * As de {@link COLUNAS_TABELA} que existirem; se não houver nenhuma (CSV com outros cabeçalhos), as primeiras
+   * colunas do arquivo, até o mesmo máximo.
+   */
+  get colunasTabela(): string[] {
+    const todas = this.colunasExtras;
+    const preferidas = COLUNAS_TABELA
+      .map(nome => todas.find(c => normalizarColuna(c) === nome))
+      .filter((c): c is string => !!c);
+    return preferidas.length > 0 ? preferidas : todas.slice(0, MAXIMO_COLUNAS_TABELA);
   }
 
   onFileSelected(event: Event): void {
@@ -453,6 +487,117 @@ export class ImportarTarefas implements OnInit, OnDestroy {
   // ─── Seleção de tarefa (comportamento de radio) ───────────
   selecionarTarefa(id: number): void {
     this.tarefaSelecionadaId = this.tarefaSelecionadaId === id ? null : id;
+  }
+
+  // ─── Detalhe da tarefa (painel de baixo pra cima) ─────────
+  /** Estimada vinda do Redmine: mostra o que está gravado e busca o chamado como está agora no Redmine. */
+  abrirDetalhe(tarefa: ITask): void {
+    this.liberarAnexos();
+    this.tarefaDetalhe = tarefa;
+    this.descricaoHtml = '';
+    this.renderizarDescricao();
+    this.erroAtualizacaoDetalhe = '';
+    this.atualizandoDetalhe = !!tarefa.estimada && !!tarefa.doRedmine;
+    if (!this.atualizandoDetalhe) return;
+    this.taskService.atualizarRedmineSala(tarefa.id.toString()).subscribe({
+      next: (atualizada) => {
+        this.tarefasEstimadas = this.tarefasEstimadas.map(t => t.id === atualizada.id ? atualizada : t);
+        if (this.tarefaDetalhe?.id === atualizada.id) {
+          this.tarefaDetalhe = atualizada;
+          this.atualizandoDetalhe = false;
+          this.renderizarDescricao();
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        if (this.tarefaDetalhe?.id !== tarefa.id) return;
+        this.atualizandoDetalhe = false;
+        this.erroAtualizacaoDetalhe = 'Não foi possível atualizar do Redmine: '
+          + (mensagemDeErro(err?.error) ?? `erro ${err?.status ?? ''}`) + '. Mostrando os dados da importação.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  fecharDetalhe(): void {
+    this.tarefaDetalhe = null;
+    this.atualizandoDetalhe = false;
+    this.liberarAnexos();
+  }
+
+  /** Imagens anexadas ao chamado aberto no painel, por nome; os endereços blob: são liberados ao fechar. */
+  private anexosDetalhe = new Map<string, Promise<string | null>>();
+
+  private carregarAnexo(tarefaId: number, nome: string): Promise<string | null> {
+    let url = this.anexosDetalhe.get(nome);
+    if (!url) {
+      url = firstValueFrom(this.taskService.anexoRedmineSala(String(tarefaId), nome))
+        .then(blob => URL.createObjectURL(blob))
+        .catch(() => null);
+      this.anexosDetalhe.set(nome, url);
+    }
+    return url;
+  }
+
+  private liberarAnexos(): void {
+    this.anexosDetalhe.forEach(url => url.then(u => { if (u) URL.revokeObjectURL(u); }));
+    this.anexosDetalhe.clear();
+  }
+
+  /** Só o chamado do Redmine vem em Textile; o de CSV fica em texto puro. Mantém o HTML anterior até o novo. */
+  private renderizarDescricao(): void {
+    const tarefa = this.tarefaDetalhe;
+    const texto = this.descricaoDetalhe;
+    if (!tarefa?.doRedmine || !texto) {
+      this.descricaoHtml = '';
+      return;
+    }
+    textileParaHtml(texto, nome => this.carregarAnexo(tarefa.id, nome)).then(html => {
+      if (this.tarefaDetalhe !== tarefa) return;
+      this.descricaoHtml = html;
+      this.cdr.detectChanges();
+    }).catch(() => { /* fica o texto puro */ });
+  }
+
+  @HostListener('document:keydown.escape')
+  fecharPaineis(): void {
+    if (this.tarefaDetalhe) this.fecharDetalhe();
+    this.configurandoRedmine = false;
+    this.vendoEstatisticas = false;
+  }
+
+  get detalheNaFila(): boolean {
+    return !!this.tarefaDetalhe && this.tarefasFila.some(t => t.id === this.tarefaDetalhe!.id);
+  }
+
+  /** Valor da coluna extra (CSV ou Redmine) com esse nome, sem diferenciar maiúsculas nem acentos. */
+  private extraDetalhe(nome: string): string {
+    const extras = this.tarefaDetalhe?.dadosExtras ?? {};
+    const chave = Object.keys(extras).find(k => normalizarColuna(k) === nome && extras[k]);
+    return chave ? String(extras[chave]) : '';
+  }
+
+  get tituloDetalhe(): string {
+    return this.tarefaDetalhe?.titulo?.trim() || this.extraDetalhe('titulo');
+  }
+
+  get descricaoDetalhe(): string {
+    return this.tarefaDetalhe?.descricao?.trim() || this.extraDetalhe('descricao');
+  }
+
+  /** Demais colunas do CSV/Redmine; título e descrição já aparecem em destaque no painel. */
+  get camposDetalhe(): { chave: string; valor: string }[] {
+    const extras = this.tarefaDetalhe?.dadosExtras ?? {};
+    return Object.keys(extras)
+      .filter(k => !COLUNAS_PROPRIAS.has(normalizarColuna(k)))
+      .map(k => ({ chave: k, valor: String(extras[k]) }));
+  }
+
+  iniciarVotacaoDetalhe(): void {
+    if (!this.tarefaDetalhe) return;
+    this.iniciarEstimativa(this.tarefaDetalhe.id);
+    if (this.tarefaSelecionadaId === this.tarefaDetalhe.id) this.tarefaSelecionadaId = null;
+    this.fecharDetalhe();
   }
 
   iniciarVotacaoSelecionada(): void {
@@ -655,7 +800,8 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     this.finalizando = true;
     this.cdr.detectChanges();
     this.horasFinaisPorTarefa.set(this.tarefaEmVotacao.id, valores.horasFinais ?? 0);
-    this.taskService.finalizarTarefaSala(this.tarefaEmVotacao.id.toString(), valores).subscribe({
+    const tarefa = this.tarefaEmVotacao; // o next zera tarefaEmVotacao antes do envio ao Redmine
+    this.taskService.finalizarTarefaSala(tarefa.id.toString(), valores).subscribe({
       next: () => {
         this.finalizando = false;
         this.tarefaEmVotacao = null;
@@ -669,10 +815,32 @@ export class ImportarTarefas implements OnInit, OnDestroy {
         if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
         this.carregarListas();
         this.cdr.detectChanges();
+        if (tarefa.doRedmine) this.enviarAoRedmine(tarefa);
       },
       error: () => {
         this.finalizando = false;
         this.exibirMensagem('Erro ao finalizar tarefa.', 'erro');
+      }
+    });
+  }
+
+  /**
+   * Grava as horas (média dos players) no Tempo estimado do chamado e, se configurados, os pontos e as horas de
+   * teste. Separado da finalização: se o Redmine falhar, a tarefa continua finalizada e o moderador vê o motivo.
+   */
+  private enviarAoRedmine(tarefa: ITask): void {
+    this.taskService.enviarRedmineSala(tarefa.id.toString()).subscribe({
+      next: (envio) => {
+        const gravados = envio.gravados.length ? `: ${envio.gravados.join(' · ')}` : '';
+        if (envio.avisos.length) {
+          this.exibirMensagem(`Redmine #${envio.chamado}${gravados}. Atenção: ${envio.avisos.join(' ')}`, 'erro', 15000);
+        } else {
+          this.exibirMensagem(`Estimativa gravada no Redmine #${envio.chamado}${gravados}`, 'sucesso');
+        }
+      },
+      error: (err) => {
+        this.exibirMensagem(`Tarefa finalizada, mas não foi enviada ao Redmine: `
+          + (mensagemDeErro(err?.error) ?? `erro ${err?.status ?? ''}`), 'erro', 15000);
       }
     });
   }
@@ -875,14 +1043,24 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     });
   }
 
+  get salaIdNumero(): number | null {
+    const salaId = Number(this.salaService.getSalaId());
+    return Number.isFinite(salaId) && salaId > 0 ? salaId : null;
+  }
+
+  /*
+   * Estatísticas e configuração do Redmine abrem num painel, sem sair da tela: navegar para outra rota fechava o
+   * WebSocket do moderador e o backend inativava a sala em poucos segundos (e só a reativava na volta se ela já
+   * tivesse tarefas pendentes).
+   */
+
   /** Abre as estatísticas já filtradas pela sala atual (se houver). */
   irParaEstatisticas(): void {
-    const salaId = this.salaService.getSalaId();
-    this.router.navigate(['/estatisticas'], salaId ? { queryParams: { salaId } } : {});
+    this.vendoEstatisticas = true;
   }
 
   irParaRedmine(): void {
-    this.router.navigate(['/redmine']);
+    this.configurandoRedmine = true;
   }
 
   /** Importa os chamados da consulta configurada em /redmine; o backend busca com o acesso de lá. */

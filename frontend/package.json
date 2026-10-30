@@ -25,6 +25,7 @@
     "express": "^5.1.0",
     "papaparse": "^5.5.3",
     "rxjs": "~7.8.0",
+    "textile-js": "2.1.1",
     "tslib": "^2.3.0",
     "zone.js": "^0.15.1"
   },

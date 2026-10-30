@@ -10,6 +10,7 @@ import java.util.Map;
  * @param encerradaEm      quando foi finalizada ou pulada
  * @param horasLiberadasEm quando a votação de horas da rodada atual foi aberta
  * @param dadosExtras      colunas extras do arquivo importado (exibidas como colunas dinâmicas no front)
+ * @param doRedmine        importada do Redmine: ao finalizar, o front envia a estimativa ao chamado
  */
 public record TarefaDTO(
         Long id,
@@ -28,5 +29,6 @@ public record TarefaDTO(
         Instant liberadaEm,
         Instant encerradaEm,
         Instant horasLiberadasEm,
-        Map<String, String> dadosExtras) {
+        Map<String, String> dadosExtras,
+        boolean doRedmine) {
 }

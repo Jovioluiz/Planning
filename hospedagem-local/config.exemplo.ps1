@@ -31,6 +31,8 @@ $Planning = @{
     AllowedOrigins    = 'http://localhost:4200,http://192.168.0.103:4200,http://100.99.136.57:4200,https://chutometro.dev.br'
     JwtSegredo        = '__GERADO_NO_INSTALAR__'
     JwtValidadeMin    = 480
+    # Cifra a chave da API do Redmine no banco. Trocar depois obriga os moderadores a informar a chave de novo
+    RedmineSegredo    = '__GERADO_NO_INSTALAR_REDMINE__'
     # Cria um SUPER só se não houver nenhum (o SUPER do original vem na migração). Vazio: não cria.
     SuperUsuario      = 'super'
     SuperSenha        = ''

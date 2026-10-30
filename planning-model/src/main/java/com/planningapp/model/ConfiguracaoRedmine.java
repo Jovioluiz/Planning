@@ -39,7 +39,8 @@ public class ConfiguracaoRedmine {
     @Column(length = 100)
     private String projeto;
 
-    @Column(name = "chave_api", nullable = false, length = 100)
+    /** Cifrada por {@code CifraSegredos} (AES-GCM, "v1:" + Base64); nunca em texto puro. */
+    @Column(name = "chave_api", nullable = false, length = 512)
     private String chaveApi;
 
     @Column(name = "atualizada_em", nullable = false)
@@ -58,6 +59,11 @@ public class ConfiguracaoRedmine {
         this.projeto = projeto;
         this.chaveApi = chaveApi;
         this.atualizadaEm = Instant.now();
+    }
+
+    /** Só a forma de guardar a chave muda (cifragem no deploy): não conta como alteração do moderador. */
+    public void regravarChaveApi(String chaveApi) {
+        this.chaveApi = chaveApi;
     }
 
     public Long getId() {

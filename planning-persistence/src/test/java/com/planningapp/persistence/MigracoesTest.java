@@ -38,7 +38,8 @@ class MigracoesTest {
      * num changeset, inclua-a aqui: o teste de adoção simula um banco da época do hbm2ddl, que não a tinha.
      */
     private static final List<String> COLUNAS_POSTERIORES_AO_LIQUIBASE = List.of(
-            "tarefas.dados_extras", "tarefas.horas_liberadas_em");
+            "tarefas.dados_extras", "tarefas.horas_liberadas_em", "tarefas.do_redmine",
+            "tarefas.json_redmine");
 
     private static final List<String> TABELAS_POSTERIORES_AO_LIQUIBASE = List.of("configuracoes_redmine");
 

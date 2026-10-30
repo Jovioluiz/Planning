@@ -42,7 +42,8 @@ public final class PlanningMapper {
                 tarefa.getLiberadaEm(),
                 tarefa.getEncerradaEm(),
                 tarefa.getHorasLiberadasEm(),
-                DadosExtras.deJson(tarefa.getDadosExtras()));
+                DadosExtras.deJson(tarefa.getDadosExtras()),
+                tarefa.isDoRedmine());
     }
 
     /** Nunca expõe o hash da senha. */

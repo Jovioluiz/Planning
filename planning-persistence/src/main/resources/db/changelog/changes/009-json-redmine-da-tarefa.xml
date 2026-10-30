@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    tarefas.json_redmine: o objeto do chamado como veio do /issues.json do Redmine na importação, sem alteração
+    (os dados_extras são só os campos já formatados para a tela). Nulo nas tarefas de CSV e nas importadas antes.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="009-json-redmine-da-tarefa" author="planning-jakarta">
+        <addColumn tableName="tarefas">
+            <column name="json_redmine" type="${tipo.texto}"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

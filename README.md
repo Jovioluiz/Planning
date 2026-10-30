@@ -113,6 +113,7 @@ Os SUPER não aparecem na lista e não podem ser alterados pela API (403).
 |---|---|---|
 | `JWT_SECRET` | segredo de dev (com aviso no log) | Segredo HMAC, mínimo de 32 caracteres. **Defina em produção.** |
 | `JWT_VALIDADE_MINUTOS` | `480` | Validade do token |
+| `REDMINE_SEGREDO` | o `JWT_SECRET` | Cifra (AES-256-GCM) a chave da API do Redmine no banco. Trocar depois obriga os moderadores a informar a chave de novo. |
 | `SUPER_USUARIO` / `SUPER_SENHA` | — | Criam o SUPER no deploy, se ainda não existir nenhum (senha com 6+ caracteres) |
 
 ## WebSocket (tempo real)
@@ -265,6 +266,9 @@ Testado com dois WildFly na mesma máquina; um voto feito pelo nó A chegou aos 
 | POST | `/api/salas/{salaId}/tarefas` | moderador | Cria tarefa `{ "numero", "titulo", "descricao", "sprint" }` |
 | POST | `/api/salas/{salaId}/tarefas/importar` | moderador | Importa várias: lista JSON ou CSV (`Content-Type: text/csv`) |
 | POST | `/api/salas/{salaId}/tarefas/importar-redmine` | moderador | Importa os chamados da consulta do Redmine configurada (sem corpo) |
+| POST | `/api/salas/{salaId}/tarefas/{id}/enviar-redmine` | moderador | Grava a estimativa final no chamado (horas no Tempo estimado, pontos no campo Planning (27), horas de teste no EstimativaTeste (66), situação Produto Backlog (55) → Aguardando Desenvolvimento (8); ids fixos no `RedmineService`) e confere relendo o chamado. Só tarefas importadas do Redmine; o front chama logo depois de finalizar |
+| POST | `/api/salas/{salaId}/tarefas/{id}/atualizar-redmine` | moderador | Relê o chamado no Redmine e grava na tarefa o título, a descrição e os campos como estão agora (o painel de detalhe de uma tarefa estimada chama ao abrir) |
+| GET | `/api/salas/{salaId}/tarefas/{id}/anexos-redmine/{nome}` | moderador | Imagem anexada ao chamado (a descrição cita `!nome.png!`), baixada do Redmine configurado com a chave do moderador. Só imagens (sem SVG), até 10 MB |
 | GET / PUT | `/api/redmine/configuracao` | ADMIN | Consulta e acesso ao Redmine de quem está logado `{ "url": "<link da consulta>", "projeto", "chaveApi" }` (a chave nunca volta) |
 | POST | `/api/redmine/configuracao/testar` | ADMIN | Confere a chave, o projeto e quantos chamados a consulta traz |
 | POST | `/api/salas/{salaId}/tarefas/{id}/liberar` | moderador | Libera para votação (uma por vez por sala); aceita tarefas na fila ou puladas |

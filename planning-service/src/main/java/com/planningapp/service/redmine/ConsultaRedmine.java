@@ -2,15 +2,22 @@ package com.planningapp.service.redmine;
 
 import com.planningapp.dto.CriarTarefaRequest;
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,7 +44,16 @@ public final class ConsultaRedmine {
 
     private static final int MAXIMO_SPRINT = 50;
 
-    public record Pagina(List<CriarTarefaRequest> chamados, int total) {
+    /** Datas do Redmine vêm em UTC (ISO-8601); na tela, no fuso da equipe. */
+    private static final ZoneId FUSO = ZoneId.of("America/Sao_Paulo");
+    private static final DateTimeFormatter DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATA_HORA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+    /**
+     * @param json   o objeto de cada chamado como veio do Redmine, pelo número (gravado em {@code tarefas.json_redmine})
+     * @param total  quantos chamados a consulta tem ao todo (todas as páginas)
+     */
+    public record Pagina(List<CriarTarefaRequest> chamados, Map<String, String> json, int total) {
     }
 
     private ConsultaRedmine() {
@@ -168,11 +184,58 @@ public final class ConsultaRedmine {
         if (!resposta.containsKey("issues") || resposta.get("issues").getValueType() != JsonValue.ValueType.ARRAY) {
             throw new IllegalArgumentException("Resposta inesperada do Redmine (sem a lista de chamados)");
         }
-        List<CriarTarefaRequest> chamados = resposta.getJsonArray("issues").getValuesAs(JsonObject.class).stream()
-                .map(ConsultaRedmine::paraTarefa)
-                .toList();
+        List<CriarTarefaRequest> chamados = new ArrayList<>();
+        Map<String, String> jsonPorNumero = new LinkedHashMap<>();
+        for (JsonObject chamado : resposta.getJsonArray("issues").getValuesAs(JsonObject.class)) {
+            CriarTarefaRequest tarefa = paraTarefa(chamado);
+            chamados.add(tarefa);
+            if (tarefa.numero() != null) {
+                jsonPorNumero.put(tarefa.numero(), chamado.toString());
+            }
+        }
         int total = resposta.containsKey("total_count") ? resposta.getInt("total_count") : chamados.size();
-        return new Pagina(chamados, total);
+        return new Pagina(List.copyOf(chamados), jsonPorNumero, total);
+    }
+
+    /** Um chamado de {@code /issues/{id}.json} como na importação, com o JSON dele como veio do Redmine. */
+    public record ChamadoLido(CriarTarefaRequest tarefa, String json) {
+    }
+
+    public static ChamadoLido lerTarefa(String json) {
+        JsonObject chamado;
+        try (JsonReader leitor = Json.createReader(new StringReader(json))) {
+            chamado = leitor.readObject().getJsonObject("issue");
+        } catch (RuntimeException e) {
+            chamado = null;
+        }
+        if (chamado == null) {
+            throw new IllegalArgumentException("Resposta inesperada do Redmine ao buscar o chamado");
+        }
+        return new ChamadoLido(paraTarefa(chamado), chamado.toString());
+    }
+
+    /** Arquivo anexado ao chamado. {@code tamanho} em bytes. */
+    public record Anexo(int id, String nome, String tipo, long tamanho) {
+    }
+
+    /** Os anexos de {@code /issues/{id}.json?include=attachments}; vazio se o chamado não tem nenhum. */
+    public static List<Anexo> lerAnexos(String json) {
+        try (JsonReader leitor = Json.createReader(new StringReader(json))) {
+            JsonObject chamado = leitor.readObject().getJsonObject("issue");
+            List<Anexo> anexos = new ArrayList<>();
+            if (chamado.get("attachments") instanceof JsonArray lista) {
+                for (JsonValue item : lista) {
+                    if (item instanceof JsonObject anexo && anexo.get("id") instanceof JsonNumber id
+                            && texto(anexo, "filename") != null) {
+                        anexos.add(new Anexo(id.intValue(), texto(anexo, "filename"), texto(anexo, "content_type"),
+                                anexo.get("filesize") instanceof JsonNumber tamanho ? tamanho.longValue() : 0));
+                    }
+                }
+            }
+            return anexos;
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Resposta inesperada do Redmine ao buscar os anexos do chamado");
+        }
     }
 
     /** Nome do usuário dono da chave, de {@code /users/current.json}. */
@@ -197,6 +260,85 @@ public final class ConsultaRedmine {
         }
     }
 
+    // ─── Envio da estimativa ao chamado ─────────────────────────────────────────────────────────────────────────
+
+    /** Campo personalizado de um chamado. {@code valor} nulo: vazio no Redmine. */
+    public record CampoPersonalizado(int id, String nome, String valor) {
+    }
+
+    /** Situação (status) do Redmine. O nome vem sem os espaços que às vezes sobram no cadastro. */
+    public record Situacao(int id, String nome) {
+    }
+
+    /** O que o envio da estimativa precisa de {@code /issues/{id}.json}: para achar os campos e conferir. */
+    public record Chamado(Double tempoEstimado, Situacao situacao, List<CampoPersonalizado> campos) {
+
+        /** Nulo quando o campo não vale para o tipo (ou o projeto) do chamado. */
+        public CampoPersonalizado campo(int id) {
+            return campos.stream().filter(c -> c.id() == id).findFirst().orElse(null);
+        }
+    }
+
+    public static Chamado lerChamado(String json) {
+        try (JsonReader leitor = Json.createReader(new StringReader(json))) {
+            JsonObject chamado = leitor.readObject().getJsonObject("issue");
+            Double tempo = chamado.get("estimated_hours") instanceof JsonNumber horas ? horas.doubleValue() : null;
+            Situacao situacao = chamado.get("status") instanceof JsonObject status && status.get("id") instanceof JsonNumber id
+                    ? new Situacao(id.intValue(), texto(status, "name") == null ? "" : texto(status, "name").trim())
+                    : null;
+            List<CampoPersonalizado> campos = new ArrayList<>();
+            if (chamado.get("custom_fields") instanceof JsonArray personalizados) {
+                for (JsonValue item : personalizados) {
+                    if (item instanceof JsonObject campo && campo.get("id") instanceof JsonNumber id
+                            && texto(campo, "name") != null) {
+                        campos.add(new CampoPersonalizado(id.intValue(), texto(campo, "name"),
+                                valorPersonalizado(campo.get("value"))));
+                    }
+                }
+            }
+            return new Chamado(tempo, situacao, campos);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Resposta inesperada do Redmine ao buscar o chamado");
+        }
+    }
+
+    /**
+     * Corpo do {@code PUT /issues/{id}.json}: {@code {"issue":{"estimated_hours":5,"status_id":8,"custom_fields":
+     * [{"id":3,"value":"8"}]}}}. Horas ou situação nulas não vão (ficam como estão no chamado).
+     */
+    public static String corpoAtualizacao(Integer horas, Integer situacaoId, Map<Integer, String> camposPersonalizados) {
+        var issue = Json.createObjectBuilder();
+        if (horas != null) {
+            issue.add("estimated_hours", horas);
+        }
+        if (situacaoId != null) {
+            issue.add("status_id", situacaoId);
+        }
+        if (!camposPersonalizados.isEmpty()) {
+            var campos = Json.createArrayBuilder();
+            camposPersonalizados.forEach((id, valor) -> campos.add(Json.createObjectBuilder().add("id", id).add("value", valor)));
+            issue.add("custom_fields", campos);
+        }
+        return Json.createObjectBuilder().add("issue", issue).build().toString();
+    }
+
+    /** Mensagens de um 422 do Redmine ({@code {"errors":["..."]}}); vazio se o corpo não for esse. */
+    public static List<String> lerErros(String json) {
+        try (JsonReader leitor = Json.createReader(new StringReader(json == null ? "" : json))) {
+            JsonValue erros = leitor.readObject().get("errors");
+            return erros instanceof JsonArray lista
+                    ? lista.stream().map(ConsultaRedmine::valorSimples).filter(e -> e != null && !e.isBlank()).toList()
+                    : List.of();
+        } catch (RuntimeException e) {
+            return List.of();
+        }
+    }
+
+    /**
+     * Todos os campos que o {@code /issues.json} traz, na ordem em que o painel de detalhe da tarefa os mostra: os
+     * principais (os da exportação CSV do Redmine) primeiro, depois os demais e os campos personalizados pelo nome
+     * que têm no Redmine. A descrição não entra: tem coluna própria.
+     */
     private static CriarTarefaRequest paraTarefa(JsonObject chamado) {
         String numero = chamado.containsKey("id") ? chamado.get("id").toString() : null;
         String titulo = texto(chamado, "subject");
@@ -209,20 +351,92 @@ public final class ConsultaRedmine {
         extras.put("Prioridade", nome(chamado, "priority"));
         extras.put("Atribuído para", nome(chamado, "assigned_to"));
         extras.put("Versão", versao);
-        if (chamado.get("estimated_hours") instanceof JsonNumber horas) {
-            extras.put("Tempo estimado", horas.toString());
+        extras.put("Tempo estimado", numero(chamado, "estimated_hours"));
+        extras.put("Projeto", nome(chamado, "project"));
+        extras.put("Categoria", nome(chamado, "category"));
+        extras.put("Autor", nome(chamado, "author"));
+        extras.put("Tarefa pai", chamado.get("parent") instanceof JsonObject pai && pai.containsKey("id")
+                ? "#" + pai.get("id") : null);
+        extras.put("Início", data(texto(chamado, "start_date")));
+        extras.put("Data prevista", data(texto(chamado, "due_date")));
+        String terminado = numero(chamado, "done_ratio");
+        extras.put("% Terminado", terminado == null ? null : terminado + "%");
+        String total = numero(chamado, "total_estimated_hours");
+        if (total != null && !total.equals(extras.get("Tempo estimado"))) {
+            extras.put("Tempo estimado total", total);
         }
-        extras.values().removeIf(v -> v == null || v.isBlank());
+        extras.put("Tempo gasto", numero(chamado, "spent_hours"));
+        if (chamado.containsKey("is_private") && chamado.get("is_private") == JsonValue.TRUE) {
+            extras.put("Privada", "Sim");
+        }
+        extras.put("Criada em", dataHora(texto(chamado, "created_on")));
+        extras.put("Atualizada em", dataHora(texto(chamado, "updated_on")));
+        extras.put("Fechada em", dataHora(texto(chamado, "closed_on")));
+        if (chamado.get("custom_fields") instanceof JsonArray personalizados) {
+            for (JsonValue item : personalizados) {
+                if (item instanceof JsonObject campo && texto(campo, "name") != null) {
+                    // Um campo personalizado com o nome de um padrão não o sobrescreve
+                    extras.putIfAbsent(texto(campo, "name").trim(), valorPersonalizado(campo.get("value")));
+                }
+            }
+        }
+        // Vazios também: o painel de detalhe mostra o campo, para o moderador ver o que falta preencher
+        extras.replaceAll((campo, valor) -> valor == null ? "" : valor);
 
         String sprint = versao == null || versao.length() <= MAXIMO_SPRINT ? versao : versao.substring(0, MAXIMO_SPRINT);
-        return new CriarTarefaRequest(numero, titulo, texto(chamado, "description"), sprint,
-                extras.isEmpty() ? null : extras);
+        return new CriarTarefaRequest(numero, titulo, texto(chamado, "description"), sprint, extras);
     }
 
     /** Campos como {@code tracker} e {@code status} vêm como {@code {"id": 1, "name": "Bug"}}. */
     private static String nome(JsonObject chamado, String campo) {
         JsonValue valor = chamado.get(campo);
         return valor instanceof JsonObject objeto ? texto(objeto, "name") : null;
+    }
+
+    private static String numero(JsonObject chamado, String campo) {
+        return chamado.get(campo) instanceof JsonNumber valor ? valor.toString() : null;
+    }
+
+    /** Campo personalizado de múltiplos valores vem como lista: vira "a, b". */
+    private static String valorPersonalizado(JsonValue valor) {
+        if (valor instanceof JsonArray lista) {
+            return lista.stream()
+                    .map(ConsultaRedmine::valorSimples)
+                    .filter(v -> v != null && !v.isBlank())
+                    .collect(Collectors.joining(", "));
+        }
+        return valorSimples(valor);
+    }
+
+    private static String valorSimples(JsonValue valor) {
+        if (valor == null || valor.getValueType() == JsonValue.ValueType.NULL) {
+            return null;
+        }
+        return valor instanceof JsonString texto ? texto.getString() : valor.toString();
+    }
+
+    /** {@code 2025-10-14} → {@code 14/10/2025}; o que não for data fica como veio. */
+    private static String data(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(valor).format(DATA);
+        } catch (DateTimeParseException e) {
+            return valor;
+        }
+    }
+
+    /** {@code 2025-10-14T12:30:00Z} → {@code 14/10/2025 09:30} (no {@link #FUSO}). */
+    private static String dataHora(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        try {
+            return OffsetDateTime.parse(valor).atZoneSameInstant(FUSO).format(DATA_HORA);
+        } catch (DateTimeParseException e) {
+            return valor;
+        }
     }
 
     private static String texto(JsonObject objeto, String campo) {

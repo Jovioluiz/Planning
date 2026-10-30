@@ -1,6 +1,6 @@
-<div class="rm-page" [class.tema-escuro]="temaEscuro">
+<div class="rm-page" [class.tema-escuro]="temaEscuro && !embutido" [class.rm-embutido]="embutido">
 
-  <header class="rm-header">
+  <header *ngIf="!embutido" class="rm-header">
     <div class="header-brand">
       <button class="btn-voltar" (click)="voltar()" title="Voltar">←</button>
       <span class="brand-icon">🦶</span>
@@ -12,7 +12,7 @@
     </div>
   </header>
 
-  <section class="hero">
+  <section *ngIf="!embutido" class="hero">
     <span class="hero-circle hero-circle-lg"></span>
     <span class="hero-circle hero-circle-sm"></span>
     <div class="hero-content">
