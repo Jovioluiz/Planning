@@ -12,7 +12,9 @@ $Planning = @{
     PgPorta           = 5433
     PgUsuario         = 'postgres'
     PgSenha           = 'postgres'
-    Banco             = 'planningjakarta'
+    # Banco de produção e banco de testes, no mesmo PostgreSQL. Qual está em uso fica em <Servidor>\banco-ativo.txt;
+    # para trocar: .\banco.ps1 testes  /  .\banco.ps1 producao  (ou UsarBancoTestes.bat / UsarBancoProducao.bat)
+    Bancos            = @{ producao = 'planningjakarta'; testes = 'planningjakarta_testes' }
     BancoOriginal     = 'planningdb'      # origem da migração (planning-migracao)
 
     # WildFly: HTTP na 8080 + offset (8082) e console de gerência na 9990 + offset (9992).
@@ -38,6 +40,18 @@ $Planning = @{
     SuperSenha        = ''
     # Inativa a sala 15 s depois que o moderador sai, como no original; 0 desliga
     SalaInativacaoSeg = 15
+
+    # E-mail do "Esqueci minha senha" (o link para criar uma senha nova). SmtpHost vazio: desligado.
+    # Gmail: SmtpHost 'smtp.gmail.com', porta 587, SmtpUsuario = o seu Gmail e SmtpSenha = uma "senha de app"
+    # (https://myaccount.google.com/apppasswords; precisa da verificação em duas etapas ligada).
+    SmtpHost          = ''
+    SmtpPorta         = 587
+    SmtpUsuario       = ''
+    SmtpSenha         = ''
+    SmtpRemetente     = ''                # vazio: o próprio SmtpUsuario
+    SmtpSsl           = $false            # $true só para SSL direto (porta 465); a 587 usa STARTTLS
+    # Endereço do front que vai no link do e-mail
+    FrontUrl          = 'https://chutometro.dev.br'
 
     # Backups diários do banco (pg_dump): quantos dias guardar
     BackupDias        = 14

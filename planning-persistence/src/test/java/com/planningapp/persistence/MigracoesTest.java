@@ -39,9 +39,9 @@ class MigracoesTest {
      */
     private static final List<String> COLUNAS_POSTERIORES_AO_LIQUIBASE = List.of(
             "tarefas.dados_extras", "tarefas.horas_liberadas_em", "tarefas.do_redmine",
-            "tarefas.json_redmine");
+            "tarefas.json_redmine", "usuarios.email", "usuarios.redefinicao_hash", "usuarios.redefinicao_expira_em");
 
-    private static final List<String> TABELAS_POSTERIORES_AO_LIQUIBASE = List.of("configuracoes_redmine");
+    private static final List<String> TABELAS_POSTERIORES_AO_LIQUIBASE = List.of("configuracoes_redmine", "fotos_usuario");
 
     @Test
     void changelogCriaOSchemaQueAsEntidadesEsperam() throws Exception {

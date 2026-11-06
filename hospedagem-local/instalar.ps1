@@ -75,13 +75,16 @@ if (-not (Test-Path $marca)) {
 }
 
 # --- 4. Banco -----------------------------------------------------------------------------------------------------
-Etapa "Banco $($cfg.Banco)"
-if (Psql $cfg 'postgres' "SELECT 1 FROM pg_database WHERE datname = '$($cfg.Banco)'") {
-    Write-Host 'Já existe.'
-} else {
-    Psql $cfg 'postgres' "CREATE DATABASE $($cfg.Banco) ENCODING 'UTF8' TEMPLATE template0" | Out-Null
-    Write-Host 'Criado (vazio; o schema vem do Liquibase, na migração ou no primeiro deploy).'
+foreach ($ambiente in 'producao', 'testes') {
+    $banco = $cfg.Bancos[$ambiente]
+    Etapa "Banco de $ambiente ($banco)"
+    if (Criar-Banco $cfg $banco) {
+        Write-Host 'Criado (vazio; o schema vem do Liquibase, na migração ou no primeiro deploy).'
+    } else {
+        Write-Host 'Já existe.'
+    }
 }
+Write-Host "Em uso: $($cfg.Ambiente) ($($cfg.Banco)). Para trocar: .\banco.ps1"
 
 # --- 5. Aplicação -------------------------------------------------------------------------------------------------
 & "$PSScriptRoot\implantar.ps1"

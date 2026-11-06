@@ -13,6 +13,8 @@ import { mensagemDeErro } from '../services/api-jakarta';
 import { ConfigurarRedmine } from '../pages/configurar-redmine/configurar-redmine';
 import { Estatisticas } from '../pages/estatisticas/estatisticas';
 import { textileParaHtml } from './textile-redmine';
+import { UsuarioMenu } from '../components/usuario-menu/usuario-menu';
+import { Avatar } from '../components/avatar/avatar';
 
 /** Colunas extras que repetem campos da tarefa (o CSV guarda "titulo"; o Redmine, "Título"). */
 const COLUNAS_PROPRIAS = new Set(['titulo', 'descricao']);
@@ -30,7 +32,7 @@ const normalizarColuna = (coluna: string) =>
 @Component({
   selector: 'app-importar-tarefas',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfigurarRedmine, Estatisticas],
+  imports: [CommonModule, FormsModule, ConfigurarRedmine, Estatisticas, UsuarioMenu, Avatar],
   templateUrl: './importar-tarefas.html',
   styleUrls: ['./importar-tarefas.scss']
 })

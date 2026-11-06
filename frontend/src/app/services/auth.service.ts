@@ -3,7 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { WebSocketService } from '../websocket/websocket.service';
-import { API } from './api-jakarta';
+import { API, mensagemDeErro } from './api-jakarta';
 
 interface TokenDTO {
   token: string;
@@ -33,11 +33,11 @@ export class AuthService {
     const credenciais = { usuario: usuario.trim().toUpperCase(), senha: senha.trim() };
     return this.entrar(credenciais).pipe(
       catchError((err: HttpErrorResponse) => {
-        if (err.status === 401 && err.error?.message === CREDENCIAIS_INVALIDAS) {
+        if (err.status === 401 && this.texto(err) === CREDENCIAIS_INVALIDAS) {
           return this.http.post(`${this.api}/registrar`, { ...credenciais, perfil }).pipe(
             switchMap(() => this.entrar(credenciais)),
             catchError((erroCadastro: HttpErrorResponse) => {
-              const jaExiste = erroCadastro.status === 422 && /já existe/i.test(erroCadastro.error?.message ?? '');
+              const jaExiste = erroCadastro.status === 422 && /já existe/i.test(this.texto(erroCadastro) ?? '');
               return throwError(() => new Error(jaExiste ? 'Senha incorreta.' : this.mensagem(erroCadastro)));
             })
           );
@@ -58,8 +58,13 @@ export class AuthService {
     );
   }
 
+  /** Mensagem do backend: { mensagem } (ErroDTO), ou { message } quando o authInterceptor já traduziu. */
+  private texto(err: HttpErrorResponse): string | null {
+    return err?.error?.message ?? mensagemDeErro(err?.error);
+  }
+
   private mensagem(err: HttpErrorResponse): string {
-    return err?.error?.message || (err?.status === 0 ? 'Erro ao conectar com o servidor' : 'Erro ao entrar');
+    return this.texto(err) || (err?.status === 0 ? 'Erro ao conectar com o servidor' : 'Erro ao entrar');
   }
 
   logout(): void {

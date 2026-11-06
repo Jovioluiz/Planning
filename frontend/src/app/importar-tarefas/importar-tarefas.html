@@ -21,8 +21,7 @@
       <button class="btn-tema" (click)="toggleTema()" [title]="temaEscuro ? 'Mudar para claro' : 'Mudar para escuro'">
         {{ temaEscuro ? '☀️' : '🌙' }}
       </button>
-      <span class="user-avatar">{{ (usuario || 'A')[0].toUpperCase() }}</span>
-      <span class="user-name">{{ usuario }}</span>
+      <app-usuario-menu [usuario]="usuario"></app-usuario-menu>
       <button class="btn-logout" (click)="logout()">Sair</button>
     </div>
   </header>
@@ -485,7 +484,7 @@
         <div class="card-body online-list">
           <div *ngFor="let u of usuariosOnline" class="online-item">
             <span class="dot-online"></span>
-            <span class="online-avatar">{{ u[0].toUpperCase() }}</span>
+            <span class="online-avatar"><app-avatar [usuario]="u" [tamanho]="30"></app-avatar></span>
             <span class="online-name">{{ u }}</span>
           </div>
           <p *ngIf="usuariosOnline.length === 0" class="online-empty">Nenhum usuário conectado</p>

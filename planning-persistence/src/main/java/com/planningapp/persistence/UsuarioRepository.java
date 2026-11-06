@@ -30,6 +30,21 @@ public class UsuarioRepository {
                 .findFirst();
     }
 
+    /** O e-mail é gravado em minúsculas: passe-o já normalizado. */
+    public Optional<Usuario> buscarPorEmail(String email) {
+        return em.createQuery("SELECT u FROM Usuario u WHERE u.email = :email", Usuario.class)
+                .setParameter("email", email)
+                .getResultStream()
+                .findFirst();
+    }
+
+    public Optional<Usuario> buscarPorRedefinicaoHash(String hash) {
+        return em.createQuery("SELECT u FROM Usuario u WHERE u.redefinicaoHash = :hash", Usuario.class)
+                .setParameter("hash", hash)
+                .getResultStream()
+                .findFirst();
+    }
+
     public boolean existePorUsuario(String usuario) {
         return em.createQuery("SELECT COUNT(u) FROM Usuario u WHERE u.usuario = :usuario", Long.class)
                 .setParameter("usuario", usuario)

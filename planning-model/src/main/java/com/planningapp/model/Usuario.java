@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -37,6 +38,17 @@ public class Usuario {
     /** Desativado não faz login e o token que já tinha para de valer. */
     @Column(nullable = false)
     private boolean ativo = true;
+
+    /** Opcional, em minúsculas. Para onde vai o link do "Esqueci minha senha". */
+    @Column(length = 150)
+    private String email;
+
+    /** SHA-256 (hex) do token do link de redefinição de senha em aberto; nulo se não há pedido. */
+    @Column(name = "redefinicao_hash", length = 64)
+    private String redefinicaoHash;
+
+    @Column(name = "redefinicao_expira_em")
+    private Instant redefinicaoExpiraEm;
 
     protected Usuario() {
         // exigido pelo JPA
@@ -83,6 +95,33 @@ public class Usuario {
 
     public void alterarSenha(String novoHash) {
         senhaHash = novoHash;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void alterarEmail(String novoEmail) {
+        email = novoEmail;
+    }
+
+    /** Guarda o pedido de redefinição de senha (substitui um anterior, que deixa de valer). */
+    public void abrirRedefinicaoSenha(String hashToken, Instant expiraEm) {
+        redefinicaoHash = hashToken;
+        redefinicaoExpiraEm = expiraEm;
+    }
+
+    public void fecharRedefinicaoSenha() {
+        redefinicaoHash = null;
+        redefinicaoExpiraEm = null;
+    }
+
+    public String getRedefinicaoHash() {
+        return redefinicaoHash;
+    }
+
+    public Instant getRedefinicaoExpiraEm() {
+        return redefinicaoExpiraEm;
     }
 
     public void desativar() {

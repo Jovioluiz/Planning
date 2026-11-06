@@ -1,9 +1,11 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { TaskService } from '../../services/task.service';
+import { PerfilService } from '../../services/perfil.service';
 
 @Component({
   selector: 'app-login',
@@ -12,7 +14,7 @@ import { TaskService } from '../../services/task.service';
   templateUrl: './login.html',
   styleUrls: ['./login.scss']
 })
-export class Login {
+export class Login implements OnInit {
   usuario = '';
   senha = '';
   perfil = '';
@@ -23,8 +25,65 @@ export class Login {
     private auth: AuthService,
     private router: Router,
     private taskService: TaskService,
+    private perfilService: PerfilService,
     private cdr: ChangeDetectorRef
   ) {}
+
+  /** Modo "Esqueci minha senha". */
+  esqueci = false;
+  usuarioOuEmail = '';
+  linkEnviado = false;
+  /** Mensagem de sucesso no login (ex.: vindo da redefinição de senha). */
+  aviso = '';
+
+  ngOnInit(): void {
+    const estado = typeof history !== 'undefined' ? history.state : null;
+    if (estado?.senhaRedefinida) {
+      this.usuario = String(estado.usuario ?? '').toUpperCase();
+      this.aviso = 'Senha redefinida. Entre com a nova senha.';
+    }
+  }
+
+  abrirEsqueci(): void {
+    this.esqueci = true;
+    this.linkEnviado = false;
+    this.erro = '';
+    this.aviso = '';
+    this.usuarioOuEmail = this.usuario;
+    this.cdr.detectChanges();
+  }
+
+  voltarAoLogin(): void {
+    this.esqueci = false;
+    this.erro = '';
+    this.cdr.detectChanges();
+  }
+
+  enviarLink(event: Event): void {
+    event.preventDefault();
+    this.erro = '';
+    const chave = this.usuarioOuEmail.trim();
+    if (!chave) {
+      this.erro = 'Informe o usuário ou o e-mail';
+      return;
+    }
+    this.carregando = true;
+    this.cdr.detectChanges();
+    this.perfilService.esqueciSenha(chave).subscribe({
+      next: () => {
+        this.carregando = false;
+        this.linkEnviado = true;
+        this.cdr.detectChanges();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.carregando = false;
+        this.erro = err.status === 0
+          ? 'Erro ao conectar com o servidor'
+          : err.error?.message || 'Não foi possível enviar o link';
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   onUsuarioChange(value: string): void {
     this.usuario = value.toUpperCase();

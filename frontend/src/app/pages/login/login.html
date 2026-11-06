@@ -40,10 +40,58 @@
   <div class="form-panel">
     <div class="form-inner">
 
+      <!-- ── Esqueci minha senha ─────────────────────────── -->
+      <ng-container *ngIf="esqueci">
+        <div class="form-header">
+          <p class="form-welcome">Acontece com todo mundo 🔑</p>
+          <h2 class="form-title">Esqueci minha senha</h2>
+        </div>
+
+        <form *ngIf="!linkEnviado" (ngSubmit)="enviarLink($event)" novalidate>
+          <p class="explicacao">
+            Informe seu usuário ou o e-mail cadastrado no seu perfil. Enviaremos um link para você criar uma nova senha.
+          </p>
+          <div class="field">
+            <label for="usuarioOuEmail">Usuário ou e-mail</label>
+            <div class="input-wrap">
+              <span class="input-icon">✉️</span>
+              <input
+                id="usuarioOuEmail"
+                type="text"
+                [(ngModel)]="usuarioOuEmail"
+                name="usuarioOuEmail"
+                placeholder="Seu usuário ou voce@empresa.com.br"
+                autocomplete="username"
+                [disabled]="carregando"
+              />
+            </div>
+          </div>
+
+          <button type="submit" class="btn-entrar" [disabled]="carregando">
+            <span *ngIf="!carregando">Enviar link</span>
+            <span *ngIf="carregando" class="spinner-row"><span class="spinner"></span> Enviando...</span>
+          </button>
+        </form>
+
+        <div *ngIf="linkEnviado" class="sucesso">
+          <strong>Confira seu e-mail.</strong>
+          Se houver um e-mail cadastrado para <strong>{{ usuarioOuEmail }}</strong>, enviamos um link que vale por
+          30 minutos. Não chegou em alguns minutos? Veja a caixa de spam ou peça ao administrador para redefinir sua
+          senha.
+        </div>
+
+        <p *ngIf="erro" class="erro">{{ erro }}</p>
+
+        <button type="button" class="link-acao" (click)="voltarAoLogin()">← Voltar para o login</button>
+      </ng-container>
+
+      <ng-container *ngIf="!esqueci">
       <div class="form-header">
         <p class="form-welcome">Bem-vindo de volta 👋</p>
         <h2 class="form-title">Entrar na sessão</h2>
       </div>
+
+      <p *ngIf="aviso" class="sucesso">{{ aviso }}</p>
 
       <form (ngSubmit)="login($event)" novalidate>
 
@@ -79,6 +127,9 @@
               [disabled]="carregando"
             />
           </div>
+          <button type="button" class="link-acao link-esqueci" (click)="abrirEsqueci()" [disabled]="carregando">
+            Esqueci minha senha
+          </button>
         </div>
 
         <div class="field">
@@ -107,7 +158,11 @@
 
       <p *ngIf="erro" class="erro">{{ erro }}</p>
 
-      <p class="hint">Novo usuário? Basta entrar que sua conta será criada automaticamente.</p>
+      <p class="hint">
+        Novo usuário? Basta entrar que sua conta será criada automaticamente.<br>
+        Depois, cadastre seu e-mail em <strong>Meu perfil</strong> (clique no seu nome no topo) para poder recuperar a senha.
+      </p>
+      </ng-container>
 
     </div>
   </div>

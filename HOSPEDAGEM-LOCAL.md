@@ -66,13 +66,33 @@ planning-jakarta, não volta para ele.
 |---|---|
 | Iniciar / parar | `.\iniciar.ps1` / `.\parar.ps1` (ou `IniciarServidor.bat` / `PararServidor.bat`). Abre uma janela do cmd para o WildFly e outra para o front; o `parar.ps1` fecha as duas. Fechar uma janela no X derruba aquele servidor na hora (prefira o `parar.ps1`, que desliga o WildFly direito) |
 | Publicar uma mudança no código | `.\implantar.ps1` (o WildFly troca o EAR sem reiniciar; o front reinicia sozinho). `-SoBackend` pula o front; `-ComTestes` roda os testes |
-| Backup agora | `.\backup.ps1` |
+| Backup agora | `.\backup.ps1` (sempre o banco de produção; `-Testes` para o de testes) |
+| Ver / trocar o banco | `.\banco.ps1` mostra qual está em uso; `.\banco.ps1 testes` / `.\banco.ps1 producao` troca e reinicia só o WildFly (ou `UsarBancoTestes.bat` / `UsarBancoProducao.bat`). `.\banco.ps1 testes -CopiarProducao` recria o de testes como cópia da produção |
 | Restaurar um backup | `.\parar.ps1`, depois `pg_restore -h localhost -p 5433 -U postgres -d planningjakarta --clean --if-exists <arquivo.dump>` |
 | Ver o que deu errado | `.\erros.ps1`: mostra os 5 últimos erros (dos dois) e **copia para a área de transferência**, pronto para colar. `-Quantidade 10` muda quantos; `-Limpar` apaga o histórico depois de corrigir. Se um servidor cair, a janela dele fica aberta com a mensagem |
 | Console do WildFly | `http://127.0.0.1:9992` (precisa de um usuário: `wildfly-41.0.1.Final\bin\add-user.bat`) |
 
 Tudo vem do `config.ps1`: portas, senha do banco, `ALLOWED_ORIGINS`, `SUPER_SENHA`, tempo de inativação das
 salas, memória do WildFly e dias de backup. Depois de mudar, `.\parar.ps1` e `.\iniciar.ps1`.
+
+## Banco de produção e de testes
+
+Os dois ficam no mesmo PostgreSQL (`Bancos` no `config.ps1`; padrão `planningjakarta` e `planningjakarta_testes`).
+O que está em uso fica em `<Servidor>\banco-ativo.txt` (sem o arquivo: produção) e vale para todos os scripts.
+
+- Só existe **um** WildFly: enquanto ele estiver no banco de testes, quem entrar pelo `chutometro.dev.br` também
+  usa o de testes. O front mostra uma faixa amarela "Ambiente de testes" (vem de `PLANNING_AMBIENTE`) e a janela
+  do WildFly ganha `[BANCO DE TESTES]` no título.
+- O banco de testes novo é criado vazio (as tabelas vêm do Liquibase no deploy). Para testar com dados reais, use
+  `-CopiarProducao` (a produção só é lida; os e-mails cadastrados vêm junto).
+- Os e-mails enviados em testes saem com `[TESTES]` no assunto.
+
+## E-mail do "Esqueci minha senha"
+
+Preencha `SmtpHost`, `SmtpUsuario`, `SmtpSenha` (e `FrontUrl`) no `config.ps1`, depois `.\parar.ps1` e
+`.\iniciar.ps1`. Com Gmail: `smtp.gmail.com`, porta 587, e a senha é uma "senha de app"
+(https://myaccount.google.com/apppasswords, precisa da verificação em duas etapas). Sem `SmtpHost`, a tela de
+login avisa que o envio não está configurado. Falhas de envio aparecem no `.\erros.ps1`.
 
 ## Limites (os mesmos de hoje)
 

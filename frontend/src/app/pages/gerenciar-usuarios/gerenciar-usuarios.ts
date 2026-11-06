@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
+import { UsuarioMenu } from '../../components/usuario-menu/usuario-menu';
+import { Avatar } from '../../components/avatar/avatar';
 
 /** UsuarioGestaoDTO do backend (GET /api/usuarios, só SUPER). */
 interface UsuarioInfo {
@@ -16,7 +18,7 @@ interface UsuarioInfo {
 @Component({
   selector: 'app-gerenciar-usuarios',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, UsuarioMenu, Avatar],
   templateUrl: './gerenciar-usuarios.html',
   styleUrls: ['./gerenciar-usuarios.scss']
 })

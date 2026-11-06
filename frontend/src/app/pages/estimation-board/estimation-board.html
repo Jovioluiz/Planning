@@ -8,8 +8,7 @@
       <span class="brand-role">Votação</span>
     </div>
     <div class="board-user">
-      <span class="user-avatar">{{ (participante || 'U')[0].toUpperCase() }}</span>
-      <span class="user-name">{{ participante }}</span>
+      <app-usuario-menu [usuario]="participante"></app-usuario-menu>
       <button class="btn-tema" (click)="toggleTema()" [title]="temaEscuro ? 'Mudar para claro' : 'Mudar para escuro'">
         {{ temaEscuro ? '☀️' : '🌙' }}
       </button>
@@ -198,7 +197,7 @@
         <h3 class="previous-round-title">Rodada {{ rodadaAtualNum - 1 }} — Referência</h3>
         <div class="participants-grid previous-round-grid">
           <div *ngFor="let est of estimativasRodadaAnterior" class="p-card p-card-previous">
-            <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
+            <div class="p-avatar"><app-avatar [usuario]="est.participante" [tamanho]="42"></app-avatar></div>
             <div class="p-name">{{ est.participante }}</div>
             <div class="p-vote-row">
               <span class="p-label">Pontos</span>
@@ -219,7 +218,7 @@
         <div *ngFor="let est of estimativasRodadaAtual" class="p-card"
              [class.card-otimista]="classificarVoto(est.pontos) === 'otimista'"
              [class.card-pessimista]="classificarVoto(est.pontos) === 'pessimista'">
-          <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
+          <div class="p-avatar"><app-avatar [usuario]="est.participante" [tamanho]="42"></app-avatar></div>
           <div class="p-name">{{ est.participante }}</div>
           <div *ngIf="classificarVoto(est.pontos) === 'otimista'" class="voto-label voto-otimista">⬇ Otimista</div>
           <div *ngIf="classificarVoto(est.pontos) === 'pessimista'" class="voto-label voto-pessimista">⬆ Pessimista</div>
@@ -266,7 +265,7 @@
       <!-- Pontos revelados (e possivelmente horas também) -->
       <div *ngIf="tarefa?.pontosRevelados && estimativasRodadaAtual.length > 0" class="participants-grid">
         <div *ngFor="let est of estimativasRodadaAtual" class="p-card">
-          <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
+          <div class="p-avatar"><app-avatar [usuario]="est.participante" [tamanho]="42"></app-avatar></div>
           <div class="p-name">{{ est.participante }}</div>
 
           <div class="p-votes">
@@ -355,7 +354,7 @@
       <!-- Votos dos testadores -->
       <div *ngIf="estimativasTeste.length > 0" class="participants-grid">
         <div *ngFor="let est of estimativasTeste" class="p-card">
-          <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
+          <div class="p-avatar"><app-avatar [usuario]="est.participante" [tamanho]="42"></app-avatar></div>
           <div class="p-name">{{ est.participante }}</div>
           <div class="p-votes">
             <div class="p-vote-row">
@@ -388,7 +387,7 @@
     <h2 class="section-title">🧪 Resultado — Horas de Teste</h2>
     <div class="participants-grid">
       <div *ngFor="let est of estimativasTeste" class="p-card">
-        <div class="p-avatar">{{ est.participante[0].toUpperCase() }}</div>
+        <div class="p-avatar"><app-avatar [usuario]="est.participante" [tamanho]="42"></app-avatar></div>
         <div class="p-name">{{ est.participante }}</div>
         <div class="p-votes">
           <div class="p-vote-row">
@@ -420,7 +419,7 @@
       <div class="online-list">
         <div *ngFor="let u of usuariosOnline" class="online-item">
           <span class="dot-online"></span>
-          <span class="online-avatar">{{ u[0].toUpperCase() }}</span>
+          <span class="online-avatar"><app-avatar [usuario]="u" [tamanho]="30"></app-avatar></span>
           <span class="online-name">{{ u }}</span>
         </div>
         <p *ngIf="usuariosOnline.length === 0" class="online-empty">Nenhum usuário conectado</p>

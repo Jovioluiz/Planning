@@ -3,12 +3,14 @@
   Para o front e o WildFly (o WildFly com shutdown normal, pela CLI de gerência).
 .PARAMETER SoFront
   Para só o front (usado pelo implantar.ps1).
+.PARAMETER SoBackend
+  Para só o WildFly (usado pelo banco.ps1).
 #>
-param([switch] $SoFront)
+param([switch] $SoFront, [switch] $SoBackend)
 . "$PSScriptRoot\comum.ps1"
 $cfg = Carregar-Config
 
-$front = Processo-Na-Porta $cfg.FrontPorta
+$front = if ($SoBackend) { $null } else { Processo-Na-Porta $cfg.FrontPorta }
 if ($front -and $front.ProcessName -eq 'node') {
     # Fecha a janela "Planning - Front" antes: com o node morto, ela ficaria esperando o Enter do erro
     Fechar-Janela $front.Id

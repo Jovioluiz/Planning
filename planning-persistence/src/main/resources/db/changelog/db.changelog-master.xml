@@ -24,6 +24,11 @@
     <property name="tipo.texto" value="VARCHAR(1000000)" dbms="h2"/>
     <property name="tipo.texto" value="TEXT"/>
 
+    <!-- Binário (FotoUsuario.conteudo, byte[]): BYTEA no Postgres, como o Hibernate mapeia; no H2, VARBINARY -->
+    <property name="tipo.binario" value="BYTEA" dbms="postgresql"/>
+    <property name="tipo.binario" value="VARBINARY(1000000)" dbms="h2"/>
+    <property name="tipo.binario" value="BLOB"/>
+
     <include file="changes/001-esquema-inicial.xml" relativeToChangelogFile="true"/>
     <include file="changes/002-remover-checks-do-hibernate.xml" relativeToChangelogFile="true"/>
     <include file="changes/003-checks-dos-enums.xml" relativeToChangelogFile="true"/>
@@ -35,4 +40,5 @@
     <include file="changes/009-json-redmine-da-tarefa.xml" relativeToChangelogFile="true"/>
     <include file="changes/010-situacao-apos-estimar.xml" relativeToChangelogFile="true"/>
     <include file="changes/011-envio-redmine-sem-configuracao.xml" relativeToChangelogFile="true"/>
+    <include file="changes/012-perfil-do-usuario.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

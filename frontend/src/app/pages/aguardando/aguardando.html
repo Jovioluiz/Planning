@@ -8,8 +8,7 @@
       <span class="brand-role">Sala de espera</span>
     </div>
     <div class="header-user">
-      <span class="user-avatar">{{ (usuario || 'U')[0].toUpperCase() }}</span>
-      <span class="user-name">{{ usuario }}</span>
+      <app-usuario-menu [usuario]="usuario"></app-usuario-menu>
       <button class="btn-tema" (click)="toggleTema()" [title]="temaEscuro ? 'Mudar para claro' : 'Mudar para escuro'">
         {{ temaEscuro ? '☀️' : '🌙' }}
       </button>

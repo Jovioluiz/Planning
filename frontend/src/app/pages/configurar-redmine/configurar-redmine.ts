@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ConfiguracaoRedmine, RedmineService } from '../../services/redmine.service';
 import { mensagemDeErro } from '../../services/api-jakarta';
+import { UsuarioMenu } from '../../components/usuario-menu/usuario-menu';
 
 /**
  * Acesso ao Redmine do moderador: link da consulta, projeto e chave da API, usados na importação de chamados.
@@ -14,7 +15,7 @@ import { mensagemDeErro } from '../../services/api-jakarta';
 @Component({
   selector: 'app-configurar-redmine',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, UsuarioMenu],
   templateUrl: './configurar-redmine.html',
   styleUrls: ['./configurar-redmine.scss']
 })

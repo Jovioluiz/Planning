@@ -1,10 +1,13 @@
 package com.planningapp.web.resource;
 
+import com.planningapp.dto.EsqueciSenhaRequest;
 import com.planningapp.dto.LoginRequest;
+import com.planningapp.dto.RedefinirSenhaPorLinkRequest;
 import com.planningapp.dto.RegistrarUsuarioRequest;
 import com.planningapp.dto.TokenDTO;
 import com.planningapp.dto.UsuarioDTO;
 import com.planningapp.service.AuthService;
+import com.planningapp.service.RedefinicaoSenhaService;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -26,6 +29,9 @@ public class AuthResource {
     @Inject
     private AuthService authService;
 
+    @Inject
+    private RedefinicaoSenhaService redefinicaoSenhaService;
+
     @POST
     @Path("/registrar")
     public Response registrar(@Valid @NotNull RegistrarUsuarioRequest request) {
@@ -38,6 +44,20 @@ public class AuthResource {
     @Path("/login")
     public TokenDTO login(@Valid @NotNull LoginRequest request) {
         return authService.login(request);
+    }
+
+    /** Sempre 202, exista ou não o usuário (não revela quem está cadastrado); o link vai por e-mail. */
+    @POST
+    @Path("/esqueci-senha")
+    public Response esqueciSenha(@Valid @NotNull EsqueciSenhaRequest request) {
+        redefinicaoSenhaService.solicitar(request);
+        return Response.accepted().build();
+    }
+
+    @POST
+    @Path("/redefinir-senha")
+    public UsuarioDTO redefinirSenha(@Valid @NotNull RedefinirSenhaPorLinkRequest request) {
+        return redefinicaoSenhaService.redefinir(request);
     }
 
     @GET

@@ -338,6 +338,13 @@
 <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
 
 
+<!-- Servidor fora da produção (PLANNING_AMBIENTE, trocado pelo banco.ps1 da hospedagem local) -->
+@if (ambiente && !ambiente.producao) {
+  <div class="faixa-ambiente" role="status">
+    Ambiente de <strong>{{ ambiente.ambiente }}</strong>: os dados deste servidor não são os de produção
+  </div>
+}
+
 <router-outlet></router-outlet>
 
 <footer class="app-footer">

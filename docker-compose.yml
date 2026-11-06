@@ -13,6 +13,8 @@ services:
       - "5434:5432"
     volumes:
       - planning-jakarta-data:/var/lib/postgresql/data
+      # Só roda num volume novo: cria também o banco de testes
+      - ./docker/criar-banco-testes.sql:/docker-entrypoint-initdb.d/criar-banco-testes.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -26,7 +28,10 @@ services:
       db:
         condition: service_healthy
     environment:
-      DB_URL: jdbc:postgresql://db:5432/planningjakarta
+      # Banco de testes: BANCO=planningjakarta_testes PLANNING_AMBIENTE=testes docker compose up -d wildfly
+      # (o init cria os dois num volume novo; num volume antigo: docker compose exec db createdb -U postgres planningjakarta_testes)
+      DB_URL: jdbc:postgresql://db:5432/${BANCO:-planningjakarta}
+      PLANNING_AMBIENTE: ${PLANNING_AMBIENTE:-producao}
       DB_USER: postgres
       DB_PASS: postgres
       # As mesmas origens do Planning original, mais o front no Render
@@ -40,6 +45,13 @@ services:
       SUPER_SENHA: ${SUPER_SENHA:-}
       # Inativa a sala 15 s depois que o moderador sai (como o original); 0 desliga
       SALA_INATIVACAO_SEGUNDOS: 15
+      # E-mail do "Esqueci minha senha" (sem SMTP_HOST, desligado). Ex.: Gmail com senha de app
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORTA: ${SMTP_PORTA:-587}
+      SMTP_USUARIO: ${SMTP_USUARIO:-}
+      SMTP_SENHA: ${SMTP_SENHA:-}
+      SMTP_REMETENTE: ${SMTP_REMETENTE:-}
+      FRONT_URL: ${FRONT_URL:-https://chutometro.dev.br}
     ports:
       - "8082:8080"   # aplicação: http://localhost:8082/planning/api
       - "9991:9990"   # console de administração do WildFly

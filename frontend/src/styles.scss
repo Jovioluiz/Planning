@@ -157,3 +157,12 @@ body {
 
   .textile-anexo { color: var(--faint); font-style: italic; }
 }
+
+/* ─── Foto de perfil nas listas ─────────────────────────────
+   O <app-avatar> ocupa o círculo de cada lista; sem foto, a inicial
+   aparece com as cores que a própria lista já usava. */
+.p-avatar, .online-avatar, .su-item-avatar {
+  --avatar-fundo: transparent;
+  --avatar-texto: inherit;
+  overflow: hidden;
+}

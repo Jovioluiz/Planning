@@ -7,8 +7,10 @@
   Faz também um backup do banco se o último tiver mais de 20 h (para quem não registrou o backup diário).
 .PARAMETER SoFront
   Sobe só o front (usado pelo implantar.ps1).
+.PARAMETER SoBackend
+  Sobe só o WildFly (usado pelo banco.ps1).
 #>
-param([switch] $SoFront)
+param([switch] $SoFront, [switch] $SoBackend)
 . "$PSScriptRoot\comum.ps1"
 $cfg = Carregar-Config
 Definir-Ambiente $cfg
@@ -44,17 +46,20 @@ if (-not $SoFront) {
             try { & "$PSScriptRoot\backup.ps1" } catch { Write-Warning "Backup falhou: $_" }
         }
 
-        Etapa "Iniciando o WildFly (http://127.0.0.1:$($cfg.PortaHttp)/planning)"
+        Etapa "Iniciando o WildFly (http://127.0.0.1:$($cfg.PortaHttp)/planning), banco de $($cfg.Ambiente): $($cfg.Banco)"
         $bat = Join-Path $cfg.WildFly 'bin\standalone.bat'
         # standalone-full.xml: o perfil com JMS (o tópico dos eventos das salas).
         # NOPAUSE: o .bat não espera tecla no shutdown normal (com erro, o "|| pause" da janela segura).
         $env:NOPAUSE = 'true'
         $comando = "`"$bat`" -c standalone-full.xml -b $($cfg.Bind) -bmanagement 127.0.0.1 " +
             "-Djboss.socket.binding.port-offset=$($cfg.PortaOffset)"
-        Iniciar-Janela $cfg 'Planning - WildFly (backend)' $comando $cfg.WildFly 'erros-backend.log'
+        $titulo = 'Planning - WildFly (backend)' + $(if ($cfg.Ambiente -ne 'producao') { " [BANCO DE $($cfg.Ambiente.ToUpper())]" })
+        Iniciar-Janela $cfg $titulo $comando $cfg.WildFly 'erros-backend.log'
         Esperar 'WildFly' { Responde "http://127.0.0.1:$($cfg.PortaHttp)/planning/api/salas/codigo/verificacao" } 180
     }
 }
+
+if ($SoBackend) { return }
 
 # --- Front --------------------------------------------------------------------------------------------------------
 if (Porta-Ocupada $cfg.FrontPorta) {

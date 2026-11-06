@@ -16,6 +16,7 @@
         <class>com.planningapp.model.MembroSala</class>
         <class>com.planningapp.model.Participante</class>
         <class>com.planningapp.model.ConfiguracaoRedmine</class>
+        <class>com.planningapp.model.FotoUsuario</class>
         <exclude-unlisted-classes>true</exclude-unlisted-classes>
 
         <properties>

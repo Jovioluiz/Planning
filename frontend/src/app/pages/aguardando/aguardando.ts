@@ -4,11 +4,12 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { TaskService } from '../../services/task.service';
 import { WebSocketService } from '../../websocket/websocket.service';
+import { UsuarioMenu } from '../../components/usuario-menu/usuario-menu';
 
 @Component({
   selector: 'app-aguardando',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, UsuarioMenu],
   templateUrl: './aguardando.html',
   styleUrls: ['./aguardando.scss']
 })

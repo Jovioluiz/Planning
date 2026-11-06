@@ -4,11 +4,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { SalaService, SalaDTO } from '../../services/sala.service';
+import { UsuarioMenu } from '../../components/usuario-menu/usuario-menu';
 
 @Component({
   selector: 'app-salas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, UsuarioMenu],
   templateUrl: './salas.html',
   styleUrls: ['./salas.scss']
 })

@@ -25,6 +25,7 @@
         <it.wildfly.home>${project.build.directory}/wildfly-${wildfly.version}</it.wildfly.home>
         <it.super.usuario>super-it</it.super.usuario>
         <it.super.senha>senha-do-super-it</it.super.senha>
+        <it.smtp.porta>10325</it.smtp.porta>
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.install.skip>true</maven.install.skip>
     </properties>
@@ -124,6 +125,12 @@
                                 <JWT_SECRET>segredo-dos-testes-de-integracao-com-32-bytes-ou-mais</JWT_SECRET>
                                 <!-- Inativação automática da sala em 2 s (o padrão é 15), para o teste não esperar -->
                                 <SALA_INATIVACAO_SEGUNDOS>2</SALA_INATIVACAO_SEGUNDOS>
+                                <!-- SMTP falso aberto pelo PerfilIT (SmtpFalso), para o "Esqueci minha senha" -->
+                                <SMTP_HOST>127.0.0.1</SMTP_HOST>
+                                <SMTP_PORTA>${it.smtp.porta}</SMTP_PORTA>
+                                <SMTP_REMETENTE>it@planning.local</SMTP_REMETENTE>
+                                <FRONT_URL>http://localhost:4200</FRONT_URL>
+                                <PLANNING_AMBIENTE>testes</PLANNING_AMBIENTE>
                             </env>
                             <startupTimeout>180</startupTimeout>
                         </configuration>
@@ -161,6 +168,7 @@
                         <it.url>http://localhost:${it.http.porta}/planning</it.url>
                         <it.super.usuario>${it.super.usuario}</it.super.usuario>
                         <it.super.senha>${it.super.senha}</it.super.senha>
+                        <it.smtp.porta>${it.smtp.porta}</it.smtp.porta>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>

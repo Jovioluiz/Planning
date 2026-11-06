@@ -10,6 +10,7 @@ import {
   EstatisticasService,
   FiltroEstatisticas
 } from '../../services/estatisticas.service';
+import { UsuarioMenu } from '../../components/usuario-menu/usuario-menu';
 
 type Aba = 'geral' | 'sprints' | 'usuarios' | 'tarefas';
 
@@ -29,7 +30,7 @@ interface Barra {
 @Component({
   selector: 'app-estatisticas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, UsuarioMenu],
   templateUrl: './estatisticas.html',
   styleUrls: ['./estatisticas.scss']
 })

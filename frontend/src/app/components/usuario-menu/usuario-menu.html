@@ -1,0 +1,93 @@
+<button type="button" class="chip" (click)="abrir()" title="Meu perfil: foto, e-mail e senha">
+  <app-avatar [usuario]="usuario || ''" [tamanho]="30"></app-avatar>
+  @if (mostrarNome) {
+    <span class="chip-nome">{{ usuario }}</span>
+  }
+</button>
+
+@if (aberto) {
+  <!-- Vai para o <body> ao abrir (ver camada): o cabeçalho tem z-index próprio e prenderia o diálogo nele -->
+  <div class="camada" #camada>
+  <div class="backdrop" (click)="fechar()"></div>
+  <section class="dialogo" role="dialog" aria-modal="true" aria-labelledby="perfil-titulo">
+    <header class="dialogo-topo">
+      <app-avatar [usuario]="usuario || ''" [tamanho]="72"></app-avatar>
+      <div class="dialogo-id">
+        <span class="eyebrow">Meu perfil</span>
+        <h2 id="perfil-titulo">{{ usuario }}</h2>
+        @if (nomePerfil) { <span class="papel">{{ nomePerfil }}</span> }
+      </div>
+      <button type="button" class="fechar" (click)="fechar()" title="Fechar (Esc)" aria-label="Fechar">✕</button>
+    </header>
+
+    @if (carregando) {
+      <p class="carregando">Carregando...</p>
+    } @else {
+      <div class="dialogo-corpo">
+
+        <!-- Foto -->
+        <div class="secao">
+          <h3>Foto</h3>
+          <p class="dica">Aparece no cabeçalho e para o time na sala. JPEG, PNG ou WebP; cortamos no centro.</p>
+          <div class="linha-botoes">
+            <button type="button" class="btn btn-primario" (click)="escolherFoto()" [disabled]="enviandoFoto">
+              {{ enviandoFoto ? 'Enviando...' : (perfil?.temFoto ? 'Trocar foto' : 'Escolher foto') }}
+            </button>
+            @if (perfil?.temFoto) {
+              <button type="button" class="btn btn-secundario" (click)="removerFoto()" [disabled]="enviandoFoto">Remover</button>
+            }
+          </div>
+          <input #arquivoFoto type="file" accept="image/jpeg,image/png,image/webp" hidden (change)="fotoEscolhida($event)" />
+          @if (avisoFoto) { <p class="aviso" [class.erro]="avisoFoto.tipo === 'erro'">{{ avisoFoto.texto }}</p> }
+        </div>
+
+        <!-- E-mail -->
+        <form class="secao" (ngSubmit)="salvarEmail()">
+          <h3>E-mail</h3>
+          <p class="dica">
+            Para onde enviamos o link do <strong>Esqueci minha senha</strong>.
+            @if (!perfil?.email) { <span class="sem-email">Sem e-mail, só o administrador consegue recuperar sua senha.</span> }
+          </p>
+          <div class="linha-campo">
+            <input type="email" name="email" [(ngModel)]="email" placeholder="voce@empresa.com.br"
+                   autocomplete="email" maxlength="150" [disabled]="salvandoEmail" />
+            <button type="submit" class="btn btn-primario" [disabled]="salvandoEmail">
+              {{ salvandoEmail ? 'Salvando...' : 'Salvar' }}
+            </button>
+          </div>
+          @if (avisoEmail) { <p class="aviso" [class.erro]="avisoEmail.tipo === 'erro'">{{ avisoEmail.texto }}</p> }
+        </form>
+
+        <!-- Senha -->
+        <form class="secao" (ngSubmit)="alterarSenha()">
+          <h3>Alterar senha</h3>
+          <!-- O navegador associa as senhas a este usuário -->
+          <input type="text" name="username" [value]="usuario" autocomplete="username" hidden />
+          <label>
+            <span>Senha atual</span>
+            <input type="password" name="senhaAtual" [(ngModel)]="senhaAtual" autocomplete="current-password"
+                   [disabled]="salvandoSenha" />
+          </label>
+          <label>
+            <span>Nova senha</span>
+            <input type="password" name="novaSenha" [(ngModel)]="novaSenha" autocomplete="new-password"
+                   placeholder="Mínimo 6 caracteres" [disabled]="salvandoSenha" />
+          </label>
+          <label>
+            <span>Confirmar nova senha</span>
+            <input type="password" name="confirmacao" [(ngModel)]="confirmacao" autocomplete="new-password"
+                   [disabled]="salvandoSenha" />
+          </label>
+          <div class="linha-botoes">
+            <button type="submit" class="btn btn-primario" [disabled]="salvandoSenha">
+              {{ salvandoSenha ? 'Alterando...' : 'Alterar senha' }}
+            </button>
+          </div>
+          @if (avisoSenha) { <p class="aviso" [class.erro]="avisoSenha.tipo === 'erro'">{{ avisoSenha.texto }}</p> }
+        </form>
+
+      </div>
+    }
+  </section>
+  </div>
+}

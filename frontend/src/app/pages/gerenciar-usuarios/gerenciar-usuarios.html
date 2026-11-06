@@ -8,7 +8,7 @@
       <span class="su-badge">Super Usuário</span>
     </div>
     <div class="su-user">
-      <span class="su-username">{{ superUsuario }}</span>
+      <app-usuario-menu [usuario]="superUsuario"></app-usuario-menu>
       <button class="btn-header" (click)="irParaEstatisticas()">📊 Estatísticas</button>
       <button class="btn-header btn-logout" (click)="logout()">Sair</button>
     </div>
@@ -41,7 +41,7 @@
         </h2>
         <div class="su-list">
           <div *ngFor="let u of porPerfil['ADMIN']" class="su-item">
-            <span class="su-item-avatar">{{ u.usuario[0].toUpperCase() }}</span>
+            <span class="su-item-avatar"><app-avatar [usuario]="u.usuario" [tamanho]="38"></app-avatar></span>
             <span class="su-item-name">{{ u.usuario }}</span>
             <span class="su-item-role role-admin">Moderador</span>
             <span *ngIf="!u.ativo" class="su-item-role">Desativado</span>
@@ -59,7 +59,7 @@
         </h2>
         <div class="su-list">
           <div *ngFor="let u of porPerfil['JOGADOR']" class="su-item">
-            <span class="su-item-avatar avatar-jogador">{{ u.usuario[0].toUpperCase() }}</span>
+            <span class="su-item-avatar avatar-jogador"><app-avatar [usuario]="u.usuario" [tamanho]="38"></app-avatar></span>
             <span class="su-item-name">{{ u.usuario }}</span>
             <span class="su-item-role role-jogador">Player</span>
             <span *ngIf="!u.ativo" class="su-item-role">Desativado</span>
@@ -77,7 +77,7 @@
         </h2>
         <div class="su-list">
           <div *ngFor="let u of porPerfil['OBSERVADOR']" class="su-item">
-            <span class="su-item-avatar avatar-obs">{{ u.usuario[0].toUpperCase() }}</span>
+            <span class="su-item-avatar avatar-obs"><app-avatar [usuario]="u.usuario" [tamanho]="38"></app-avatar></span>
             <span class="su-item-name">{{ u.usuario }}</span>
             <span class="su-item-role role-obs">Observador</span>
             <span *ngIf="!u.ativo" class="su-item-role">Desativado</span>
@@ -95,7 +95,7 @@
         </h2>
         <div class="su-list">
           <div *ngFor="let u of porPerfil['TESTE']" class="su-item">
-            <span class="su-item-avatar avatar-obs">{{ u.usuario[0].toUpperCase() }}</span>
+            <span class="su-item-avatar avatar-obs"><app-avatar [usuario]="u.usuario" [tamanho]="38"></app-avatar></span>
             <span class="su-item-name">{{ u.usuario }}</span>
             <span class="su-item-role role-obs">Testador</span>
             <span *ngIf="!u.ativo" class="su-item-role">Desativado</span>

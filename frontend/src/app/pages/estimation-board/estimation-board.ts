@@ -6,6 +6,8 @@ import { AuthService } from '../../services/auth.service';
 import { EstimationService } from '../../services/estimation.service';
 import { TaskService, ITask } from '../../services/task.service';
 import { WebSocketService } from '../../websocket/websocket.service';
+import { UsuarioMenu } from '../../components/usuario-menu/usuario-menu';
+import { Avatar } from '../../components/avatar/avatar';
 
 // Sentinela local para a carta "café" (0 é enviado ao backend)
 const CARTA_CAFE = -1;
@@ -13,7 +15,7 @@ const CARTA_CAFE = -1;
 @Component({
   selector: 'app-estimation-board',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, UsuarioMenu, Avatar],
   templateUrl: './estimation-board.html',
   styleUrls: ['./estimation-board.scss']
 })

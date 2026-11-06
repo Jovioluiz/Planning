@@ -15,6 +15,10 @@ public class DadosInvalidosException extends RuntimeException {
         this.detalhes = List.copyOf(detalhes);
     }
 
+    public DadosInvalidosException(String mensagem) {
+        this(mensagem, List.of());
+    }
+
     public List<String> getDetalhes() {
         return detalhes;
     }

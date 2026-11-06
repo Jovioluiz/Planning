@@ -115,6 +115,20 @@ Os SUPER não aparecem na lista e não podem ser alterados pela API (403).
 | `JWT_VALIDADE_MINUTOS` | `480` | Validade do token |
 | `REDMINE_SEGREDO` | o `JWT_SECRET` | Cifra (AES-256-GCM) a chave da API do Redmine no banco. Trocar depois obriga os moderadores a informar a chave de novo. |
 | `SUPER_USUARIO` / `SUPER_SENHA` | — | Criam o SUPER no deploy, se ainda não existir nenhum (senha com 6+ caracteres) |
+| `PLANNING_AMBIENTE` | `producao` | `testes` faz o front mostrar a faixa "Ambiente de testes" e põe `[TESTES]` no assunto dos e-mails |
+| `SMTP_HOST`, `SMTP_PORTA` (587), `SMTP_USUARIO`, `SMTP_SENHA`, `SMTP_REMETENTE`, `SMTP_SSL` | — | E-mail do "Esqueci minha senha". Sem `SMTP_HOST`, desligado (o pedido responde 422) |
+| `FRONT_URL` | `http://localhost:4200` | Endereço do front no link do e-mail (`{FRONT_URL}/#/redefinir-senha?token=...`) |
+
+### Meu perfil e "Esqueci minha senha"
+
+- Qualquer usuário logado troca a própria **senha** (exige a atual), o **e-mail** (opcional, único, gravado em
+  minúsculas) e a **foto** (`PUT /api/perfil/foto` com a imagem no corpo; o tipo é conferido pelos bytes: JPEG,
+  PNG ou WebP, até 512 KB; o front recorta e reduz para 256x256). A foto fica na tabela `fotos_usuario`, fora de
+  `usuarios`, para a consulta feita a cada requisição não carregá-la.
+- **Esqueci minha senha** (tela de login): `POST /api/auth/esqueci-senha` com o usuário ou o e-mail. Responde 202
+  sempre, exista ou não o usuário. Se ele tem e-mail, recebe um link (`EnvioEmail`, assíncrono) que vale 30 min
+  e uma vez só; o banco guarda só o SHA-256 do token (`TokenRedefinicao`). Novo pedido em menos de 1 min não
+  reenvia. Quem não cadastrou e-mail depende do SUPER (`PUT /api/usuarios/{u}/senha`).
 
 ## WebSocket (tempo real)
 
@@ -247,6 +261,14 @@ Testado com dois WildFly na mesma máquina; um voto feito pelo nó A chegou aos 
 | POST | `/api/auth/registrar` | público | Cadastra `{ "usuario", "senha", "perfil" }` |
 | POST | `/api/auth/login` | público | Login `{ "usuario", "senha" }` → `{ token, tipo, expiraEm, usuario }` |
 | GET | `/api/auth/me` | logado | Dados do usuário do token |
+| POST | `/api/auth/esqueci-senha` | público | `{ "usuarioOuEmail" }` → 202; manda o link por e-mail se houver |
+| POST | `/api/auth/redefinir-senha` | público | `{ "token", "novaSenha" }` (token do link) → usuário |
+| GET | `/api/perfil` | logado | `{ usuario, perfil, email, temFoto, fotoAtualizadaEm }` |
+| PUT | `/api/perfil/senha` | logado | `{ "senhaAtual", "novaSenha" }` → 204 (senha atual errada: 422) |
+| PUT | `/api/perfil/email` | logado | `{ "email" }` (vazio remove; já usado por outro: 409) |
+| PUT / DELETE | `/api/perfil/foto` | logado | Corpo = a imagem (`image/jpeg`, `png`, `webp`) |
+| GET | `/api/fotos/{usuario}` | logado | A foto (200) ou 204 sem foto |
+| GET | `/api/ambiente` | público | `{ ambiente, producao }` |
 | GET | `/api/usuarios` | SUPER | Lista os usuários (menos os SUPER) |
 | POST | `/api/usuarios` | SUPER | Cria `{ "usuario", "senha", "perfil" }` (inclusive ADMIN) |
 | PUT | `/api/usuarios/{usuario}/perfil` | SUPER | `{ "perfil": "OBSERVADOR" }` |

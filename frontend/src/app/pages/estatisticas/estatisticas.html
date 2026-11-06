@@ -7,7 +7,7 @@
       <span class="brand-name">Chutômetro</span>
     </div>
     <div class="header-user">
-      <span class="user-name">{{ auth.getUsuario() }}</span>
+      <app-usuario-menu [usuario]="auth.getUsuario()"></app-usuario-menu>
       <button class="btn-logout" (click)="logout()">Sair</button>
     </div>
   </header>

@@ -9,6 +9,11 @@ import { authGuard } from './guards/auth.guard';
 export const routes: Routes = [
   { path: 'login', component: Login },
   {
+    // Link do e-mail do "Esqueci minha senha" (público)
+    path: 'redefinir-senha',
+    loadComponent: () => import('./pages/redefinir-senha/redefinir-senha').then(m => m.RedefinirSenha)
+  },
+  {
     path: 'sala/:codigo',
     loadComponent: () => import('./pages/sala-landing/sala-landing').then(m => m.SalaLanding)
   },

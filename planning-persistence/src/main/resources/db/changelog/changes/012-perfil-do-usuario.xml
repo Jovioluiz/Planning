@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Perfil do próprio usuário:
+    - usuarios.email: opcional, gravado em minúsculas, único. É para onde vai o link do "Esqueci minha senha".
+    - usuarios.redefinicao_hash / redefinicao_expira_em: o pedido de redefinição em aberto (o SHA-256 do token que
+      vai no link, nunca o token) e até quando vale. Nulos quando não há pedido.
+    - fotos_usuario: a foto de perfil, numa tabela à parte para a consulta do usuário a cada requisição
+      (AuthService.papeisAtuais) não carregar a imagem.
+-->
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="012-perfil-do-usuario" author="planning-jakarta">
+        <addColumn tableName="usuarios">
+            <column name="email" type="VARCHAR(150)">
+                <constraints unique="true" uniqueConstraintName="uk_usuarios_email"/>
+            </column>
+            <column name="redefinicao_hash" type="VARCHAR(64)"/>
+            <column name="redefinicao_expira_em" type="TIMESTAMP WITH TIME ZONE"/>
+        </addColumn>
+
+        <createTable tableName="fotos_usuario">
+            <column name="id_usuario" type="BIGINT">
+                <constraints primaryKey="true" primaryKeyName="pk_fotos_usuario"
+                             foreignKeyName="fk_fotos_usuario_usuario" references="usuarios(id)"/>
+            </column>
+            <column name="conteudo" type="${tipo.binario}">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tipo" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="atualizada_em" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

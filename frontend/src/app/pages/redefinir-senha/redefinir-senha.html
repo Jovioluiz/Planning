@@ -1,0 +1,64 @@
+<div class="login-page">
+
+  <div class="brand-panel">
+    <div class="cards-bg" aria-hidden="true">
+      <div class="card-deco card-1">1</div>
+      <div class="card-deco card-3">5</div>
+      <div class="card-deco card-4">8</div>
+      <div class="card-deco card-6">☕</div>
+    </div>
+    <div class="brand-content">
+      <div class="brand-logo">🦶</div>
+      <h1 class="brand-title">Chutômetro</h1>
+      <p class="brand-tagline">Porque alguém tem que chutar primeiro</p>
+    </div>
+  </div>
+
+  <div class="form-panel">
+    <div class="form-inner">
+
+      <div class="form-header">
+        <p class="form-welcome">Quase lá 🔑</p>
+        <h2 class="form-title">Nova senha</h2>
+      </div>
+
+      <ng-container *ngIf="token; else semToken">
+        <form (ngSubmit)="redefinir($event)" novalidate>
+          <div class="field">
+            <label for="novaSenha">Nova senha</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input id="novaSenha" type="password" [(ngModel)]="novaSenha" name="novaSenha"
+                     placeholder="Mínimo 6 caracteres" autocomplete="new-password" [disabled]="carregando" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="confirmacao">Confirme a nova senha</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input id="confirmacao" type="password" [(ngModel)]="confirmacao" name="confirmacao"
+                     placeholder="Repita a nova senha" autocomplete="new-password" [disabled]="carregando" />
+            </div>
+          </div>
+
+          <button type="submit" class="btn-entrar" [disabled]="carregando">
+            <span *ngIf="!carregando">Salvar nova senha</span>
+            <span *ngIf="carregando" class="spinner-row"><span class="spinner"></span> Salvando...</span>
+          </button>
+        </form>
+
+        <p *ngIf="erro" class="erro">{{ erro }}</p>
+      </ng-container>
+
+      <ng-template #semToken>
+        <p class="erro">
+          Link incompleto. Abra o link exatamente como veio no e-mail, ou peça um novo em "Esqueci minha senha".
+        </p>
+      </ng-template>
+
+      <button type="button" class="link-acao" (click)="irParaLogin()">← Ir para o login</button>
+    </div>
+  </div>
+
+</div>
