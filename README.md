@@ -629,3 +629,7 @@ Na hospedagem local, dentro de `hospedagem-local/` (detalhes no [HOSPEDAGEM-LOCA
 .\IniciarServidor.bat
 ```
  
+
+## Licença
+
+[MIT](LICENSE) © 2026 Jóvio Luiz Giacomolli

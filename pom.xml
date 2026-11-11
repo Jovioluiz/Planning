@@ -11,6 +11,14 @@
 
     <name>Planning Jakarta :: Parent</name>
 
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <!-- Dependências sempre em uma direção: web -> service -> persistence -> model (security é usado por service e web) -->
     <modules>
         <module>planning-model</module>
