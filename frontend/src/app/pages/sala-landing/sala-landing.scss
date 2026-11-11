@@ -297,3 +297,45 @@
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Esqueci minha senha (igual à tela de login) ───────── */
+.link-acao {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-top: 18px;
+  color: var(--accent-ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { text-decoration: underline; }
+  &:disabled { opacity: .6; cursor: default; }
+}
+
+.link-esqueci {
+  display: block;
+  margin: 8px 0 0 auto;
+  font-size: 12px;
+}
+
+.explicacao {
+  margin: -12px 0 22px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.sucesso {
+  margin: 0 0 18px;
+  padding: 12px 16px;
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.55;
+
+  strong:first-child { display: block; margin-bottom: 2px; color: var(--ink); }
+}

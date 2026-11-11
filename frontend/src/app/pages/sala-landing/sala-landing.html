@@ -37,7 +37,44 @@
           <p *ngIf="erro" class="erro">{{ erro }}</p>
         </div>
 
-        <div *ngIf="!jaLogado">
+        <div *ngIf="!jaLogado && esqueci">
+          <div class="form-header">
+            <p class="form-welcome">Acontece com todo mundo 🔑</p>
+            <h3 class="form-title">Esqueci minha senha</h3>
+          </div>
+
+          <form *ngIf="!linkEnviado" (ngSubmit)="enviarLink($event)" novalidate>
+            <p class="explicacao">
+              Informe seu usuário ou o e-mail cadastrado no seu perfil. Enviaremos um link para você criar uma nova senha.
+            </p>
+            <div class="field">
+              <label for="usuarioOuEmail">Usuário ou e-mail</label>
+              <div class="input-wrap">
+                <span class="input-icon">✉️</span>
+                <input id="usuarioOuEmail" type="text" [(ngModel)]="usuarioOuEmail" name="usuarioOuEmail"
+                       placeholder="Seu usuário ou voce@empresa.com.br" autocomplete="username"
+                       [disabled]="enviandoLink" />
+              </div>
+            </div>
+
+            <button type="submit" class="btn-entrar" [disabled]="enviandoLink">
+              <span *ngIf="!enviandoLink">Enviar link</span>
+              <span *ngIf="enviandoLink" class="spinner-row"><span class="spinner"></span> Enviando...</span>
+            </button>
+          </form>
+
+          <div *ngIf="linkEnviado" class="sucesso">
+            <strong>Confira seu e-mail.</strong>
+            Se houver um e-mail cadastrado para <strong>{{ usuarioOuEmail }}</strong>, enviamos um link que vale por
+            30 minutos. Depois de criar a nova senha, abra de novo o link desta sala para entrar.
+          </div>
+
+          <p *ngIf="erro" class="erro">{{ erro }}</p>
+
+          <button type="button" class="link-acao" (click)="voltarAoLogin()">← Voltar para o login</button>
+        </div>
+
+        <div *ngIf="!jaLogado && !esqueci">
           <div class="form-header">
             <p class="form-welcome">Bem-vindo 👋</p>
             <h3 class="form-title">Faça login para entrar na sala</h3>
@@ -61,6 +98,9 @@
                 <input id="senha" type="password" [(ngModel)]="senha" name="senha"
                        placeholder="Sua senha" [disabled]="entrando" />
               </div>
+              <button type="button" class="link-acao link-esqueci" (click)="abrirEsqueci()" [disabled]="entrando">
+                Esqueci minha senha
+              </button>
             </div>
 
             <div class="field">

@@ -36,6 +36,11 @@ export class PerfilService {
 
   private fotos = new Map<string, Observable<string | null>>();
   private urls = new Map<string, string>();
+  /**
+   * Versão da foto por usuário, mudada a cada troca/remoção: entra na URL (?v=) para não pegar a resposta antiga do
+   * cache HTTP do navegador (o GET /fotos responde com max-age=300).
+   */
+  private versoes = new Map<string, number>();
   private ambiente$?: Observable<AmbienteDTO | null>;
 
   /** Usuário cuja foto mudou (os avatares dele recarregam). */
@@ -85,7 +90,9 @@ export class PerfilService {
     const chave = usuario.toUpperCase();
     let foto$ = this.fotos.get(chave);
     if (!foto$) {
-      foto$ = this.http.get(`${API}/fotos/${encodeURIComponent(usuario)}`, {
+      const versao = this.versoes.get(chave);
+      const endereco = `${API}/fotos/${encodeURIComponent(usuario)}` + (versao ? `?v=${versao}` : '');
+      foto$ = this.http.get(endereco, {
         observe: 'response', responseType: 'blob', headers: this.autorizacao
       })
         .pipe(
@@ -109,6 +116,7 @@ export class PerfilService {
     if (url) URL.revokeObjectURL(url);
     this.urls.delete(chave);
     this.fotos.delete(chave);
+    this.versoes.set(chave, Date.now());
     this.fotoMudou$.next(chave);
   }
 
