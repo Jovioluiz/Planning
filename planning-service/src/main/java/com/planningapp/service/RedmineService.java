@@ -2,6 +2,8 @@ package com.planningapp.service;
 
 import com.planningapp.dto.ConfiguracaoRedmineDTO;
 import com.planningapp.dto.CriarTarefaRequest;
+import com.planningapp.dto.DadosEnvioRedmineDTO;
+import com.planningapp.dto.EnviarRedmineRequest;
 import com.planningapp.dto.EnvioRedmineDTO;
 import com.planningapp.dto.SalvarConfiguracaoRedmineRequest;
 import com.planningapp.dto.TesteRedmineDTO;
@@ -59,6 +61,8 @@ public class RedmineService {
     // Ids do Redmine da equipe que recebem a estimativa final (ver enviarEstimativa)
     private static final int CAMPO_PLANNING = 27;
     private static final int CAMPO_ESTIMATIVA_TESTE = 66;
+    private static final int CAMPO_VERSAO_MERGE = 28;
+    private static final int CAMPO_PROJETO_TRABALHO = 56;
     private static final int SITUACAO_PRODUTO_BACKLOG = 55;
     private static final int SITUACAO_AGUARDANDO_DESENVOLVIMENTO = 8;
 
@@ -120,7 +124,8 @@ public class RedmineService {
     /**
      * Grava a estimativa final no chamado: as horas no "Tempo estimado", os pontos no campo "Planning" (27), as
      * horas de teste no "EstimativaTeste" (66), e muda a situação de "Produto Backlog" (55) para "Aguardando
-     * Desenvolvimento" (8), tudo num só PUT. Chamado em outra situação não muda: já andou no fluxo. Depois relê o chamado para conferir, porque o Redmine responde sucesso e ignora em silêncio o
+     * Desenvolvimento" (8), tudo num só PUT. Junto vão os campos confirmados no modal de finalização
+     * ({@code complemento}: versão do merge, prioridade, data prevista e projeto de trabalho), só os que mudaram. Chamado em outra situação não muda: já andou no fluxo. Depois relê o chamado para conferir, porque o Redmine responde sucesso e ignora em silêncio o
      * campo que o usuário da chave não pode alterar (permissão do papel ou campo somente leitura no fluxo de
      * trabalho) e a transição de situação que o fluxo não permite.
      *
@@ -128,27 +133,37 @@ public class RedmineService {
      * gravado volta nos avisos. Quem chama já finalizou a tarefa: o envio nunca a desfaz.</p>
      */
     @TransactionAttribute(TransactionAttributeType.SUPPORTS)
-    public EnvioRedmineDTO enviarEstimativa(String numero, Integer pontos, Integer horas, Integer horasTeste) {
+    public EnvioRedmineDTO enviarEstimativa(String numero, Integer pontos, Integer horas, Integer horasTeste,
+                                            EnviarRedmineRequest complemento) {
         ConfiguracaoRedmine configuracao = configuracao();
-        if (!numero.matches("\\d+")) {
-            throw new NegocioException("O número " + numero + " não é de um chamado do Redmine");
-        }
-        URI uri = URI.create(base(configuracao) + "/issues/" + numero + ".json");
+        URI uri = uriDoChamado(configuracao, numero);
         ConsultaRedmine.Chamado antes = ler(() -> ConsultaRedmine.lerChamado(buscar(configuracao, uri)));
+        EnviarRedmineRequest extras = complemento != null ? complemento : new EnviarRedmineRequest(null, null, null, null);
 
         List<String> avisos = new ArrayList<>();
         Map<Integer, String> personalizados = new LinkedHashMap<>();
         Map<ConsultaRedmine.CampoPersonalizado, String> enviados = new LinkedHashMap<>();
-        incluirCampo(antes, CAMPO_PLANNING, "Planning", pontos, personalizados, enviados, avisos);
-        incluirCampo(antes, CAMPO_ESTIMATIVA_TESTE, "EstimativaTeste", horasTeste, personalizados, enviados, avisos);
+        incluirCampo(antes, CAMPO_PLANNING, "Planning", texto(pontos), personalizados, enviados, avisos);
+        incluirCampo(antes, CAMPO_ESTIMATIVA_TESTE, "EstimativaTeste", texto(horasTeste), personalizados, enviados, avisos);
+        // Os campos do modal só vão se mudaram: reenviar o mesmo valor geraria aviso falso em campo sem permissão
+        incluirSeMudou(antes, CAMPO_VERSAO_MERGE, "Versão Merge", extras.versaoMerge(), personalizados, enviados, avisos);
+        incluirSeMudou(antes, CAMPO_PROJETO_TRABALHO, "Projeto de Trabalho", extras.projetoTrabalho(),
+                personalizados, enviados, avisos);
+        Integer prioridade = extras.prioridadeId() != null
+                && (antes.prioridade() == null || antes.prioridade().id() != extras.prioridadeId())
+                ? extras.prioridadeId() : null;
+        String dataPrevista = extras.dataPrevista() == null ? null : extras.dataPrevista().trim();
+        if (dataPrevista != null && dataPrevista.equals(antes.dataPrevista() == null ? "" : antes.dataPrevista())) {
+            dataPrevista = null;
+        }
         boolean mudarSituacao = mudarSituacao(antes, avisos);
-        if (horas == null && personalizados.isEmpty() && !mudarSituacao) {
+        if (horas == null && personalizados.isEmpty() && !mudarSituacao && prioridade == null && dataPrevista == null) {
             avisos.add("Nada a enviar: a tarefa não tem horas nem pontos");
             return new EnvioRedmineDTO(numero, List.of(), avisos);
         }
 
         requisitar(configuracao, uri, "PUT", ConsultaRedmine.corpoAtualizacao(horas,
-                mudarSituacao ? SITUACAO_AGUARDANDO_DESENVOLVIMENTO : null, personalizados));
+                mudarSituacao ? SITUACAO_AGUARDANDO_DESENVOLVIMENTO : null, prioridade, dataPrevista, personalizados));
 
         ConsultaRedmine.Chamado depois = ler(() -> ConsultaRedmine.lerChamado(buscar(configuracao, uri)));
         List<String> gravados = new ArrayList<>();
@@ -159,10 +174,26 @@ public class RedmineService {
                 avisos.add("O Redmine não gravou o Tempo estimado (sem permissão para alterá-lo nesse chamado?)");
             }
         }
+        if (prioridade != null) {
+            if (depois.prioridade() != null && depois.prioridade().id() == prioridade) {
+                gravados.add("Prioridade: " + depois.prioridade().nome());
+            } else {
+                avisos.add("O Redmine não gravou a Prioridade (sem permissão para alterá-la nesse chamado?)");
+            }
+        }
+        if (dataPrevista != null) {
+            String gravada = depois.dataPrevista() == null ? "" : depois.dataPrevista();
+            if (gravada.equals(dataPrevista)) {
+                gravados.add("Data prevista: " + (gravada.isEmpty() ? "(vazia)" : formatarData(gravada)));
+            } else {
+                avisos.add("O Redmine não gravou a Data prevista (sem permissão para alterá-la nesse chamado?)");
+            }
+        }
         enviados.forEach((campo, valor) -> {
             ConsultaRedmine.CampoPersonalizado gravado = depois.campo(campo.id());
-            if (gravado != null && valor.equals(gravado.valor())) {
-                gravados.add(campo.nome() + ": " + valor);
+            String valorGravado = gravado == null || gravado.valor() == null ? "" : gravado.valor();
+            if (gravado != null && valor.equals(valorGravado)) {
+                gravados.add(campo.nome() + ": " + (valor.isEmpty() ? "(vazio)" : valor));
             } else {
                 avisos.add("O Redmine não gravou o campo \"" + campo.nome()
                         + "\" (sem permissão ou somente leitura nessa situação do chamado?)");
@@ -194,7 +225,7 @@ public class RedmineService {
     }
 
     /** Se o campo não existir no chamado (não vale para esse tipo), avisa em vez de falhar. */
-    private static void incluirCampo(ConsultaRedmine.Chamado chamado, int id, String nome, Integer valor,
+    private static void incluirCampo(ConsultaRedmine.Chamado chamado, int id, String nome, String valor,
                                      Map<Integer, String> personalizados,
                                      Map<ConsultaRedmine.CampoPersonalizado, String> enviados, List<String> avisos) {
         if (valor == null) {
@@ -205,18 +236,164 @@ public class RedmineService {
             avisos.add("O chamado não tem o campo \"" + nome + "\" (id " + id + "): ele não vale para esse tipo de chamado?");
             return;
         }
-        personalizados.put(campo.id(), valor.toString());
-        enviados.put(campo, valor.toString());
+        personalizados.put(campo.id(), valor);
+        enviados.put(campo, valor);
+    }
+
+    /** Texto informado no modal: nulo não mexe; igual ao do chamado (vazio = nulo) não é enviado. */
+    private static void incluirSeMudou(ConsultaRedmine.Chamado chamado, int id, String nome, String valor,
+                                       Map<Integer, String> personalizados,
+                                       Map<ConsultaRedmine.CampoPersonalizado, String> enviados, List<String> avisos) {
+        if (valor == null) {
+            return;
+        }
+        String novo = valor.trim();
+        ConsultaRedmine.CampoPersonalizado atual = chamado.campo(id);
+        String anterior = atual == null || atual.valor() == null ? "" : atual.valor();
+        if (atual != null && novo.equals(anterior)) {
+            return;
+        }
+        if (atual == null && novo.isEmpty()) {
+            return;
+        }
+        incluirCampo(chamado, id, nome, novo, personalizados, enviados, avisos);
+    }
+
+    private static String texto(Integer valor) {
+        return valor == null ? null : valor.toString();
+    }
+
+    /** {@code 2025-10-14} → {@code 14/10/2025}. */
+    private static String formatarData(String data) {
+        try {
+            return java.time.LocalDate.parse(data).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        } catch (java.time.format.DateTimeParseException e) {
+            return data;
+        }
+    }
+
+    /**
+     * Os valores atuais do chamado, para o modal de finalização vir preenchido, com as prioridades do Redmine e os
+     * valores de "Projeto de Trabalho" e "Versão Merge" (da definição dos campos ou, sem permissão, os já usados nos
+     * chamados do projeto). As listas são um extra: se o Redmine negar (a definição dos campos
+     * personalizados é só para administradores), vêm vazias e o modal aceita o valor digitado.
+     */
+    @TransactionAttribute(TransactionAttributeType.SUPPORTS)
+    public DadosEnvioRedmineDTO dadosParaEnvio(String numero) {
+        ConfiguracaoRedmine configuracao = configuracao();
+        String base = base(configuracao);
+        ConsultaRedmine.Chamado chamado = ler(() -> ConsultaRedmine.lerChamado(
+                buscar(configuracao, uriDoChamado(configuracao, numero))));
+
+        List<DadosEnvioRedmineDTO.OpcaoRedmineDTO> prioridades = opcional(() -> ConsultaRedmine.lerPrioridades(
+                buscar(configuracao, URI.create(base + "/enumerations/issue_priorities.json"))))
+                .stream().map(p -> new DadosEnvioRedmineDTO.OpcaoRedmineDTO(p.id(), p.nome())).toList();
+        // Campo de lista: a definição traz todos os valores, mas só uma chave de administrador do Redmine a lê
+        String definicoes = opcionalTexto(() -> buscar(configuracao, URI.create(base + "/custom_fields.json")));
+        List<String> projetos = definicoes == null ? List.of()
+                : opcional(() -> ConsultaRedmine.lerValoresPossiveis(definicoes, CAMPO_PROJETO_TRABALHO));
+        List<String> versoes = definicoes == null ? List.of()
+                : opcional(() -> ConsultaRedmine.lerValoresPossiveis(definicoes, CAMPO_VERSAO_MERGE));
+        if (projetos.isEmpty() || versoes.isEmpty()) {
+            Map<Integer, java.util.Set<String>> usados = valoresUsados(configuracao, base, chamado.projetoId());
+            if (projetos.isEmpty()) {
+                projetos = usados.get(CAMPO_PROJETO_TRABALHO).stream().sorted(String.CASE_INSENSITIVE_ORDER).toList();
+            }
+            if (versoes.isEmpty()) {
+                versoes = usados.get(CAMPO_VERSAO_MERGE).stream().toList();
+            }
+        }
+        versoes = ConsultaRedmine.ordenarVersoes(versoes);
+
+        return new DadosEnvioRedmineDTO(
+                inteiro(valorDoCampo(chamado, CAMPO_PLANNING)),
+                chamado.tempoEstimado(),
+                inteiro(valorDoCampo(chamado, CAMPO_ESTIMATIVA_TESTE)),
+                valorDoCampo(chamado, CAMPO_VERSAO_MERGE),
+                chamado.prioridade() == null ? null : chamado.prioridade().id(),
+                chamado.dataPrevista(),
+                valorDoCampo(chamado, CAMPO_PROJETO_TRABALHO),
+                prioridades, projetos, versoes);
+    }
+
+    /** Quantos chamados (os atualizados mais recentemente) são lidos para achar os valores usados nos campos. */
+    private static final int CHAMADOS_PARA_VALORES = 500;
+
+    /**
+     * Versões do merge e projetos de trabalho já preenchidos nos chamados do projeto (todas as situações, os
+     * {@link #CHAMADOS_PARA_VALORES} atualizados mais recentemente), para quando a chave não pode ler a definição
+     * dos campos. Falha no meio: fica com o que já leu.
+     */
+    private Map<Integer, java.util.Set<String>> valoresUsados(ConfiguracaoRedmine configuracao, String base,
+                                                              Integer projetoId) {
+        java.util.Set<Integer> ids = java.util.Set.of(CAMPO_VERSAO_MERGE, CAMPO_PROJETO_TRABALHO);
+        Map<Integer, java.util.Set<String>> valores = new LinkedHashMap<>();
+        ids.forEach(id -> valores.put(id, new java.util.LinkedHashSet<>()));
+        String filtro = "status_id=*&sort=updated_on:desc&limit=" + ConsultaRedmine.POR_PAGINA
+                + (projetoId == null ? "" : "&project_id=" + projetoId);
+        try {
+            for (int offset = 0; offset < CHAMADOS_PARA_VALORES; offset += ConsultaRedmine.POR_PAGINA) {
+                URI pagina = URI.create(base + "/issues.json?" + filtro + "&offset=" + offset);
+                ConsultaRedmine.ValoresUsados lidos = ler(() -> ConsultaRedmine.lerValoresUsados(
+                        buscar(configuracao, pagina), ids));
+                lidos.valores().forEach((id, usados) -> valores.get(id).addAll(usados));
+                if (lidos.lidos() == 0 || offset + lidos.lidos() >= lidos.total()) {
+                    break;
+                }
+            }
+        } catch (NegocioException e) {
+            LOG.fine(() -> "Valores usados nos chamados indisponíveis: " + e.getMessage());
+        }
+        return valores;
+    }
+
+    private static String opcionalTexto(Supplier<String> busca) {
+        try {
+            return busca.get();
+        } catch (NegocioException e) {
+            return null;
+        }
+    }
+
+    /** Lista auxiliar: uma falha (sem permissão, Redmine antigo) vira lista vazia em vez de impedir o modal. */
+    private static <T> List<T> opcional(Supplier<List<T>> busca) {
+        try {
+            return busca.get();
+        } catch (NegocioException | IllegalArgumentException e) {
+            LOG.fine(() -> "Lista auxiliar do Redmine indisponível: " + e.getMessage());
+            return List.of();
+        }
+    }
+
+    private static String valorDoCampo(ConsultaRedmine.Chamado chamado, int id) {
+        ConsultaRedmine.CampoPersonalizado campo = chamado.campo(id);
+        return campo == null || campo.valor() == null || campo.valor().isBlank() ? null : campo.valor().trim();
+    }
+
+    /** "5", "5.0" → 5; vazio ou não numérico → nulo. */
+    private static Integer inteiro(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        try {
+            return (int) Math.round(Double.parseDouble(valor.replace(',', '.')));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static URI uriDoChamado(ConfiguracaoRedmine configuracao, String numero) {
+        if (!numero.matches("\\d+")) {
+            throw new NegocioException("O número " + numero + " não é de um chamado do Redmine");
+        }
+        return URI.create(base(configuracao) + "/issues/" + numero + ".json");
     }
 
     /** O chamado como está agora no Redmine, para atualizar a tarefa ({@link TarefaService#atualizarDoRedmine}). */
     @TransactionAttribute(TransactionAttributeType.SUPPORTS)
     public ConsultaRedmine.ChamadoLido buscarChamado(String numero) {
         ConfiguracaoRedmine configuracao = configuracao();
-        if (!numero.matches("\\d+")) {
-            throw new NegocioException("O número " + numero + " não é de um chamado do Redmine");
-        }
-        URI uri = URI.create(base(configuracao) + "/issues/" + numero + ".json");
+        URI uri = uriDoChamado(configuracao, numero);
         return ler(() -> ConsultaRedmine.lerTarefa(buscar(configuracao, uri)));
     }
 

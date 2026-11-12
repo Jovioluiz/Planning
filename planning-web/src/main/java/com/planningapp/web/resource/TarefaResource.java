@@ -1,6 +1,8 @@
 package com.planningapp.web.resource;
 
 import com.planningapp.dto.CriarTarefaRequest;
+import com.planningapp.dto.DadosEnvioRedmineDTO;
+import com.planningapp.dto.EnviarRedmineRequest;
 import com.planningapp.dto.EnvioRedmineDTO;
 import com.planningapp.dto.FinalizarTarefaRequest;
 import com.planningapp.dto.ResultadoImportacaoDTO;
@@ -88,11 +90,22 @@ public class TarefaResource {
                 request.horasTesteFinais());
     }
 
-    /** Grava a estimativa final no chamado do Redmine. Sem corpo; só para tarefas importadas do Redmine. */
+    /**
+     * Grava a estimativa final no chamado do Redmine, com os campos confirmados no modal de finalização (versão do
+     * merge, prioridade, data prevista, projeto de trabalho). Só para tarefas importadas do Redmine.
+     */
     @POST
     @Path("/{id}/enviar-redmine")
-    public EnvioRedmineDTO enviarAoRedmine(@PathParam("salaId") Long salaId, @PathParam("id") Long id) {
-        return tarefaService.enviarAoRedmine(salaId, id);
+    public EnvioRedmineDTO enviarAoRedmine(@PathParam("salaId") Long salaId, @PathParam("id") Long id,
+                                           @Valid EnviarRedmineRequest request) {
+        return tarefaService.enviarAoRedmine(salaId, id, request);
+    }
+
+    /** O chamado como está no Redmine (e as prioridades), para preencher o modal de finalização. */
+    @GET
+    @Path("/{id}/dados-redmine")
+    public DadosEnvioRedmineDTO dadosRedmine(@PathParam("salaId") Long salaId, @PathParam("id") Long id) {
+        return tarefaService.dadosParaEnvioAoRedmine(salaId, id);
     }
 
     /** Relê o chamado no Redmine e atualiza a tarefa (título, descrição e campos). Sem corpo. */

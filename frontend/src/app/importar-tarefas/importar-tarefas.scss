@@ -1537,3 +1537,86 @@
     &:last-child  { border-radius: 0 0 16px 16px; }
   }
 }
+
+/* ─── Votação ativa: título/número abrem o detalhe ───────── */
+.voting-link {
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.voting-title-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 4px;
+  transition: color .2s, text-decoration-color .2s;
+
+  &:hover, &:focus-visible { color: var(--accent); text-decoration-color: var(--accent); }
+}
+
+/* ─── Modal de finalização ───────────────────────────────── */
+.finalizacao-form { gap: 18px; }
+
+.finalizacao-grupo {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+
+  legend { padding: 0; }
+}
+
+.finalizacao-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.finalizacao-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.finalizacao-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  > span { font-size: 12px; font-weight: 600; color: var(--muted); }
+}
+
+.finalizacao-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  color-scheme: light;
+
+  .tema-escuro & { color-scheme: dark; }
+  &::placeholder { color: var(--faint); }
+  &:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  &:disabled { opacity: .6; background: var(--surface-2); cursor: not-allowed; }
+}
+
+.finalizacao-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+@media (max-width: 560px) {
+  .finalizacao-grid, .finalizacao-grid-3 { grid-template-columns: 1fr; }
+  .finalizacao-acoes { flex-direction: column-reverse; .btn { width: 100%; } }
+}

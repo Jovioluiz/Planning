@@ -254,6 +254,55 @@ class ConsultaRedmineTest {
     }
 
     @Test
+    void montaCorpoComPrioridadeEDataPrevista() {
+        assertEquals("{\"issue\":{\"priority_id\":3,\"due_date\":\"2026-12-01\",\"custom_fields\":[{\"id\":28,\"value\":\"1.2.0\"}]}}",
+                ConsultaRedmine.corpoAtualizacao(null, null, 3, "2026-12-01", Map.of(28, "1.2.0")));
+        assertEquals("{\"issue\":{\"due_date\":null}}", ConsultaRedmine.corpoAtualizacao(null, null, null, "", Map.of()));
+    }
+
+    @Test
+    void leChamadoComPrioridadeEDataPrevista() {
+        ConsultaRedmine.Chamado chamado = ConsultaRedmine.lerChamado("""
+                {"issue":{"id":1,"priority":{"id":2,"name":"04-Normal "},"due_date":"2026-12-01","custom_fields":[]}}""");
+
+        assertEquals(new ConsultaRedmine.Opcao(2, "04-Normal"), chamado.prioridade());
+        assertEquals("2026-12-01", chamado.dataPrevista());
+        assertNull(ConsultaRedmine.lerChamado("{\"issue\":{\"id\":1,\"due_date\":null}}").dataPrevista());
+    }
+
+    @Test
+    void leValoresUsadosNosChamadosEOrdenaVersoes() {
+        ConsultaRedmine.ValoresUsados usados = ConsultaRedmine.lerValoresUsados("""
+                {"issues":[
+                  {"id":1,"custom_fields":[{"id":28,"value":"6.2.1"},{"id":56,"value":"ERP"},{"id":27,"value":"5"}]},
+                  {"id":2,"custom_fields":[{"id":28,"value":""},{"id":56,"multiple":true,"value":["WEB","ERP"]}]},
+                  {"id":3}],
+                 "total_count":250}""", java.util.Set.of(28, 56));
+
+        assertEquals(java.util.Set.of("6.2.1"), usados.valores().get(28));
+        assertEquals(java.util.Set.of("ERP", "WEB"), usados.valores().get(56));
+        assertEquals(3, usados.lidos());
+        assertEquals(250, usados.total());
+        assertEquals(List.of("6.10.0", "6.9.2", "6.2.1", "0.0.3", "0.0.0"),
+                ConsultaRedmine.ordenarVersoes(List.of("0.0.0", "6.9.2", "6.10.0", "0.0.3", "6.2.1", "6.9.2")));
+    }
+
+    @Test
+    void lePrioridadesAtivasEValoresPossiveisDoCampo() {
+        assertEquals(List.of(new ConsultaRedmine.Opcao(1, "05-Baixa"), new ConsultaRedmine.Opcao(4, "02-Urgente")),
+                ConsultaRedmine.lerPrioridades("""
+                        {"issue_priorities":[{"id":1,"name":"05-Baixa","is_default":false},
+                         {"id":9,"name":"Antiga","active":false},{"id":4,"name":"02-Urgente","active":true}]}"""));
+        String campos = """
+                {"custom_fields":[{"id":28,"name":"Versão Merge","field_format":"string"},
+                 {"id":56,"name":"Projeto de Trabalho","field_format":"list",
+                  "possible_values":[{"value":"ERP","label":"ERP"},{"value":"WEB","label":"WEB"}]}]}""";
+        assertEquals(List.of("ERP", "WEB"), ConsultaRedmine.lerValoresPossiveis(campos, 56));
+        assertEquals(List.of(), ConsultaRedmine.lerValoresPossiveis(campos, 28));
+        assertThrows(IllegalArgumentException.class, () -> ConsultaRedmine.lerPrioridades("<html/>"));
+    }
+
+    @Test
     void leErrosDaRecusaDoRedmine() {
         assertEquals(List.of("Tempo estimado não é um número", "Planning não pode ficar vazio"),
                 ConsultaRedmine.lerErros("{\"errors\":[\"Tempo estimado não é um número\",\"Planning não pode ficar vazio\"]}"));

@@ -32,6 +32,31 @@ export interface TarefaDTO {
   doRedmine: boolean;
 }
 
+/** GET .../tarefas/{id}/dados-redmine: o chamado como está no Redmine, para o modal de finalização. */
+export interface DadosEnvioRedmineDTO {
+  pontos: number | null;
+  horas: number | null;
+  horasTeste: number | null;
+  versaoMerge: string | null;
+  prioridadeId: number | null;
+  /** yyyy-MM-dd */
+  dataPrevista: string | null;
+  projetoTrabalho: string | null;
+  prioridades: { id: number; nome: string }[];
+  /** Da definição do campo (chave de administrador do Redmine) ou os já usados nos chamados do projeto. */
+  projetosTrabalho: string[];
+  /** Idem, da versão mais nova para a mais antiga. */
+  versoesMerge: string[];
+}
+
+/** Corpo do POST .../enviar-redmine: null não mexe no campo; '' limpa. */
+export interface EnviarRedmineRequest {
+  versaoMerge: string | null;
+  prioridadeId: number | null;
+  dataPrevista: string | null;
+  projetoTrabalho: string | null;
+}
+
 /** Resultado do POST .../tarefas/{id}/enviar-redmine (conferido relendo o chamado). */
 export interface EnvioRedmineDTO {
   chamado: string;

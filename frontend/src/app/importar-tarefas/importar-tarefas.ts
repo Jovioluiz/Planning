@@ -9,7 +9,7 @@ import { TaskService, ITask, ValoresFinais } from '../services/task.service';
 import { EstimationService } from '../services/estimation.service';
 import { WebSocketService } from '../websocket/websocket.service';
 import { SalaService } from '../services/sala.service';
-import { mensagemDeErro } from '../services/api-jakarta';
+import { EnviarRedmineRequest, mensagemDeErro } from '../services/api-jakarta';
 import { ConfigurarRedmine } from '../pages/configurar-redmine/configurar-redmine';
 import { Estatisticas } from '../pages/estatisticas/estatisticas';
 import { textileParaHtml } from './textile-redmine';
@@ -28,6 +28,21 @@ const MAXIMO_COLUNAS_TABELA = COLUNAS_TABELA.length;
 
 const normalizarColuna = (coluna: string) =>
   coluna.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+/** Campos do modal de finalização. Data no formato do input date (yyyy-MM-dd). */
+interface FormFinalizacao {
+  pontos: number | null;
+  horas: number | null;
+  horasTeste: number | null;
+  versaoMerge: string;
+  prioridadeId: number | null;
+  dataPrevista: string;
+  projetoTrabalho: string;
+}
+
+const formFinalizacaoVazio = (): FormFinalizacao => ({
+  pontos: null, horas: null, horasTeste: null, versaoMerge: '', prioridadeId: null, dataPrevista: '', projetoTrabalho: ''
+});
 
 @Component({
   selector: 'app-importar-tarefas',
@@ -563,6 +578,10 @@ export class ImportarTarefas implements OnInit, OnDestroy {
 
   @HostListener('document:keydown.escape')
   fecharPaineis(): void {
+    if (this.tarefaFinalizacao) {
+      this.fecharFinalizacao();
+      return;
+    }
     if (this.tarefaDetalhe) this.fecharDetalhe();
     this.configurandoRedmine = false;
     this.vendoEstatisticas = false;
@@ -790,49 +809,173 @@ export class ImportarTarefas implements OnInit, OnDestroy {
     return melhor;
   }
 
+  // ─── Finalização (modal de confirmação) ───────────────────
+  /** Tarefa do modal de finalização; o modal guarda a sua cópia porque a votação é limpa ao finalizar. */
+  tarefaFinalizacao: ITask | null = null;
+  formFinalizacao: FormFinalizacao = formFinalizacaoVazio();
+  carregandoDadosRedmine = false;
+  /** Os valores do chamado foram lidos: campo vazio no modal passa a significar "limpar" no Redmine. */
+  dadosRedmineCarregados = false;
+  erroDadosRedmine = '';
+  prioridadesRedmine: { id: number; nome: string }[] = [];
+  projetosTrabalhoRedmine: string[] = [];
+  versoesMergeRedmine: string[] = [];
+  /** A tarefa já foi finalizada e só falta (ou falhou) o envio ao Redmine: o modal só reenvia. */
+  finalizacaoConcluida = false;
+  erroFinalizacao = '';
+
+  /**
+   * Abre o modal com os valores derivados da votação (carta mais votada, média das horas e das horas de teste);
+   * se a tarefa veio do Redmine, completa com o que o chamado já tem e traz versão, prioridade, data prevista e
+   * projeto de trabalho. Nada é gravado até o moderador confirmar.
+   */
   finalizarVotacao(): void {
-    if (!this.tarefaEmVotacao || this.finalizando) return;
-    // Valores finais derivados dos votos da rodada final
+    const tarefa = this.tarefaEmVotacao;
+    if (!tarefa || this.finalizando) return;
     const s = this.calcularEstatisticasTarefa(this.estimativas);
-    const valores: ValoresFinais = {
-      pontosFinais: this.sugerirCartaFinal(this.estimativas),
-      horasFinais: s.horasMedia,
-      horasTesteFinais: this.tarefaEmVotacao.horasTesteReveladas ? this.mediaHorasTeste : null
+    const teste = tarefa.horasTesteReveladas ? this.mediaHorasTeste : null;
+    this.tarefaFinalizacao = tarefa;
+    this.formFinalizacao = {
+      ...formFinalizacaoVazio(),
+      pontos: this.sugerirCartaFinal(this.estimativas),
+      horas: s.horasMedia !== null ? Math.round(s.horasMedia) : null,
+      horasTeste: teste !== null ? Math.round(teste) : null
     };
-    this.finalizando = true;
+    this.finalizacaoConcluida = false;
+    this.erroFinalizacao = '';
+    this.erroDadosRedmine = '';
+    this.dadosRedmineCarregados = false;
+    this.prioridadesRedmine = [];
+    this.projetosTrabalhoRedmine = this.valoresDasTarefas('projeto de trabalho');
+    this.versoesMergeRedmine = this.valoresDasTarefas('versao merge');
+    this.carregandoDadosRedmine = !!tarefa.doRedmine;
     this.cdr.detectChanges();
-    this.horasFinaisPorTarefa.set(this.tarefaEmVotacao.id, valores.horasFinais ?? 0);
-    const tarefa = this.tarefaEmVotacao; // o next zera tarefaEmVotacao antes do envio ao Redmine
+    if (!tarefa.doRedmine) return;
+
+    this.taskService.dadosRedmineSala(tarefa.id.toString()).subscribe({
+      next: (dados) => {
+        if (this.tarefaFinalizacao?.id !== tarefa.id) return;
+        const f = this.formFinalizacao;
+        f.pontos ??= dados.pontos;
+        f.horas ??= dados.horas !== null ? Math.round(dados.horas) : null;
+        f.horasTeste ??= dados.horasTeste;
+        f.versaoMerge = dados.versaoMerge ?? '';
+        f.prioridadeId = dados.prioridadeId;
+        f.dataPrevista = dados.dataPrevista ?? '';
+        f.projetoTrabalho = dados.projetoTrabalho ?? '';
+        this.prioridadesRedmine = dados.prioridades;
+        if (dados.prioridadeId !== null && !dados.prioridades.some(p => p.id === dados.prioridadeId)) {
+          // Sem a lista (ou prioridade inativa): mantém a atual como opção
+          const nome = String(tarefa.dadosExtras?.['Prioridade'] ?? `Prioridade ${dados.prioridadeId}`);
+          this.prioridadesRedmine = [{ id: dados.prioridadeId, nome }, ...dados.prioridades];
+        }
+        this.projetosTrabalhoRedmine = [...new Set([...dados.projetosTrabalho, ...this.valoresDasTarefas('projeto de trabalho')])];
+        this.versoesMergeRedmine = [...new Set([...dados.versoesMerge, ...this.valoresDasTarefas('versao merge')])];
+        this.dadosRedmineCarregados = true;
+        this.carregandoDadosRedmine = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        if (this.tarefaFinalizacao?.id !== tarefa.id) return;
+        this.carregandoDadosRedmine = false;
+        this.erroDadosRedmine = 'Não foi possível ler o chamado no Redmine: '
+          + (mensagemDeErro(err?.error) ?? `erro ${err?.status ?? ''}`)
+          + '. Campos deixados em branco não serão alterados no chamado.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /** Valores da coluna (nome normalizado) já vistos nas tarefas da sala, somados aos que o Redmine devolve. */
+  private valoresDasTarefas(coluna: string): string[] {
+    const valores = new Set<string>();
+    for (const t of [this.tarefaEmVotacao, ...this.tarefasFila, ...this.tarefasEstimadas]) {
+      const extras = t?.dadosExtras ?? {};
+      const chave = Object.keys(extras).find(k => normalizarColuna(k) === coluna);
+      const valor = chave ? String(extras[chave] ?? '').trim() : '';
+      if (valor) valores.add(valor);
+    }
+    return [...valores].sort();
+  }
+
+  fecharFinalizacao(): void {
+    if (this.finalizando) return;
+    if (this.finalizacaoConcluida && this.tarefaFinalizacao) {
+      this.exibirMensagem(`Tarefa #${this.tarefaFinalizacao.numero} finalizada sem enviar ao Redmine.`, 'erro', 8000);
+    }
+    this.tarefaFinalizacao = null;
+    this.finalizacaoConcluida = false;
+    this.erroFinalizacao = '';
+    this.cdr.detectChanges();
+  }
+
+  /** Inteiro >= 0 ou vazio. */
+  private valorInvalido(v: number | null): boolean {
+    return v !== null && v !== undefined && (!Number.isFinite(v) || v < 0 || !Number.isInteger(v));
+  }
+
+  /** Finaliza com os valores do modal e só então grava no Redmine (tarefas importadas de lá). */
+  confirmarFinalizacao(): void {
+    const tarefa = this.tarefaFinalizacao;
+    if (!tarefa || this.finalizando || this.carregandoDadosRedmine) return;
+    if (this.finalizacaoConcluida) {
+      this.enviarAoRedmine(tarefa);
+      return;
+    }
+    const f = this.formFinalizacao;
+    if ([f.pontos, f.horas, f.horasTeste].some(v => this.valorInvalido(v))) {
+      this.erroFinalizacao = 'Pontos, horas e horas de teste precisam ser números inteiros, sem valores negativos.';
+      this.cdr.detectChanges();
+      return;
+    }
+    const valores: ValoresFinais = { pontosFinais: f.pontos, horasFinais: f.horas, horasTesteFinais: f.horasTeste };
+    this.finalizando = true;
+    this.erroFinalizacao = '';
+    this.cdr.detectChanges();
     this.taskService.finalizarTarefaSala(tarefa.id.toString(), valores).subscribe({
       next: () => {
-        this.finalizando = false;
-        this.tarefaEmVotacao = null;
-        this.estimativas = [];
-        this.estimativasTeste = [];
-        this.todosTestadoresVotaram = false;
-        this.participantesTarefa = [];
-        this.podeRevelarPontos = false;
-        this.podeRevelarHoras = false;
-        this.tempoDecorrido = '00:00';
-        if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
+        this.horasFinaisPorTarefa.set(tarefa.id, f.horas ?? 0);
+        this.finalizacaoConcluida = true;
+        this.limparPainelVotacao();
         this.carregarListas();
-        this.cdr.detectChanges();
-        if (tarefa.doRedmine) this.enviarAoRedmine(tarefa);
+        if (tarefa.doRedmine) {
+          this.enviarAoRedmine(tarefa);
+        } else {
+          this.finalizando = false;
+          this.fecharFinalizacao();
+          this.exibirMensagem(`Tarefa #${tarefa.numero} finalizada.`, 'sucesso');
+        }
       },
-      error: () => {
+      error: (err) => {
         this.finalizando = false;
-        this.exibirMensagem('Erro ao finalizar tarefa.', 'erro');
+        this.erroFinalizacao = 'Erro ao finalizar a tarefa: ' + (mensagemDeErro(err?.error) ?? `erro ${err?.status ?? ''}`);
+        this.cdr.detectChanges();
       }
     });
   }
 
   /**
-   * Grava as horas (média dos players) no Tempo estimado do chamado e, se configurados, os pontos e as horas de
-   * teste. Separado da finalização: se o Redmine falhar, a tarefa continua finalizada e o moderador vê o motivo.
+   * Grava no chamado as horas, os pontos e as horas de teste finais e os campos do modal. Separado da finalização:
+   * se o Redmine falhar, a tarefa continua finalizada e o modal fica aberto com o motivo, para tentar de novo.
    */
   private enviarAoRedmine(tarefa: ITask): void {
-    this.taskService.enviarRedmineSala(tarefa.id.toString()).subscribe({
+    const f = this.formFinalizacao;
+    // Sem ler o chamado, campo vazio não pode limpar o que está lá: vai como null (não mexer)
+    const texto = (v: string) => (v.trim() || (this.dadosRedmineCarregados ? '' : null));
+    const campos: EnviarRedmineRequest = {
+      versaoMerge: texto(f.versaoMerge),
+      prioridadeId: f.prioridadeId,
+      dataPrevista: texto(f.dataPrevista),
+      projetoTrabalho: texto(f.projetoTrabalho)
+    };
+    this.finalizando = true;
+    this.erroFinalizacao = '';
+    this.cdr.detectChanges();
+    this.taskService.enviarRedmineSala(tarefa.id.toString(), campos).subscribe({
       next: (envio) => {
+        this.finalizando = false;
+        this.finalizacaoConcluida = false;
+        this.fecharFinalizacao();
         const gravados = envio.gravados.length ? `: ${envio.gravados.join(' · ')}` : '';
         if (envio.avisos.length) {
           this.exibirMensagem(`Redmine #${envio.chamado}${gravados}. Atenção: ${envio.avisos.join(' ')}`, 'erro', 15000);
@@ -841,27 +984,33 @@ export class ImportarTarefas implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        this.exibirMensagem(`Tarefa finalizada, mas não foi enviada ao Redmine: `
-          + (mensagemDeErro(err?.error) ?? `erro ${err?.status ?? ''}`), 'erro', 15000);
+        this.finalizando = false;
+        this.erroFinalizacao = 'A tarefa foi finalizada, mas não foi enviada ao Redmine: '
+          + (mensagemDeErro(err?.error) ?? `erro ${err?.status ?? ''}`);
+        this.cdr.detectChanges();
       }
     });
+  }
+
+  private limparPainelVotacao(): void {
+    this.tarefaEmVotacao = null;
+    this.estimativas = [];
+    this.estimativasTeste = [];
+    this.todosTestadoresVotaram = false;
+    this.participantesTarefa = [];
+    this.podeRevelarPontos = false;
+    this.podeRevelarHoras = false;
+    this.tempoDecorrido = '00:00';
+    if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
+    this.cdr.detectChanges();
   }
 
   pularVotacao(): void {
     if (!this.tarefaEmVotacao) return;
     this.taskService.pularTarefaSala(this.tarefaEmVotacao.id.toString()).subscribe({
       next: () => {
-        this.tarefaEmVotacao = null;
-        this.estimativas = [];
-        this.estimativasTeste = [];
-        this.todosTestadoresVotaram = false;
-        this.participantesTarefa = [];
-        this.podeRevelarPontos = false;
-        this.podeRevelarHoras = false;
-        this.tempoDecorrido = '00:00';
-        if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; }
+        this.limparPainelVotacao();
         this.carregarListas();
-        this.cdr.detectChanges();
       },
       error: () => this.exibirMensagem('Erro ao pular tarefa.', 'erro')
     });

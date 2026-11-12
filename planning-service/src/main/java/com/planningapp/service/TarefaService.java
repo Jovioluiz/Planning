@@ -1,6 +1,8 @@
 package com.planningapp.service;
 
 import com.planningapp.dto.CriarTarefaRequest;
+import com.planningapp.dto.DadosEnvioRedmineDTO;
+import com.planningapp.dto.EnviarRedmineRequest;
 import com.planningapp.dto.EnvioRedmineDTO;
 import com.planningapp.dto.EventoSala;
 import com.planningapp.dto.ResultadoImportacaoDTO;
@@ -127,12 +129,13 @@ public class TarefaService {
     }
 
     /**
-     * Grava a estimativa final no chamado do Redmine (ver {@link RedmineService#enviarEstimativa}). O front chama
-     * logo depois de finalizar; separado da finalização para uma falha do Redmine nunca a desfazer. Só para
-     * tarefas importadas do Redmine: o número de uma tarefa de CSV pode não ser um chamado.
+     * Grava a estimativa final no chamado do Redmine (ver {@link RedmineService#enviarEstimativa}), com os campos
+     * confirmados no modal de finalização. O front chama logo depois de finalizar; separado da finalização para uma
+     * falha do Redmine nunca a desfazer (e o moderador poder tentar de novo). Só para tarefas importadas do Redmine:
+     * o número de uma tarefa de CSV pode não ser um chamado.
      */
     @RolesAllowed(Papeis.ADMIN)
-    public EnvioRedmineDTO enviarAoRedmine(Long salaId, Long tarefaId) {
+    public EnvioRedmineDTO enviarAoRedmine(Long salaId, Long tarefaId, EnviarRedmineRequest complemento) {
         Tarefa tarefa = buscarTarefaDoModerador(salaId, tarefaId);
         if (!tarefa.isDoRedmine()) {
             throw new NegocioException("A tarefa " + tarefa.getNumero() + " não foi importada do Redmine");
@@ -141,7 +144,17 @@ public class TarefaService {
             throw new NegocioException("Apenas tarefas estimadas são enviadas ao Redmine");
         }
         return redmineService.enviarEstimativa(tarefa.getNumero(), tarefa.getPontosFinais(), tarefa.getHorasFinais(),
-                tarefa.getHorasTesteFinais());
+                tarefa.getHorasTesteFinais(), complemento);
+    }
+
+    /** O chamado como está no Redmine, para preencher o modal de finalização (ver {@link RedmineService#dadosParaEnvio}). */
+    @RolesAllowed(Papeis.ADMIN)
+    public DadosEnvioRedmineDTO dadosParaEnvioAoRedmine(Long salaId, Long tarefaId) {
+        Tarefa tarefa = buscarTarefaDoModerador(salaId, tarefaId);
+        if (!tarefa.isDoRedmine()) {
+            throw new NegocioException("A tarefa " + tarefa.getNumero() + " não foi importada do Redmine");
+        }
+        return redmineService.dadosParaEnvio(tarefa.getNumero());
     }
 
     /**

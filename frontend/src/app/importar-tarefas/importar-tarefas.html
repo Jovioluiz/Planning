@@ -103,7 +103,8 @@
           <div class="voting-header-left">
             <h2 class="card-title">Votação Ativa</h2>
             <span class="status-dot active"></span>
-            <span class="badge-num voting-header-badge">#{{ tarefaEmVotacao.numero }}</span>
+            <button type="button" class="badge-num voting-header-badge voting-link" (click)="abrirDetalhe(tarefaEmVotacao)"
+                    title="Ver detalhes do chamado">#{{ tarefaEmVotacao.numero }}</button>
           </div>
           <div class="timer-display voting-header-timer">
             <span class="timer-icon">⏱</span>
@@ -116,7 +117,10 @@
             <!-- Coluna esquerda: info + ações -->
             <div class="voting-left">
               <div class="voting-task">
-                <h3 class="voting-title">{{ tarefaEmVotacao.titulo }}</h3>
+                <h3 class="voting-title">
+                  <button type="button" class="voting-title-link" (click)="abrirDetalhe(tarefaEmVotacao)"
+                          title="Ver detalhes do chamado">{{ tarefaEmVotacao.titulo }}</button>
+                </h3>
               </div>
 
               <div class="reveal-actions">
@@ -517,13 +521,6 @@
         <p *ngIf="atualizandoDetalhe" class="sheet-desc-vazia">Atualizando do Redmine...</p>
         <p *ngIf="erroAtualizacaoDetalhe" class="select-hint warn">{{ erroAtualizacaoDetalhe }}</p>
 
-        <dl *ngIf="camposDetalhe.length > 0" class="sheet-campos">
-          <div *ngFor="let c of camposDetalhe" class="sheet-campo">
-            <dt>{{ c.chave }}</dt>
-            <dd [class.sheet-desc-vazia]="!c.valor">{{ c.valor || '—' }}</dd>
-          </div>
-        </dl>
-
         <div *ngIf="d.estimada && !d.pulada" class="sheet-estimativa">
           <div class="sheet-estimativa-item">
             <span class="sheet-label">Pontos</span>
@@ -545,6 +542,17 @@
           <p *ngIf="descricaoDetalhe && !descricaoHtml" class="sheet-desc">{{ descricaoDetalhe }}</p>
           <p *ngIf="!descricaoDetalhe" class="sheet-desc sheet-desc-vazia">Sem descrição.</p>
         </div>
+
+        <!-- Campos do chamado no fim, depois de toda a descrição -->
+        <div *ngIf="camposDetalhe.length > 0" class="sheet-section">
+          <h3 class="sheet-label">Campos do chamado</h3>
+          <dl class="sheet-campos">
+            <div *ngFor="let c of camposDetalhe" class="sheet-campo">
+              <dt>{{ c.chave }}</dt>
+              <dd [class.sheet-desc-vazia]="!c.valor">{{ c.valor || '—' }}</dd>
+            </div>
+          </dl>
+        </div>
       </div>
 
       <footer *ngIf="detalheNaFila" class="sheet-footer">
@@ -553,6 +561,99 @@
           ▶ Iniciar Votação
         </button>
       </footer>
+    </section>
+  </ng-container>
+
+  <!-- ─── Finalização da tarefa (confirmação antes de gravar) ─ -->
+  <ng-container *ngIf="tarefaFinalizacao as tf">
+    <div class="sheet-backdrop" (click)="fecharFinalizacao()"></div>
+    <section class="sheet sheet-compacto" role="dialog" aria-modal="true" [attr.aria-label]="'Finalizar tarefa #' + tf.numero">
+      <div class="sheet-handle" (click)="fecharFinalizacao()"></div>
+
+      <header class="sheet-header">
+        <div class="sheet-header-info">
+          <div class="sheet-tags">
+            <span class="badge-num">#{{ tf.numero }}</span>
+            <span *ngIf="finalizacaoConcluida" class="badge badge-done">Finalizada</span>
+          </div>
+          <h2 class="sheet-title">Finalizar tarefa</h2>
+          <p class="sheet-subtitulo">
+            {{ tf.titulo }}
+            <ng-container *ngIf="tf.doRedmine"> · os valores só são gravados no Redmine ao confirmar.</ng-container>
+          </p>
+        </div>
+        <button class="sheet-close" (click)="fecharFinalizacao()" [disabled]="finalizando" title="Fechar (Esc)">✕</button>
+      </header>
+
+      <form class="sheet-body finalizacao-form" (ngSubmit)="confirmarFinalizacao()">
+        <p *ngIf="carregandoDadosRedmine" class="select-hint importing-row"><span class="spinner-sm"></span> Lendo o chamado no Redmine...</p>
+        <p *ngIf="erroDadosRedmine" class="select-hint warn">{{ erroDadosRedmine }}</p>
+
+        <fieldset class="finalizacao-grupo" [disabled]="finalizacaoConcluida || finalizando">
+          <legend class="sheet-label">Estimativa</legend>
+          <div class="finalizacao-grid finalizacao-grid-3">
+            <label class="finalizacao-campo">
+              <span>Horas estimadas</span>
+              <input class="finalizacao-input" type="number" min="0" step="1" name="horas" [(ngModel)]="formFinalizacao.horas" />
+            </label>
+            <label class="finalizacao-campo">
+              <span>Horas de teste</span>
+              <input class="finalizacao-input" type="number" min="0" step="1" name="horasTeste" [(ngModel)]="formFinalizacao.horasTeste" />
+            </label>
+            <label class="finalizacao-campo">
+              <span>Planning (pontos)</span>
+              <input class="finalizacao-input" type="number" min="0" max="100" step="1" name="pontos" [(ngModel)]="formFinalizacao.pontos" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset *ngIf="tf.doRedmine" class="finalizacao-grupo" [disabled]="carregandoDadosRedmine || finalizando">
+          <legend class="sheet-label">Chamado no Redmine</legend>
+          <div class="finalizacao-grid">
+            <label class="finalizacao-campo">
+              <span>Versão do merge</span>
+              <input class="finalizacao-input" type="text" maxlength="100" name="versaoMerge" placeholder="ex.: 6.2.1"
+                     list="versoes-merge" [(ngModel)]="formFinalizacao.versaoMerge" />
+              <datalist id="versoes-merge">
+                <option *ngFor="let v of versoesMergeRedmine" [value]="v"></option>
+              </datalist>
+            </label>
+            <label class="finalizacao-campo">
+              <span>Prioridade</span>
+              <select class="finalizacao-input" name="prioridadeId" [(ngModel)]="formFinalizacao.prioridadeId">
+                <option [ngValue]="null" [disabled]="dadosRedmineCarregados">{{ dadosRedmineCarregados ? 'Selecione' : 'Não alterar' }}</option>
+                <option *ngFor="let p of prioridadesRedmine" [ngValue]="p.id">{{ p.nome }}</option>
+              </select>
+            </label>
+            <label class="finalizacao-campo">
+              <span>Data prevista</span>
+              <input class="finalizacao-input" type="date" name="dataPrevista" [(ngModel)]="formFinalizacao.dataPrevista" />
+            </label>
+            <label class="finalizacao-campo">
+              <span>Projeto de trabalho</span>
+              <input class="finalizacao-input" type="text" maxlength="255" name="projetoTrabalho" list="projetos-trabalho"
+                     [(ngModel)]="formFinalizacao.projetoTrabalho" />
+              <datalist id="projetos-trabalho">
+                <option *ngFor="let p of projetosTrabalhoRedmine" [value]="p"></option>
+              </datalist>
+            </label>
+          </div>
+        </fieldset>
+
+        <p *ngIf="erroFinalizacao" class="select-hint warn">{{ erroFinalizacao }}</p>
+
+        <div class="finalizacao-acoes">
+          <button type="button" class="btn btn-ghost" [disabled]="finalizando" (click)="fecharFinalizacao()">
+            {{ finalizacaoConcluida ? 'Fechar sem enviar' : 'Cancelar' }}
+          </button>
+          <button type="submit" class="btn btn-success" [disabled]="finalizando || carregandoDadosRedmine">
+            <ng-container *ngIf="finalizando">{{ finalizacaoConcluida ? 'Enviando ao Redmine...' : 'Finalizando...' }}</ng-container>
+            <ng-container *ngIf="!finalizando">
+              {{ finalizacaoConcluida ? '↻ Tentar enviar de novo' : (tf.doRedmine ? '✓ Confirmar e gravar no Redmine' : '✓ Confirmar') }}
+            </ng-container>
+          </button>
+        </div>
+      </form>
     </section>
   </ng-container>
 

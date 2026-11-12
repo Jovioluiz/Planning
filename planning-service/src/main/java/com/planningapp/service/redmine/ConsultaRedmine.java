@@ -270,8 +270,16 @@ public final class ConsultaRedmine {
     public record Situacao(int id, String nome) {
     }
 
-    /** O que o envio da estimativa precisa de {@code /issues/{id}.json}: para achar os campos e conferir. */
-    public record Chamado(Double tempoEstimado, Situacao situacao, List<CampoPersonalizado> campos) {
+    /** Item de uma lista do Redmine com id e nome (prioridade). */
+    public record Opcao(int id, String nome) {
+    }
+
+    /**
+     * O que o envio da estimativa precisa de {@code /issues/{id}.json}: para achar os campos e conferir.
+     * {@code dataPrevista} no formato do Redmine ({@code yyyy-MM-dd}) ou nula; {@code projetoId} nulo se não veio.
+     */
+    public record Chamado(Double tempoEstimado, Situacao situacao, Opcao prioridade, String dataPrevista,
+                          Integer projetoId, List<CampoPersonalizado> campos) {
 
         /** Nulo quando o campo não vale para o tipo (ou o projeto) do chamado. */
         public CampoPersonalizado campo(int id) {
@@ -286,6 +294,9 @@ public final class ConsultaRedmine {
             Situacao situacao = chamado.get("status") instanceof JsonObject status && status.get("id") instanceof JsonNumber id
                     ? new Situacao(id.intValue(), texto(status, "name") == null ? "" : texto(status, "name").trim())
                     : null;
+            Opcao prioridade = chamado.get("priority") instanceof JsonObject p && p.get("id") instanceof JsonNumber id
+                    ? new Opcao(id.intValue(), texto(p, "name") == null ? "" : texto(p, "name").trim())
+                    : null;
             List<CampoPersonalizado> campos = new ArrayList<>();
             if (chamado.get("custom_fields") instanceof JsonArray personalizados) {
                 for (JsonValue item : personalizados) {
@@ -296,10 +307,106 @@ public final class ConsultaRedmine {
                     }
                 }
             }
-            return new Chamado(tempo, situacao, campos);
+            Integer projetoId = chamado.get("project") instanceof JsonObject projeto
+                    && projeto.get("id") instanceof JsonNumber id ? id.intValue() : null;
+            return new Chamado(tempo, situacao, prioridade, texto(chamado, "due_date"), projetoId, campos);
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("Resposta inesperada do Redmine ao buscar o chamado");
         }
+    }
+
+    /** As prioridades ativas, de {@code /enumerations/issue_priorities.json}, na ordem do Redmine. */
+    public static List<Opcao> lerPrioridades(String json) {
+        try (JsonReader leitor = Json.createReader(new StringReader(json))) {
+            List<Opcao> prioridades = new ArrayList<>();
+            for (JsonValue item : leitor.readObject().getJsonArray("issue_priorities")) {
+                if (item instanceof JsonObject prioridade && prioridade.get("id") instanceof JsonNumber id
+                        && texto(prioridade, "name") != null && prioridade.get("active") != JsonValue.FALSE) {
+                    prioridades.add(new Opcao(id.intValue(), texto(prioridade, "name").trim()));
+                }
+            }
+            return prioridades;
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Resposta inesperada do Redmine ao buscar as prioridades");
+        }
+    }
+
+    /**
+     * Valores possíveis do campo personalizado de lista {@code campoId}, de {@code /custom_fields.json} (só
+     * administradores do Redmine podem ler). Vazio se o campo não existir ou não for de lista.
+     */
+    public static List<String> lerValoresPossiveis(String json, int campoId) {
+        try (JsonReader leitor = Json.createReader(new StringReader(json))) {
+            for (JsonValue item : leitor.readObject().getJsonArray("custom_fields")) {
+                if (item instanceof JsonObject campo && campo.get("id") instanceof JsonNumber id && id.intValue() == campoId
+                        && campo.get("possible_values") instanceof JsonArray valores) {
+                    return valores.stream()
+                            .map(v -> v instanceof JsonObject opcao ? texto(opcao, "value") : valorSimples(v))
+                            .filter(v -> v != null && !v.isBlank())
+                            .toList();
+                }
+            }
+            return List.of();
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Resposta inesperada do Redmine ao buscar os campos personalizados");
+        }
+    }
+
+    /**
+     * Valores preenchidos dos campos personalizados {@code ids} numa página de {@code /issues.json} (para sugerir os
+     * valores quando a chave não pode ler a definição do campo), e quantos chamados a consulta tem ao todo.
+     */
+    public record ValoresUsados(Map<Integer, Set<String>> valores, int lidos, int total) {
+    }
+
+    public static ValoresUsados lerValoresUsados(String json, Set<Integer> ids) {
+        try (JsonReader leitor = Json.createReader(new StringReader(json))) {
+            JsonObject resposta = leitor.readObject();
+            JsonArray chamados = resposta.getJsonArray("issues");
+            Map<Integer, Set<String>> valores = new LinkedHashMap<>();
+            ids.forEach(id -> valores.put(id, new java.util.LinkedHashSet<>()));
+            for (JsonValue item : chamados) {
+                if (item instanceof JsonObject chamado && chamado.get("custom_fields") instanceof JsonArray campos) {
+                    for (JsonValue c : campos) {
+                        if (c instanceof JsonObject campo && campo.get("id") instanceof JsonNumber id
+                                && ids.contains(id.intValue())) {
+                            JsonValue valor = campo.get("value");
+                            Stream<JsonValue> lista = valor instanceof JsonArray varios ? varios.stream() : Stream.of(valor);
+                            lista.map(ConsultaRedmine::valorSimples)
+                                    .filter(v -> v != null && !v.isBlank())
+                                    .forEach(v -> valores.get(id.intValue()).add(v.trim()));
+                        }
+                    }
+                }
+            }
+            int total = resposta.get("total_count") instanceof JsonNumber n ? n.intValue() : chamados.size();
+            return new ValoresUsados(valores, chamados.size(), total);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Resposta inesperada do Redmine ao buscar os chamados");
+        }
+    }
+
+    /**
+     * Versões da mais nova para a mais antiga, comparando os números de cada parte ({@code 6.10.0} depois de
+     * {@code 6.9.2}); o que não for número compara como texto.
+     */
+    public static List<String> ordenarVersoes(java.util.Collection<String> versoes) {
+        java.util.Comparator<String> porVersao = (a, b) -> {
+            String[] pa = a.split("[^0-9A-Za-z]+");
+            String[] pb = b.split("[^0-9A-Za-z]+");
+            for (int i = 0; i < Math.max(pa.length, pb.length); i++) {
+                String x = i < pa.length ? pa[i] : "";
+                String y = i < pb.length ? pb[i] : "";
+                int comparacao = x.matches("\\d+") && y.matches("\\d+")
+                        ? new java.math.BigInteger(x).compareTo(new java.math.BigInteger(y))
+                        : x.compareToIgnoreCase(y);
+                if (comparacao != 0) {
+                    return comparacao;
+                }
+            }
+            return a.compareTo(b);
+        };
+        return versoes.stream().distinct().sorted(porVersao.reversed()).toList();
     }
 
     /**
@@ -307,12 +414,31 @@ public final class ConsultaRedmine {
      * [{"id":3,"value":"8"}]}}}. Horas ou situação nulas não vão (ficam como estão no chamado).
      */
     public static String corpoAtualizacao(Integer horas, Integer situacaoId, Map<Integer, String> camposPersonalizados) {
+        return corpoAtualizacao(horas, situacaoId, null, null, camposPersonalizados);
+    }
+
+    /**
+     * Como {@link #corpoAtualizacao(Integer, Integer, Map)}, com a prioridade ({@code priority_id}) e a data prevista
+     * ({@code due_date}). Nulas não vão; data vazia vai como {@code null} (limpa a data no chamado).
+     */
+    public static String corpoAtualizacao(Integer horas, Integer situacaoId, Integer prioridadeId, String dataPrevista,
+                                          Map<Integer, String> camposPersonalizados) {
         var issue = Json.createObjectBuilder();
         if (horas != null) {
             issue.add("estimated_hours", horas);
         }
         if (situacaoId != null) {
             issue.add("status_id", situacaoId);
+        }
+        if (prioridadeId != null) {
+            issue.add("priority_id", prioridadeId);
+        }
+        if (dataPrevista != null) {
+            if (dataPrevista.isBlank()) {
+                issue.addNull("due_date");
+            } else {
+                issue.add("due_date", dataPrevista);
+            }
         }
         if (!camposPersonalizados.isEmpty()) {
             var campos = Json.createArrayBuilder();

@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { API, EnvioRedmineDTO, TarefaDTO, paraITask } from './api-jakarta';
+import { API, DadosEnvioRedmineDTO, EnviarRedmineRequest, EnvioRedmineDTO, TarefaDTO, paraITask } from './api-jakarta';
 
 /** Formato que os componentes usam (o do backend antigo); vem de {@link paraITask}. */
 export interface ITask {
@@ -128,9 +128,17 @@ export class TaskService {
     return this.http.post(this.tarefas(`/${id}/finalizar`), corpo, this.authOptions);
   }
 
-  /** Grava a estimativa final no chamado do Redmine; só para tarefas com doRedmine. */
-  enviarRedmineSala(id: string): Observable<EnvioRedmineDTO> {
-    return this.http.post<EnvioRedmineDTO>(this.tarefas(`/${id}/enviar-redmine`), {}, this.authOptions);
+  /**
+   * Grava a estimativa final no chamado do Redmine, com os campos confirmados no modal de finalização; só para
+   * tarefas com doRedmine.
+   */
+  enviarRedmineSala(id: string, campos?: EnviarRedmineRequest): Observable<EnvioRedmineDTO> {
+    return this.http.post<EnvioRedmineDTO>(this.tarefas(`/${id}/enviar-redmine`), campos ?? {}, this.authOptions);
+  }
+
+  /** O chamado como está no Redmine (e as prioridades), para preencher o modal de finalização. */
+  dadosRedmineSala(id: string): Observable<DadosEnvioRedmineDTO> {
+    return this.http.get<DadosEnvioRedmineDTO>(this.tarefas(`/${id}/dados-redmine`), this.authOptions);
   }
 
   /** Relê o chamado no Redmine e grava na tarefa o título, a descrição e os campos como estão agora. */
